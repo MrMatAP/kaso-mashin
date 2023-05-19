@@ -1,0 +1,19 @@
+#
+# This file is for convenience only, to quickly set up what is necessary to develop in some IDE
+# The real runtime requirements are held in setup.cfg. BE SURE to update both files.
+
+# Runtime requirements
+
+rich~=12.6.0        # MIT
+requests~=2.28.1    # Apache 2.0
+flask~=2.3.2        # BSD 3-Clause
+ansible~=7.5.0      # GPLv3
+
+# Build/Test requirements
+
+setuptools>=42.0.0
+build>=0.9.0             # MIT
+wheel>=0.36.0            # MIT
+pylint~=2.15.5           # MIT
+pytest~=7.2.0            # GPL-2.0-or-later
+pytest-cov~=4.0.0        # MIT
