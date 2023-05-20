@@ -1,4 +1,5 @@
 import os
+import pathlib
 import shutil
 import argparse
 from configparser import ConfigParser
@@ -9,6 +10,7 @@ from mrmat_playground import console
 from mrmat_playground.abstract_resource_commands import AbstractResourceCommands
 from mrmat_playground.executor import execute
 from mrmat_playground.cloud_init import Metadata, UserData, VendorData, NetworkConfig
+from mrmat_playground.instance import Instance
 
 # TODO
 test_pubkey = 'ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQD+Zo5EnA0fNi336bS8K0gpnmQ1csudD0bTZxkE4SzE7zGiD7Ybzb0vzkHVszYDC7H+2GEmeJAAn/t54kGPzCOsKomsqQXJ4h+MVLMmt9b01qBoObF02FFoPI1v/i9FWUGxr+WcyjvVzluGCSSSGMd/H6ri5o1Uo9ivy6PrbvxI1MARvVKBAhefjgJHNik1glZHMwVDCyMFNwSBlj8KV/pWoDT0cjVacTR0WoAcpxwfXHjx37FV15b/svelRsjPnzuW6UIk/gLqlvMIeIEubWriVi2DiRL4K3R2JMPHZ/VnEc/SVbilCjOZlsjCq/eqYd309ZeXAzytyGSaZrIWGQL9 imfeldma@bobeli.org'
@@ -20,6 +22,7 @@ class PhoneHomeServer(BaseHTTPRequestHandler):
         console.log(f'path: {self.path}')
         self.send_response(code=200, message='Well, hello there!')
         self.end_headers()
+
 
 class InstanceCommands(AbstractResourceCommands):
     """
@@ -38,6 +41,12 @@ class InstanceCommands(AbstractResourceCommands):
     def create(args: argparse.Namespace, config: ConfigParser) -> int:
         InstanceCommands._validate(config)
 
+        instance = Instance(config,
+                            'instance0',
+                            'mrmat',
+                            pathlib.Path(config['DEFAULT']['playground_path'], 'images', 'jammy-arm64.qcow2'))
+        instance.create()
+
         instance_path = os.path.join(config['DEFAULT']['playground_path'], 'instances', args.name)
         disk_path = os.path.join(config['DEFAULT']['playground_path'], 'instances', args.name, 'cloud-init.img')
         backing_disk_path = os.path.join(config['DEFAULT']['playground_path'], 'images', 'jammy-arm64.qcow2')
@@ -46,47 +55,47 @@ class InstanceCommands(AbstractResourceCommands):
         inventory_path = os.path.join(config['DEFAULT']['playground_path'], 'instances', args.name, 'inventory.yml')
         playbook_path = os.path.join(config['DEFAULT']['playground_path'], 'ansible', 'test.yml')
 
-        if not os.path.exists(backing_disk_path):
-            console.log(f'Backing disk at {backing_disk_path} does not exist. Download the image first.')
-            return 1
-        if os.path.exists(instance_path):
-            console.log(f'Instance at {instance_path} already exists. Remove the instance first.')
-            return 1
-        if os.path.exists(os_disk_path):
-            console.log(f'Backing store at {os_disk_path} already exists. Remove the instance first.')
-            return 1
-        if os.path.exists(bin_path):
-            console.log(f'Start script at {bin_path} already exists. Remove the instance first.')
-            return 1
-        if os.path.exists('/Volumes/CIDATA'):
-            console.log('/Volumes/CIDATA is currently mounted. Unmount it first')
-            return 1
-        os.makedirs(instance_path)
+        # if not os.path.exists(backing_disk_path):
+        #     console.log(f'Backing disk at {backing_disk_path} does not exist. Download the image first.')
+        #     return 1
+        # if os.path.exists(instance_path):
+        #     console.log(f'Instance at {instance_path} already exists. Remove the instance first.')
+        #     return 1
+        # if os.path.exists(os_disk_path):
+        #     console.log(f'Backing store at {os_disk_path} already exists. Remove the instance first.')
+        #     return 1
+        # if os.path.exists(bin_path):
+        #     console.log(f'Start script at {bin_path} already exists. Remove the instance first.')
+        #     return 1
+        # if os.path.exists('/Volumes/CIDATA'):
+        #     console.log('/Volumes/CIDATA is currently mounted. Unmount it first')
+        #     return 1
+        # os.makedirs(instance_path)
+        #
+        # # Create a disk image
+        # execute('dd', ['if=/dev/zero', f'of={disk_path}', 'bs=512', 'count=2880'])
+        # hdiutil_output = execute('hdiutil', ['attach', '-nomount', disk_path])
+        # kernel_device = hdiutil_output.stdout.strip()
+        # execute('diskutil', ['eraseVolume', 'MS-DOS', 'CIDATA', kernel_device])
+        # with open('/Volumes/CIDATA/meta-data', mode='w', encoding='UTF-8') as m:
+        #     m.write(Metadata(instance_id=args.name, hostname=args.name).render())
+        # with open('/Volumes/CIDATA/user-data', mode='w', encoding='UTF-8') as u:
+        #     u.write(UserData(pubkey=test_pubkey).render())
+        # with open('/Volumes/CIDATA/vendor-data', mode='w', encoding='UTF-8') as v:
+        #     v.write(VendorData().render())
+        # with open('/Volumes/CIDATA/network-config', mode='w', encoding='UTF-8') as n:
+        #     n.write(NetworkConfig(mac='00:00:5e:00:52:02', ip='172.16.3.5/24', gw='172.16.3.1', ns='172.16.3.1').render())
+        # execute('diskutil', ['eject', kernel_device])
+        # console.log(f'Created cloud-init disk image at {disk_path}')
 
-        # Create a disk image
-        execute('dd', ['if=/dev/zero', f'of={disk_path}', 'bs=512', 'count=2880'])
-        hdiutil_output = execute('hdiutil', ['attach', '-nomount', disk_path])
-        kernel_device = hdiutil_output.stdout.strip()
-        execute('diskutil', ['eraseVolume', 'MS-DOS', 'CIDATA', kernel_device])
-        with open('/Volumes/CIDATA/meta-data', mode='w', encoding='UTF-8') as m:
-            m.write(Metadata(instance_id=args.name, hostname=args.name).render())
-        with open('/Volumes/CIDATA/user-data', mode='w', encoding='UTF-8') as u:
-            u.write(UserData(pubkey=test_pubkey).render())
-        with open('/Volumes/CIDATA/vendor-data', mode='w', encoding='UTF-8') as v:
-            v.write(VendorData().render())
-        with open('/Volumes/CIDATA/network-config', mode='w', encoding='UTF-8') as n:
-            n.write(NetworkConfig(mac='00:00:5e:00:52:02', ip='172.16.3.5/24', gw='172.16.3.1', ns='172.16.3.1').render())
-        execute('diskutil', ['eject', kernel_device])
-        console.log(f'Created cloud-init disk image at {disk_path}')
-
-        # Create the OS disk
-        execute('qemu-img', ['create', '-f', 'qcow2', '-b', backing_disk_path, '-F', 'qcow2', os_disk_path])
-        console.log(f'Created OS disk at {os_disk_path} from backing store {backing_disk_path}')
-        execute('qemu-img', ['resize', os_disk_path, args.os_disk_size])
-        console.log(f'Resized OS disk at {os_disk_path} to {args.os_disk_size}')
+        # # Create the OS disk
+        # execute('qemu-img', ['create', '-f', 'qcow2', '-b', backing_disk_path, '-F', 'qcow2', os_disk_path])
+        # console.log(f'Created OS disk at {os_disk_path} from backing store {backing_disk_path}')
+        # execute('qemu-img', ['resize', os_disk_path, args.os_disk_size])
+        # console.log(f'Resized OS disk at {os_disk_path} to {args.os_disk_size}')
 
         # Create the startscript
-        with open(bin_path, mode='w', encoding='UTF-8') as b:
+        with open(instance.bin_path, mode='w', encoding='UTF-8') as b:
             b.write(f'''
 #!/bin/bash
 qemu-system-aarch64 \\
@@ -104,12 +113,12 @@ qemu-system-aarch64 \\
   -device virtio-rng-pci \\
   -device nec-usb-xhci,id=usb-bus \\
   -device usb-kbd,bus=usb-bus.0 \\
-  -drive if=virtio,file={os_disk_path},format=qcow2,cache=writethrough \\
-  -drive if=virtio,file={disk_path},format=raw \\
+  -drive if=virtio,file={instance.os_disk_path},format=qcow2,cache=writethrough \\
+  -drive if=virtio,file={instance.cloud_init_path},format=raw \\
   -smbios type=3,manufacturer=MrMat,version=0,serial={args.name},asset={args.name},sku={args.name}
             ''')
-        os.chmod(bin_path, mode=0o755)
-        console.log(f'Start the VM using "sudo {bin_path}')
+        os.chmod(instance.bin_path, mode=0o755)
+        console.log(f'Start the VM using "sudo {instance.bin_path}')
 
         console.log('Waiting for the instance to phone home')
         httpd = HTTPServer(server_address=('172.16.3.10', 10300), RequestHandlerClass=PhoneHomeServer)
@@ -118,7 +127,7 @@ qemu-system-aarch64 \\
 
         console.log(f'Instance {args.name} has phoned home')
 
-        with open(inventory_path, mode='w', encoding='UTF-8') as i:
+        with open(instance.inventory_path, mode='w', encoding='UTF-8') as i:
             i.write(f'''
 all:
   vars:
@@ -129,9 +138,22 @@ all:
     {args.name}:
       ansible_host: 172.16.3.5
             ''')
-        console.log(f'Created inventory at {inventory_path}')
+        console.log(f'Created inventory at {instance.inventory_path}')
 
-        execute('ansible-playbook', ['-i', inventory_path, playbook_path])
+        with open(instance.playbook_path, mode='w', encoding='UTF-8') as p:
+            p.write(f'''
+# Deploy
+---
+- name: Deploy
+  hosts: all
+  tasks:
+  - name: Say Hello
+    ansible.builtin.debug:
+      msg: "Hello World"
+            ''')
+
+        resp = execute('ansible-playbook', ['-i', instance.inventory_path, instance.playbook_path])
+        console.log(resp.stdout)
         console.log('Instance postconfigured')
         return 0
 
