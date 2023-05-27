@@ -2,5 +2,9 @@
 # Redirect console output to the (serial) console
 
 [Journal]
+{% if redirect %}
 ForwardToConsole=yes
-TTYPath=/dev/ttyAMA0
+{% else %}
+ForwardToConsole=no
+{% endif %}
+TTYPath={{ tty }}

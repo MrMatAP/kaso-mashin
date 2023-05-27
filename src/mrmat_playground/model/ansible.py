@@ -1,10 +1,11 @@
 import pathlib
 
 from yaml import dump
+
 try:
-    from yaml import CDumper as Dumper      # pylint: disable=unused-import
+    from yaml import CDumper as Dumper  # pylint: disable=unused-import
 except ImportError:
-    from yaml import Dumper                 # pylint: disable=unused-import
+    from yaml import Dumper  # pylint: disable=unused-import
 
 from .renderable import Renderable
 
@@ -83,6 +84,8 @@ class AnsiblePlaybook(Renderable):
             'name': 'Deploy',
             'hosts': 'all',
             'roles': [
-                'mrmat.playground.redirect_console'
+                {'name': 'mrmat.playground.redirect_console',
+                 'vars': {'redirect': True}
+                 }
             ]
         }])
