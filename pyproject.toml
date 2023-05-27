@@ -30,7 +30,8 @@ requires-python = ">=3.10"
 dependencies = [
     "rich~=12.6.0",
     "requests~=2.28.1",
-    "flask~=2.3.2",        # BSD 3-Clause
+    "pyyaml~=6.0",        # MIT
+    "netifaces~=0.11.0",   # MIT
     "ansible~=7.5.0"      # GPLv3
 ]
 dynamic = ["version"]
