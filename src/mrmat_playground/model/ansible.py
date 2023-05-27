@@ -54,6 +54,7 @@ class AnsibleCfg(Renderable):
 
     def __init__(self, inventory_path: pathlib.Path):
         self._inventory_path = inventory_path
+        self._collections_path = pathlib.Path(__file__).parent.parent.joinpath('ansible')
 
     @property
     def inventory_path(self) -> pathlib.Path:
@@ -65,6 +66,10 @@ class AnsibleCfg(Renderable):
 inventory = {self.inventory_path}
 # This is a potential security hole, be sure to keep your playground VM's local. Clearly not for production
 host_key_checking = False
+
+# This points to the Ansible collections mrmat-playground comes with
+collections_paths = {self._collections_path}
+
         '''
 
 
@@ -77,10 +82,7 @@ class AnsiblePlaybook(Renderable):
         return dump([{
             'name': 'Deploy',
             'hosts': 'all',
-            'tasks': [{
-                'name': 'Say Hello',
-                'ansible.builtin.debug': {
-                    'msg': 'Hello World'
-                }
-            }]
+            'roles': [
+                'mrmat.playground.redirect_console'
+            ]
         }])
