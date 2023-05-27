@@ -1,6 +1,6 @@
 # MrMat :: Playground
 
-An experimental but efficient way to spin up virtual machines on an ARM-based MAC.
+An experimental but efficient way to spin up virtual machines on an ARM-based Mac.
 
 >*SECURITY*: We use [cloud-init](https://cloudinit.readthedocs.io/en/latest/index.html) to perform initial
 > postconfiguration of the instances The default configuration will create two users, 'ansible' using an SSH 
