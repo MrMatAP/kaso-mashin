@@ -12,9 +12,4 @@
     dest: /etc/systemd/journald.conf.d/00-console-output.conf
     owner: root
     mode: 0644
-
-- name: Restart journald
-  ansible.builtin.systemd:
-    name: systemd-journald
-    state: restarted
-    daemon_reload: true
+  notify: journald-restart
