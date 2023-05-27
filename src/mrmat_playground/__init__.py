@@ -16,18 +16,24 @@ except importlib.metadata.PackageNotFoundError:
 
 logging.basicConfig(level='INFO', handlers=[RichHandler(rich_tracebacks=True)])
 log = logging.getLogger(__name__)
-console = Console(log_time=False, log_path=False)
+console = Console(log_time=True, log_path=False)
 
 default_config = dict(
     playground_path=os.path.expanduser(os.path.join('~', 'var', 'mrmat-playground')),
-)
+    default_os_disk_size='5G')
 
 
 class PlaygroundException(Exception):
+    """
+    A dedicated exception for mrmat-playground
+    """
 
     def __init__(self, status=500, msg='An unknown exception occurred'):
         self.status = status
         self.msg = msg
 
     def __repr__(self):
-        return f'PlaygroundException(status=${self.status}, msg=${self.msg})'
+        return f'PlaygroundException(status={self.status}, msg={self.msg})'
+
+    def __str__(self):
+        return self.__repr__()
