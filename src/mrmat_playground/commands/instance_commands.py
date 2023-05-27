@@ -1,4 +1,3 @@
-import os
 import shutil
 import argparse
 import configparser
@@ -34,7 +33,8 @@ class PhoneHomeHandler(BaseHTTPRequestHandler):
     A handler for instances calling their mum
     """
 
-    def do_POST(self):
+    # It is actually required to be called do_POST, despite pylint complaining about it
+    def do_POST(self):              # pylint: disable=invalid-name
         self.server.callback(self.client_address[0])
         self.send_response(code=200, message='Well, hello there!')
         self.end_headers()
@@ -79,7 +79,7 @@ class InstanceCommands:
         return 0
 
     @staticmethod
-    def remove(args: argparse.Namespace, config: configparser.ConfigParser) -> int:
+    def remove(args: argparse.Namespace, config: configparser.ConfigParser) -> int:   # pylint: disable=unused-argument
         with console.status(f'[magenta] Removing instance {args.name}') as status:
             cloud = Cloud(path=args.path)
             cloud.load()

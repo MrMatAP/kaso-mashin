@@ -2,9 +2,9 @@ import pathlib
 
 from yaml import dump
 try:
-    from yaml import CDumper as Dumper
+    from yaml import CDumper as Dumper      # pylint: disable=unused-import
 except ImportError:
-    from yaml import Dumper
+    from yaml import Dumper                 # pylint: disable=unused-import
 
 from .renderable import Renderable
 

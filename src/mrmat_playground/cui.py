@@ -144,7 +144,7 @@ def main(args: typing.Optional[typing.List] = None) -> int:
             return args.cmd(args, config)() if inspect.isclass(args.cmd) else args.cmd(args, config)
         else:
             parser.print_help()
-    except Exception:
+    except Exception:       # pylint: disable=broad-except
         console.print_exception()
     return 1
 

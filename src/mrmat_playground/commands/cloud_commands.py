@@ -3,7 +3,7 @@ import configparser
 
 import rich.table
 
-from mrmat_playground import console, PlaygroundException
+from mrmat_playground import console
 from mrmat_playground.model import Cloud
 
 
@@ -13,7 +13,7 @@ class CloudCommands:
     """
 
     @staticmethod
-    def get(args: argparse.Namespace, config: configparser.ConfigParser) -> int:
+    def get(args: argparse.Namespace, config: configparser.ConfigParser) -> int:    # pylint: disable=unused-argument
         cloud = Cloud(path=args.path)
         cloud.load()
         table = rich.table.Table(title=f'Cloud Playground: {cloud.name}')
@@ -33,7 +33,7 @@ class CloudCommands:
         return 0
 
     @staticmethod
-    def create(args: argparse.Namespace, config: configparser.ConfigParser) -> int:
+    def create(args: argparse.Namespace, config: configparser.ConfigParser) -> int:  # pylint: disable=unused-argument
         cloud = Cloud(path=args.path)
         cloud.name = args.name
         cloud.public_key_path = args.public_key_path

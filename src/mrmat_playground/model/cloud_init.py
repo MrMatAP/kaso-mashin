@@ -1,10 +1,10 @@
 import ipaddress
 
-from yaml import load, dump
+from yaml import dump
 try:
-    from yaml import CLoader as Loader, CDumper as Dumper
+    from yaml import CDumper as Dumper      # pylint: disable=unused-import
 except ImportError:
-    from yaml import Loader, Dumper
+    from yaml import Dumper                 # pylint: disable=unused-import
 
 from .renderable import Renderable
 
@@ -31,9 +31,6 @@ class CIMetadata(Renderable):
             'instance-id': f'{self.instance_id}/{self.hostname}',
             'local-hostname': self.hostname
         })
-
-    def __repr__(self):
-        return f'Metadata(instance_id={self.instance_id}, hostname={self.hostname})'
 
 
 class CINetworkConfig(Renderable):
@@ -93,9 +90,6 @@ class CINetworkConfig(Renderable):
                 }
             }
         })
-
-    def __repr__(self):
-        return f'NetworkConfig(mac={self._mac}, ip4={self._ip4}, nm4={self._nm4}, gw4={self._gw4}, ns4={self.ns4}'
 
 
 class CIUserData(Renderable):
@@ -172,7 +166,7 @@ class CIUserData(Renderable):
                     'sudo': 'ALL=(ALL) NOPASSWD:ALL',
                     'shell': '/bin/bash',
                     'lock_passwd': True,
-                    'ssh_authorized_keys': [f"{self.pubkey}"]
+                    'ssh_authorized_keys': [f'{self.pubkey}']
                 }],
             'package_update': True,
             'package_upgrade': True,
@@ -188,15 +182,6 @@ class CIUserData(Renderable):
             }
         })
 
-    # 'final_message': 'Instance complete\n'
-    # 'Version: $version\n'
-    # 'Timestamp: $timestamp\n'
-    # 'Datasource: $datasource\n'
-    # 'Uptime: $uptime'
-
-    def __repr__(self):
-        return f'Userdata(pubkey={self._pubkey})'
-
 
 class CIVendorData(Renderable):
     """
@@ -208,23 +193,3 @@ class CIVendorData(Renderable):
 
     def __repr__(self):
         return 'VendorData()'
-
-
-class CloudInit:
-    """
-    Manages the complete cloud-init data
-    """
-
-    def __init__(self,
-                 instance_id: str,
-                 name: str,
-                 phone_home_url: str,
-                 pubkey: str,
-                 mac: str,
-                 ip: str,
-                 gw: str,
-                 ns: str):
-        self._ci_meta_data = CIMetadata(instance_id, name)
-        self._ci_user_data = CIUserData(phone_home_url, pubkey)
-        self._ci_vendor_data = CIVendorData()
-        self._ci_network_config = CINetworkConfig(mac, ip, gw, ns)

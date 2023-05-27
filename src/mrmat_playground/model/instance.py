@@ -68,7 +68,7 @@ class Instance:
     @backing_disk_path.setter
     def backing_disk_path(self, value: pathlib.Path):
         if self._backing_disk_path:
-            raise PlaygroundException(status=400, msg=f'The backing disk path of an existing instance cannot be changed.')
+            raise PlaygroundException(status=400, msg='The backing disk path of an existing instance cannot be changed')
         if not value.exists():
             raise PlaygroundException(status=400, msg=f'Backing disk path at {value} does not exist')
         self._backing_disk_path = value

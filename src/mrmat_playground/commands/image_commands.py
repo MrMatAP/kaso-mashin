@@ -20,11 +20,12 @@ class ImageCommands:
         'ubuntu-kinetic': 'https://cloud-images.ubuntu.com/kinetic/current/kinetic-server-cloudimg-arm64.img',
         'ubuntu-lunar': 'https://cloud-images.ubuntu.com/lunar/current/lunar-server-cloudimg-arm64.img',
         'ubuntu-mantic': 'https://cloud-images.ubuntu.com/mantic/current/mantic-server-cloudimg-arm64.img',
-        'freebsd-14': 'https://download.freebsd.org/ftp/snapshots/VM-IMAGES/14.0-CURRENT/amd64/Latest/FreeBSD-14.0-CURRENT-amd64.qcow2.xz'
+        'freebsd-14': 'https://download.freebsd.org/ftp/snapshots/VM-IMAGES/14.0-CURRENT/amd64/Latest/'
+                      'FreeBSD-14.0-CURRENT-amd64.qcow2.xz'
     }
 
     @staticmethod
-    def download(args: argparse.Namespace, config: configparser.ConfigParser) -> int:
+    def download(args: argparse.Namespace, config: configparser.ConfigParser) -> int:   # pylint: disable=unused-argument
         cloud = Cloud(path=args.path)
         cloud.load()
 

@@ -181,7 +181,7 @@ class Cloud:
         res = cur.execute('SELECT name, admin_password, public_key_path FROM cloud')
         self.name, self.admin_password, self.public_key_path = res.fetchone()
         res = cur.execute('SELECT host_if, host_ip4, host_nm4, host_gw4, host_ns4, ph_port FROM network')
-        self.host_if, self.host_ip4, self.host_nm4, self.host_gw4, self.host_ns4, ph_port = res.fetchone()
+        self.host_if, self.host_ip4, self.host_nm4, self.host_gw4, self.host_ns4, self.ph_port = res.fetchone()
         cur.close()
         con.close()
         console.log(f'Loaded cloud playground {self.name} from path {self.path}')
