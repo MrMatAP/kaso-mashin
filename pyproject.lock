@@ -1,5 +1,28 @@
-rich~=12.6.0
-requests~=2.28.1
-pyyaml~=6.0
-netifaces~=0.11.0
-ansible~=7.5.0
+#
+# We're going to create this by hand for now, just to see whether dependabot can deal with it before we'll have to
+# resort using poetry or hatch
+
+[[package]]
+name = "rich"
+version = "12.6.0"
+optional = false
+
+[[package]]
+name = "requests"
+version = "2.28.2"
+optional = false
+
+[[package]]
+name = "pyyaml"
+version = "6.0"
+optional = false
+
+[[package]]
+name = "netifaces"
+version = "0.11.0"
+optional = false
+
+[[package]]
+name = "ansible"
+version = "7.5.0"
+optional = false
