@@ -3,8 +3,8 @@ import configparser
 
 import rich.table
 
-from mrmat_playground import console
-from mrmat_playground.model import Cloud
+from kaso_mashin import console
+from kaso_mashin.model import Cloud
 
 
 class CloudCommands:

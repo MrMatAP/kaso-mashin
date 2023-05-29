@@ -13,8 +13,8 @@ tags:
 - playground
 - base
 dependencies: {}
-repository: https://github.com/MrMatAP/mrmat-playground.git
-documentation: https://github.com/MrMatAP/mrmat-playground/blob/main/README.md
-homepage: https://github.com/MrMatAP/mrmat-playground
-issues: https://github.com/MrMatAP/mrmat-playground/issues
+repository: https://github.com/MrMatAP/kaso-mashin.git
+documentation: https://github.com/MrMatAP/kaso-mashin/blob/main/README.md
+homepage: https://github.com/MrMatAP/kaso-mashin
+issues: https://github.com/MrMatAP/kaso-mashin/issues
 build_ignore: []

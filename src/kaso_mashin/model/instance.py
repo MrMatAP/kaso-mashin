@@ -4,10 +4,10 @@ import shutil
 
 import rich.panel
 
-from mrmat_playground import console, PlaygroundException
-from mrmat_playground.executor import execute
-from mrmat_playground.model import VMScript, AnsibleInventory, AnsibleCfg, AnsiblePlaybook
-from mrmat_playground.model.cloud_init import CIMetadata, CINetworkConfig, CIUserData, CIVendorData
+from kaso_mashin import console, PlaygroundException
+from kaso_mashin.executor import execute
+from kaso_mashin.model import VMScript, AnsibleInventory, AnsibleCfg, AnsiblePlaybook
+from kaso_mashin.model.cloud_init import CIMetadata, CINetworkConfig, CIUserData, CIVendorData
 
 
 class Instance:

@@ -1,6 +1,6 @@
 # kaso-mashin
 
-An experimental but efficient way to spin up virtual machines on an ARM-based Mac.
+A tool to manage virtual machines on an ARM-based Mac.
 
 >*SECURITY*: We use [cloud-init](https://cloudinit.readthedocs.io/en/latest/index.html) to perform initial
 > postconfiguration of the instances The default configuration will create two users, 'ansible' using an SSH 
@@ -67,10 +67,10 @@ pip install --user ./dist/*.whl
 Create a cloud playground (one time. Well, multiple times if you want to have multiple directories using -p)
 
 ```shell
-$ mrmat-playground \
-  -p /Users/login/var/mrmat-playground \   # path to the cloud's home directory. You may wish to exclude this from backup
+$ kaso \
+  -p /Users/login/var/kaso \   # path to the cloud's home directory. You may wish to exclude this from backup
   cloud create \
-  -n mrmat-playground \                       # Arbitrary name
+  -n kaso \                       # Arbitrary name
   --admin-password verysecret \               # Password for the 'cloudadmin' console user
   --ssh-public-key /Users/login/.ssh/id_rsa.pub \   # Path to a public key
   --host-if vlan1 \                           # Name of the interface you wish to run your instances on
@@ -83,8 +83,8 @@ $ mrmat-playground \
 Download an image, see 'image download -h' for the available images:
 
 ```shell
-$ mrmat-playground \
-  -p /Users/login/var/mrmat-playground \   # path to the cloud's home directory. ~/var/mrmat-playground is the default
+$ kaso \
+  -p /Users/login/var/kaso \   # path to the cloud's home directory. ~/var/kaso is the default
   image download \
   -n ubuntu-jammy                          # Name of the cloud image to download
 ```
@@ -92,7 +92,7 @@ $ mrmat-playground \
 Create an instance:
 
 ```shell
-$ mrmat-playground \
+$ kaso \
   instance create \
   -n test \                                 # Name of the instance
   --ip 172.16.3.5                           # Static IP address of the instance
@@ -106,7 +106,7 @@ $ sudo INSTANCEDIR/vm.sh
 ```
 
 The instance will now postconfigure itself, once it's done with its cloud initialisation it will phone home to the small
-webswerver mrmat-playground has spun up. This will then execute a bit of Ansible to further postconfigure the instance.
+webserver kasho-mashin has spun up. This will then execute a bit of Ansible to further postconfigure the instance.
 To shut down the instance, you can just close the separate window which will kill the qemu process. A more graceful way
 to do that without logging in is to hit `Ctrl-A C`, which will get you to [qemu's monitor interface](https://qemu-project.gitlab.io/qemu/system/monitor.html).
 Type 'quit' to shut things down.
@@ -123,7 +123,7 @@ $ cd INSTANCEDIR
 $ ansible-playbook -i inventory.yaml deploy.yaml
 ```
 
-`deploy.yaml`, `inventory.yaml` and `ansible.cfg` are generated for you by mrmat-playground. These are executed once
+`deploy.yaml`, `inventory.yaml` and `ansible.cfg` are generated for you by kaso-mashin. These are executed once
 the VM has phoned home. They are deliberately light because you might not want to do Ansible, but set things up 
 appropriately when you do. The actual IP address of the VM is placed in `inventory.yaml`, so it does not stricly
 need to be known by DNS, although a future improvement would definitely be to update a DNS server with it. `ansible.cfg`
@@ -132,7 +132,7 @@ and update your known hosts with it (the host key comes along when the VM phones
 hack on the files that were generated. You can create a roles directory in INSTANCEDIR and treat the same directory 
 as your Ansible root. 
 
-At this point, you do no longer need the `mrmat-playground` script for that instance. From here on, you can just boot
+At this point, you do no longer need the `kaso-mashin` script for that instance. From here on, you can just boot
 it up by running `INSTANCEDIR/vm.sh`.
 
 ## Limitations & Improvements
@@ -141,8 +141,8 @@ it up by running `INSTANCEDIR/vm.sh`.
 * *SECURITY*: VMs need to invoke Apples vmnet framework to create interfaces on a given bridge. qemu offers privileged helpers on other platforms (i.e. Linux) but does not do so on MacOS. You must therefore start VM's as root, making them execute in privileged context.
 * libvirtd has been ported onto MacOS and it could drive VMs in a similar fashion as this solution. It could also deal with (live) migration between more than one Mac, which would be supremely interesting. However, libvirtd continues to attempt creating its own bridge despite configuring a pre-existing bridge for qemu and is therefore not quite ready.
 * Apple permits us to create VLANs and Bridges using System Settings -> Network. The bridges you can create there are of no use since qemu or libvirtd do not recognise them and vmnet does not simply permit these client tools to create virtual interfaces on them.
-* mrmat-playground currently configures VMs to have a static IP address, because we'll want to use it for creating k8s clusters eventually. This is truly not required though and we already have the mechanism to pick up what the IP address obtained via DHCP actually was, then write into some DNS server configuration.
-* mrmat-playground will currently listen on hardcoded port 10300 for VMs to phone home. 
+* kaso-mashin currently configures VMs to have a static IP address, because we'll want to use it for creating k8s clusters eventually. This is truly not required though and we already have the mechanism to pick up what the IP address obtained via DHCP actually was, then write into some DNS server configuration.
+* kaso-mashin will currently listen on hardcoded port 10300 for VMs to phone home. 
 * *SECURITY*: ansible.cfg explicitly turns off strict host key checking
 
 ## Hacking
@@ -193,7 +193,7 @@ listening on the host address on port 8000.
 
 ### Playing with cloud-init
 
-`mrmat-playground` will generate all the cloud-init files in `INSTANCEDIR/cloud-init`. You can edit these but instances
+`kaso-mashin` will generate all the cloud-init files in `INSTANCEDIR/cloud-init`. You can edit these but instances
 are using a config drive containing these files by default. 
 
 Edit `INSTANCEDIR/vm.sh` to look for its configuration over the network:
@@ -201,7 +201,7 @@ Edit `INSTANCEDIR/vm.sh` to look for its configuration over the network:
 ```
     ...
     # Comment out the config drive pointing to cloud-init.img
-    #-drive if=virtio,file=/Users/imfeldma/var/mrmat-playground/instances/test2/cloud-init.img,format=raw \
+    #-drive if=virtio,file=/Users/imfeldma/var/kaso/instances/test2/cloud-init.img,format=raw \
     
     # Add a lookup over the network
     -smbios type=1,serial=ds='nocloud-net;s=http://172.16.3.10:8000/__dmi.chassis-asset-tag__'
@@ -224,7 +224,7 @@ you'll find in the generated `INSTANCEDIR/vm.sh` and set to the machine name by 
 
 It is not possible to include networking configuration this way for obvious chicken & egg reasons. If you need to configure
 the network of the VM then you must update the config drive you commented out earlier. You can just doubleclick the config
-drive `INSTANCEDIR/cloud-init.img` mrmat-playground already created for you and update the files. This will show up as 
+drive `INSTANCEDIR/cloud-init.img` kaso-mashin already created for you and update the files. This will show up as 
 a 'CIDATA' drive on your desktop. Be sure to eject that drive once you updated its content.
 
 You can also automate the creation of such a config drive using the following commands:

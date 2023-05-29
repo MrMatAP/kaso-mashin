@@ -4,8 +4,8 @@ import configparser
 import typing
 from http.server import HTTPServer, BaseHTTPRequestHandler
 
-from mrmat_playground import console
-from mrmat_playground.model import Cloud, Instance, CIMetadata, CINetworkConfig, CIUserData, CIVendorData
+from kaso_mashin import console
+from kaso_mashin.model import Cloud, Instance, CIMetadata, CINetworkConfig, CIUserData, CIVendorData
 
 
 class PhoneHomeServer(HTTPServer):

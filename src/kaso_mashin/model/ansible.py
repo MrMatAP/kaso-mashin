@@ -68,7 +68,7 @@ inventory = {self.inventory_path}
 # This is a potential security hole, be sure to keep your playground VM's local. Clearly not for production
 host_key_checking = False
 
-# This points to the Ansible collections mrmat-playground comes with
+# This points to the Ansible collections kaso-mashin comes with
 collections_paths = {self._collections_path}
 
         '''

@@ -2,7 +2,7 @@ import pathlib
 import subprocess
 import typing
 
-from mrmat_playground import PlaygroundException
+from kaso_mashin import PlaygroundException
 
 
 def execute(command: str,

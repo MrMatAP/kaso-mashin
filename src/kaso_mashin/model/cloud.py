@@ -3,7 +3,7 @@ import pathlib
 import netifaces
 import sqlite3
 
-from mrmat_playground import console, PlaygroundException
+from kaso_mashin import console, PlaygroundException
 
 
 class Cloud:

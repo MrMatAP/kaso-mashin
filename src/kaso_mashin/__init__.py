@@ -9,7 +9,7 @@ from rich.console import Console
 from rich.logging import RichHandler
 
 try:
-    __version__ = importlib.metadata.version('mrmat-playground')
+    __version__ = importlib.metadata.version('kaso-mashin')
 except importlib.metadata.PackageNotFoundError:
     # You have not yet installed this as a package, likely because you're hacking on it in some IDE
     __version__ = '0.0.0.dev0'
@@ -18,9 +18,8 @@ logging.basicConfig(level='INFO', handlers=[RichHandler(rich_tracebacks=True)])
 log = logging.getLogger(__name__)
 console = Console(log_time=True, log_path=False)
 
-default_config = dict(
-    playground_path=os.path.expanduser(os.path.join('~', 'var', 'mrmat-playground')),
-    default_os_disk_size='5G')
+default_config = {'playground_path': os.path.expanduser(os.path.join('~', 'var', 'kaso-mashin')),
+                  'default_os_disk_size': '5G'}
 
 
 class PlaygroundException(Exception):

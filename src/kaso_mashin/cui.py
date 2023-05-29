@@ -5,8 +5,8 @@ import argparse
 from configparser import ConfigParser
 import inspect
 
-from mrmat_playground import __version__, console, default_config
-from mrmat_playground.commands import CloudCommands, ImageCommands, InstanceCommands
+from kaso_mashin import __version__, console, default_config
+from kaso_mashin.commands import CloudCommands, ImageCommands, InstanceCommands
 
 
 def main(args: typing.Optional[typing.List] = None) -> int:
@@ -23,7 +23,7 @@ def main(args: typing.Optional[typing.List] = None) -> int:
     parser.add_argument('-p', '--path',
                         dest='path',
                         required=False,
-                        default=os.path.expanduser(os.path.join('~', 'var', 'mrmat-playground')),
+                        default=os.path.expanduser(os.path.join('~', 'var', 'kaso')),
                         help='Cloud playground root directory')
     subparsers = parser.add_subparsers(dest='group')
 

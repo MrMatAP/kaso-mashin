@@ -9,9 +9,9 @@ requires = [
 build-backend = 'setuptools.build_meta'
 
 [project]
-name = "mrmat-playground"
+name = "kaso-mashin"
 description = "Building a mini-cloud as a playground"
-urls = { "Sources" = "https://github.com/MrMatAP/mrmat-playground" }
+urls = { "Sources" = "https://github.com/MrMatAP/kaso-mashin" }
 keywords = ["experimental"]
 readme = "README.md"
 license = { text = "MIT" }
@@ -48,7 +48,7 @@ namespaces = true
 "*" = [".mo", "*.yml", "*.md", "inventory", "*.j2"]
 
 [project.scripts]
-mrmat-playground = "mrmat_playground.cui:main"
+kaso = "kaso_mashin.cui:main"
 
 # If you are debugging your tests using PyCharm then comment out the coverage options
 # in addopts
