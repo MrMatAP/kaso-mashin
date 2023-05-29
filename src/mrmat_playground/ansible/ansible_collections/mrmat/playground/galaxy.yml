@@ -1,0 +1,20 @@
+namespace: mrmat
+name: playground
+version: 1.0.0
+readme: README.md
+authors:
+- MrMat <imfeldma@gmail.com>
+description: Basic roles for postconfiguring VM instances
+license:
+- MIT
+license_file: ''
+tags:
+- mrmat
+- playground
+- base
+dependencies: {}
+repository: https://github.com/MrMatAP/mrmat-playground.git
+documentation: https://github.com/MrMatAP/mrmat-playground/blob/main/README.md
+homepage: https://github.com/MrMatAP/mrmat-playground
+issues: https://github.com/MrMatAP/mrmat-playground/issues
+build_ignore: []

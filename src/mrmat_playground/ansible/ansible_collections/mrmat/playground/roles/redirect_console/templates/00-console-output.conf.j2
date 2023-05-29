@@ -1,0 +1,10 @@
+#
+# Redirect console output to the (serial) console
+
+[Journal]
+{% if redirect %}
+ForwardToConsole=yes
+{% else %}
+ForwardToConsole=no
+{% endif %}
+TTYPath={{ tty }}
