@@ -1,5 +1,5 @@
-import os.path
 import sys
+import pathlib
 import typing
 import argparse
 from configparser import ConfigParser
@@ -22,8 +22,9 @@ def main(args: typing.Optional[typing.List] = None) -> int:
     parser.add_argument('-c', '--config', dest='config', help='Configuration file')
     parser.add_argument('-p', '--path',
                         dest='path',
+                        type=pathlib.Path,
                         required=False,
-                        default=os.path.expanduser(os.path.join('~', 'var', 'kaso')),
+                        default=pathlib.Path('~/var/kaso').expanduser(),
                         help='Cloud playground root directory')
     subparsers = parser.add_subparsers(dest='group')
 

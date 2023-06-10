@@ -2,7 +2,7 @@
 Main import entry point for MrMat :: Playground
 """
 
-import os
+import pathlib
 import logging
 import importlib.metadata
 from rich.console import Console
@@ -18,7 +18,7 @@ logging.basicConfig(level='INFO', handlers=[RichHandler(rich_tracebacks=True)])
 log = logging.getLogger(__name__)
 console = Console(log_time=True, log_path=False)
 
-default_config = {'playground_path': os.path.expanduser(os.path.join('~', 'var', 'kaso-mashin')),
+default_config = {'playground_path': pathlib.Path('~/var/kaso').expanduser(),
                   'default_os_disk_size': '5G'}
 
 

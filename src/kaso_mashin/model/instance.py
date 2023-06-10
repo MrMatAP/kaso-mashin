@@ -1,4 +1,3 @@
-import os
 import pathlib
 import shutil
 
@@ -231,7 +230,7 @@ class Instance:
         self._vm_script.ram = self.ram
         self._vm_script.mac = self.mac
         self.vm_script.render_to(self.vm_script_path)
-        os.chmod(self.vm_script_path, mode=0o755)
+        self.vm_script_path.chmod(0o755)
         console.log(f'Created vm script at {self.vm_script_path}')
         console.log(f'[bold red]Start the instance using "sudo {self.vm_script_path}" now')
 
