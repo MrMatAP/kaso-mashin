@@ -28,7 +28,7 @@ classifiers = [
 ]
 requires-python = ">=3.10"
 dependencies = [
-    "rich~=12.6.0",
+    "rich~=13.4.1",
     "requests~=2.31.0",
     "pyyaml~=6.0",        # MIT
     "netifaces~=0.11.0",   # MIT
