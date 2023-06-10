@@ -32,7 +32,7 @@ dependencies = [
     "requests~=2.31.0",
     "pyyaml~=6.0",        # MIT
     "netifaces~=0.11.0",   # MIT
-    "ansible~=7.5.0"      # GPLv3
+    "ansible~=8.0.0"      # GPLv3
 ]
 dynamic = ["version"]
 
