@@ -41,7 +41,7 @@ version = { attr = "ci.version "}
 
 [tool.setuptools.packages.find]
 where = ["src"]
-include = ["mrmat_playground*"]
+include = ["kaso_mashin*"]
 namespaces = true
 
 [tool.setuptools.package-data]
