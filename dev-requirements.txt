@@ -1,14 +1,6 @@
 #
 # This file is for convenience only, to quickly set up what is necessary to develop in some IDE
-# The real runtime requirements are held in setup.cfg. BE SURE to update both files.
-
-# Runtime requirements
-
-rich~=12.6.0        # MIT
-requests~=2.31.0    # Apache 2.0
-pyyaml~=6.0         # MIT
-ansible~=7.5.0      # GPLv3
-netifaces~=0.11.0   # MIT
+# The real runtime requirements are held in pyproject.toml. BE SURE to update both files.
 
 # Build/Test requirements
 
