@@ -2,11 +2,13 @@
 Main import entry point for MrMat :: Playground
 """
 
+import os
 import pathlib
 import logging
 import importlib.metadata
 from rich.console import Console
 from rich.logging import RichHandler
+from sqlalchemy.orm import DeclarativeBase
 
 try:
     __version__ = importlib.metadata.version('kaso-mashin')
@@ -18,11 +20,15 @@ logging.basicConfig(level='INFO', handlers=[RichHandler(rich_tracebacks=True)])
 log = logging.getLogger(__name__)
 console = Console(log_time=True, log_path=False)
 
-default_config = {'playground_path': pathlib.Path('~/var/kaso').expanduser(),
-                  'default_os_disk_size': '5G'}
+default_config_file = pathlib.Path(os.environ.get('KASO_MASHIN_CONFIG', '~/.kaso')).expanduser()
 
+class Base(DeclarativeBase):
+    """
+    Base class for database persistence
+    """
+    pass
 
-class PlaygroundException(Exception):
+class KasoMashinException(Exception):
     """
     A dedicated exception for mrmat-playground
     """

@@ -3,9 +3,9 @@ import shutil
 
 import rich.panel
 
-from kaso_mashin import console, PlaygroundException
+from kaso_mashin import console, KasoMashinException
 from kaso_mashin.executor import execute
-from kaso_mashin.model import VMScript, AnsibleInventory, AnsibleCfg, AnsiblePlaybook
+from kaso_mashin.model import VMScriptModel, AnsibleInventory, AnsibleCfg, AnsiblePlaybook
 from kaso_mashin.model.cloud_init import CIMetadata, CINetworkConfig, CIUserData, CIVendorData
 
 
@@ -49,7 +49,7 @@ class Instance:
     @instance_id.setter
     def instance_id(self, value: str):
         if self._instance_id:
-            raise PlaygroundException(status=400, msg='The instance_id may not be changed once set')
+            raise KasoMashinException(status=400, msg='The instance_id may not be changed once set')
         self._instance_id = value
 
     @property
@@ -67,9 +67,9 @@ class Instance:
     @backing_disk_path.setter
     def backing_disk_path(self, value: pathlib.Path):
         if self._backing_disk_path:
-            raise PlaygroundException(status=400, msg='The backing disk path of an existing instance cannot be changed')
+            raise KasoMashinException(status=400, msg='The backing disk path of an existing instance cannot be changed')
         if not value.exists():
-            raise PlaygroundException(status=400, msg=f'Backing disk path at {value} does not exist')
+            raise KasoMashinException(status=400, msg=f'Backing disk path at {value} does not exist')
         self._backing_disk_path = value
 
     @property
@@ -111,7 +111,7 @@ class Instance:
     @mac.setter
     def mac(self, value: str):
         if self._mac:
-            raise PlaygroundException(status=400, msg='The MAC address may not be changed once set')
+            raise KasoMashinException(status=400, msg='The MAC address may not be changed once set')
         self._mac = value
 
     @property
@@ -163,11 +163,11 @@ class Instance:
         return self._vm_script_path
 
     @property
-    def vm_script(self) -> VMScript:
+    def vm_script(self) -> VMScriptModel:
         return self._vm_script
 
     @vm_script.setter
-    def vm_script(self, value: VMScript):
+    def vm_script(self, value: VMScriptModel):
         self._vm_script = value
 
     @property

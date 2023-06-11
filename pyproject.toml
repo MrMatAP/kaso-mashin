@@ -27,9 +27,10 @@ requires-python = ">=3.10"
 dependencies = [
     "rich~=13.4.1",
     "requests~=2.31.0",
-    "pyyaml~=6.0",        # MIT
-    "netifaces~=0.11.0",   # MIT
-    "ansible~=8.0.0"      # GPLv3
+    "pyyaml~=6.0",          # MIT
+    "netifaces~=0.11.0",    # MIT
+    "sqlalchemy~=2.0.15",   # MIT
+    "ansible~=8.0.0"        # GPLv3
 ]
 dynamic = ["version"]
 
@@ -51,7 +52,7 @@ kaso = "kaso_mashin.cui:main"
 # in addopts
 [tool.pytest.ini_options]
 minversion = "6.0"
-addopts = "--cov=mrmat_playground--cov-report=term --cov-report=xml:build/coverage.xml --junit-xml=build/junit.xml"
+#addopts = "--cov=kaso-mashin --cov-report=term --cov-report=xml:build/coverage.xml --junit-xml=build/junit.xml"
 testpaths = ["tests"]
 junit_family = "xunit2"
 log_cli = 1

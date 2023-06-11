@@ -2,7 +2,7 @@ import pathlib
 import subprocess
 import typing
 
-from kaso_mashin import PlaygroundException
+from kaso_mashin import KasoMashinException
 
 
 def execute(command: str,
@@ -30,4 +30,4 @@ def execute(command: str,
                               encoding='UTF-8',
                               cwd=cwd)
     except subprocess.CalledProcessError as cpe:
-        raise PlaygroundException(status=cpe.returncode, msg=cpe.output) from cpe
+        raise KasoMashinException(status=cpe.returncode, msg=cpe.output) from cpe
