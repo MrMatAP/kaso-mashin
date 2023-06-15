@@ -38,9 +38,9 @@ class CINetworkConfig(Renderable):
     Manages cloud-init network-config
     """
 
-    def __init__(self, mac: str, ipv4: str, nm4: str, gw4: str, ns4: str):
+    def __init__(self, mac: str, ip4: str, nm4: str, gw4: str, ns4: str):
         self._mac = mac
-        self._ip4 = ipv4
+        self._ip4 = ip4
         self._nm4 = nm4
         self._gw4 = gw4
         self._ns4 = ns4

@@ -7,7 +7,6 @@ from .vm_script_model import VMScriptModel
 
 from .cloud_init import CIVendorData, CIMetadata, CIUserData, CINetworkConfig
 from .ansible import AnsibleInventory, AnsibleCfg, AnsiblePlaybook
-from .instance import Instance
 
 
 

@@ -1,4 +1,3 @@
-import os
 import pathlib
 
 import yaml
@@ -16,6 +15,7 @@ class Config:
     def __init__(self, config_file: pathlib.Path):
         self._path = pathlib.Path('~/var/kaso').expanduser()
         self._default_os_disk_size = '5G'
+        self._default_phone_home_port = 10200
         self._config_file = config_file
         self.load()
 
@@ -32,7 +32,8 @@ class Config:
         with open(self.config_file, 'w+', encoding='UTF-8') as c:
             yaml.dump({
                 'path': self.path,
-                'default_os_disk_size': self.default_os_disk_size
+                'default_os_disk_size': self.default_os_disk_size,
+                'default_phone_home_port': self._default_phone_home_port
             }, c, Dumper=Dumper)
 
     @property
@@ -50,6 +51,14 @@ class Config:
     @default_os_disk_size.setter
     def default_os_disk_size(self, value: str):
         self._default_os_disk_size = value
+
+    @property
+    def default_phone_home_port(self) -> int:
+        return self._default_phone_home_port
+
+    @default_phone_home_port.setter
+    def default_phone_home_port(self, value: int):
+        self._default_phone_home_port = value
 
     @property
     def config_file(self) -> pathlib.Path:

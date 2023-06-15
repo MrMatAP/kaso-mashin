@@ -15,6 +15,7 @@ def test_network_create(test_db, test_network):
     assert persisted.nm4 == test_network.nm4
     assert persisted.gw4 == test_network.gw4
     assert persisted.ns4 == test_network.ns4
+    assert persisted.host_phone_home_port == test_network.host_phone_home_port
 
 
 # def test_network_remove(test_db):

@@ -10,13 +10,15 @@ test_networks = [
                  host_ip4='172.16.100.10',
                  nm4='255.255.255.0',
                  gw4='172.16.100.1',
-                 ns4='172.16.100.1'),
+                 ns4='172.16.100.1',
+                 host_phone_home_port=10200),
     NetworkModel(name='test-network-1',
                  kind=NetworkKind.VMNET_SHARED,
                  host_ip4='172.16.101.10',
                  nm4='255.255.255.0',
                  gw4='172.16.101.1',
-                 ns4='8.8.8.8')
+                 ns4='8.8.8.8',
+                 host_phone_home_port=8000)
 ]
 
 @pytest.fixture

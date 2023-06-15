@@ -3,7 +3,7 @@ import sqlalchemy
 
 from kaso_mashin import KasoMashinException
 from kaso_mashin.controllers import AbstractController
-from kaso_mashin.model import InstanceModel, NetworkModel
+from kaso_mashin.model import InstanceModel
 
 
 class InstanceController(AbstractController):
@@ -12,21 +12,42 @@ class InstanceController(AbstractController):
     """
 
     def list(self) -> typing.List[InstanceModel]:
+        """
+        List existing instances
+        Returns:
+            A list of instance models
+        """
         with self.db.session() as s:
             instances = s.scalars(sqlalchemy.select(InstanceModel)).all()
         return instances
 
     def get(self, instance_id: int) -> InstanceModel:
+        """
+        Get an existing instance
+        Args:
+            instance_id: an instance id
+
+        Returns:
+            An instance model
+        """
         with self.db.session() as s:
             return s.get(InstanceModel, instance_id)
 
     def create(self, model: InstanceModel) -> InstanceModel:
+        """
+        Create an instance
+        Args:
+            model: the instance model template
 
-        instance_path = self.config.path.joinpath(model.name)
+        Returns:
+            An instantiated instance model
+        """
+        instance_path = self.config.path.joinpath('instances').joinpath(model.name)
         if instance_path.exists():
-            raise KasoMashinException(status=400, msg='Instance path at {instance_path} already exists')
+            raise KasoMashinException(status=400, msg=f'Instance path at {instance_path} already exists')
         model.path = str(instance_path)
         model.os_disk_path = str(instance_path.joinpath('os.qcow2'))
+        model.ci_disk_path = str(instance_path.joinpath('ci.img'))
 
         with self.db.session() as s:
             s.add(model)

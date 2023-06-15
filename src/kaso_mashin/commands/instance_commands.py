@@ -1,48 +1,14 @@
 import argparse
 import shutil
 import pathlib
-import typing
-from http.server import HTTPServer, BaseHTTPRequestHandler
 
 from kaso_mashin import console
 from kaso_mashin.commands import AbstractCommands
-from kaso_mashin.model import InstanceModel, VMScriptModel
+from kaso_mashin.model import InstanceModel, VMScriptModel, NetworkKind
 from kaso_mashin.controllers import (
-    NetworkController, ImageController, DiskController, IdentityController, InstanceController
+    NetworkController, ImageController, DiskController, IdentityController, BootstrapController, InstanceController,
+    PhoneHomeController
 )
-
-
-class PhoneHomeServer(HTTPServer):
-    """
-    A small server waiting for an instance to call home. We override this to pass it a function to be called
-    with the actual IP address the instance has. We can't do this in the handler because it is statically
-    referred to by the PhoneHomeServer
-    """
-
-    def __init__(self,
-                 server_address: tuple[str, int],
-                 RequestHandlerClass: typing.Callable,
-                 callback: typing.Callable,
-                 bind_and_activate: bool = ...) -> None:
-        super().__init__(server_address, RequestHandlerClass, bind_and_activate)
-        self._callback = callback
-
-    @property
-    def callback(self):
-        return self._callback
-
-
-class PhoneHomeHandler(BaseHTTPRequestHandler):
-    """
-    A handler for instances calling their mum
-    """
-
-    # It is actually required to be called do_POST, despite pylint complaining about it
-    def do_POST(self):              # pylint: disable=invalid-name
-        self.server.callback(self.client_address[0])
-        self.send_response(code=200, message='Well, hello there!')
-        self.end_headers()
-
 
 class InstanceCommands(AbstractCommands):
     """
@@ -93,6 +59,18 @@ class InstanceCommands(AbstractCommands):
                                             type=int,
                                             required=True,
                                             help='The identity id permitted to log in to this instance')
+        instance_create_parser.add_argument('--static-ip4',
+                                            dest='static_ip4',
+                                            type=str,
+                                            required=False,
+                                            help='An optional static IP address')
+        instance_create_parser.add_argument('-b', '--bootstrapper',
+                                            dest='bootstrapper',
+                                            type=str,
+                                            choices=BootstrapController.bootstrappers,
+                                            required=False,
+                                            default='ci',
+                                            help='The bootstrapper to use for this instance')
         instance_create_parser.add_argument('-s', '--size',
                                             dest='os_disk_size',
                                             type=str,
@@ -141,7 +119,9 @@ class InstanceCommands(AbstractCommands):
         image_controller = ImageController(config=self.config, db=self.db)
         disk_controller = DiskController(config=self.config, db=self.db)
         identity_controller = IdentityController(config=self.config, db=self.db)
+        bootstrap_controller = BootstrapController(config=self.config, db=self.db)
         instance_controller = InstanceController(config=self.config, db=self.db)
+        phone_home_controller = PhoneHomeController(config=self.config, db=self.db)
         with console.status(f'[magenta] Creating instance {args.name}') as status:
             network = network_controller.get(args.network_id)
             status.update(f'Found network {network.network_id}: {network.name}')
@@ -156,9 +136,12 @@ class InstanceCommands(AbstractCommands):
                                      vcpu=args.vcpu,
                                      ram=args.ram,
                                      os_disk_size=args.os_disk_size or self.config.default_os_disk_size,
+                                     bootstrapper=args.bootstrapper,
                                      image=image,
                                      identity=identity,
                                      network=network)
+            if args.static_ip4:
+                instance.static_ip4 = args.static_ip4
             instance = instance_controller.create(instance)
             status.update(f'Registered instance {instance.instance_id}: {instance.name} at path {instance.path}')
 
@@ -170,31 +153,21 @@ class InstanceCommands(AbstractCommands):
             disk_controller.resize(os_disk_path, instance.os_disk_size)
             status.update(f'Resized OS disk to {instance.os_disk_size}')
 
+            bootstrap_controller.bootstrap(instance)
+            status.update(f'Created bootstrapper {instance.bootstrapper}')
+
             vm_script_path = pathlib.Path(instance.path).joinpath('vm.sh')
             VMScriptModel(instance, vm_script_path)
+            vm_script_path.chmod(0o755)
             status.update(f'Created VM script at {vm_script_path}')
 
+            status.update(f'Start the instance using "sudo {vm_script_path} now')
+            if instance.network.kind == NetworkKind.VMNET_SHARED:
+                status.update('Waiting for the instance to phone home')
+                phone_home_controller.wait_for_instance(model=instance)
+                status.update('Instance phoned home')
         return 0
 
-
-        # instance.metadata = CIMetadata(instance.instance_id, args.name)
-        # instance.userdata = CIUserData(phone_home_url=f'http://{cloud.host_ip4}:{cloud.ph_port}/$INSTANCE_ID',
-        #                                pubkey=cloud.public_key)
-        # instance.userdata.admin_password = cloud.admin_password
-        # instance.vendordata = CIVendorData()
-        # instance.network_config = CINetworkConfig(mac=instance.mac,
-        #                                           ipv4=args.ip,
-        #                                           nm4=cloud.host_nm4,
-        #                                           gw4=cloud.host_gw4,
-        #                                           ns4=cloud.host_ns4)
-        # instance.create()
-        #
-        # status.update('Waiting for the instance to phone home')
-        # httpd = PhoneHomeServer(server_address=(cloud.host_ip4, cloud.ph_port),
-        #                         callback=instance.configure,
-        #                         RequestHandlerClass=PhoneHomeHandler)
-        # httpd.timeout = 120
-        # httpd.handle_request()
 
     def remove(self, args: argparse.Namespace) -> int:
         instance_controller = InstanceController(config=self.config, db=self.db)

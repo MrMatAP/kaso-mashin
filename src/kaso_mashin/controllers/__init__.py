@@ -3,4 +3,6 @@ from .network_controller import NetworkController
 from .image_controller import ImageController
 from .disk_controller import DiskController
 from .identity_controller import IdentityController
+from .bootstrap_controller import BootstrapController
 from .instance_controller import InstanceController
+from .phone_home_controller import PhoneHomeController
