@@ -30,8 +30,8 @@ class IdentityCommands(AbstractCommands):
                                             type=str,
                                             required=True,
                                             help='The identity name')
-        identity_create_parser.add_argument('--path',
-                                            dest='path',
+        identity_create_parser.add_argument('--pubkey',
+                                            dest='pubkey',
                                             type=pathlib.Path,
                                             required=True,
                                             help='Path to the SSH public key')
@@ -65,15 +65,15 @@ class IdentityCommands(AbstractCommands):
 
     def create(self, args: argparse.Namespace) -> int:
         identity_controller = IdentityController(config=self.config, db=self.db)
-        identity_path = args.path.expanduser()
+        identity_path = args.pubkey.expanduser()
         with console.status(f'[magenta] Creating identity {args.name}') as status:
             if not identity_path.exists():
-                status.update(f'ERROR: Public key at path {args.path} does not exist')
+                status.update(f'ERROR: Public key at path {args.pubkey} does not exist')
                 return 1
             identity = IdentityModel(name=args.name)
             with open(identity_path, 'r', encoding='UTF-8') as p:
                 identity.public_key = p.read()
-            status.update(f'Read public key from path {args.path}')
+            status.update(f'Read public key from path {args.pubkey}')
 
             identity = identity_controller.create(identity)
             status.update(f'Created identity {identity.identity_id}: {identity.name}')
