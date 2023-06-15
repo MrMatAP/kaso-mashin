@@ -27,11 +27,15 @@ class Config:
             config = yaml.load(c, Loader=Loader)
             if 'path' in config:
                 self.path = config.get('path')
+            if 'default_os_disk_size' in config:
+                self.default_os_disk_size = config.get('default_os_disk_size')
+            if 'default_phone_home_port' in config:
+                self.default_phone_home_port = config.get('default_phone_home_port')
 
     def save(self):
         with open(self.config_file, 'w+', encoding='UTF-8') as c:
             yaml.dump({
-                'path': self.path,
+                'path': str(self.path),
                 'default_os_disk_size': self.default_os_disk_size,
                 'default_phone_home_port': self._default_phone_home_port
             }, c, Dumper=Dumper)

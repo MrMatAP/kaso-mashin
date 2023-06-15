@@ -54,6 +54,10 @@ def main(args: typing.Optional[typing.List] = None) -> int:
     args = parser.parse_args(args if args is not None else sys.argv[1:])
     if args.config:
         config.config_file = args.config
+    if not args.path.exists():
+        console.print(f'Creating directory at {args.path}')
+        args.path.mkdir(parents=True)
+    config.path = args.path
     try:
         if hasattr(args, 'cmd'):
             return args.cmd(args)
