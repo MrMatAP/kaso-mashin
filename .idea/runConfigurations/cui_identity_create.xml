@@ -14,7 +14,7 @@
     <option name="ADD_SOURCE_ROOTS" value="true" />
     <EXTENSION ID="PythonCoverageRunConfigurationExtension" runner="coverage.py" />
     <option name="SCRIPT_NAME" value="kaso_mashin.cui" />
-    <option name="PARAMETERS" value="identity create -n mrmat --path ~/.ssh/id_rsa.pub" />
+    <option name="PARAMETERS" value="identity create -n mrmat --pubkey ~/.ssh/id_rsa.pub" />
     <option name="SHOW_COMMAND_LINE" value="false" />
     <option name="EMULATE_TERMINAL" value="true" />
     <option name="MODULE_MODE" value="true" />
