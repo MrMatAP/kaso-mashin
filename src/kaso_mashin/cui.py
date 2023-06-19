@@ -7,7 +7,7 @@ from kaso_mashin import __version__, console, default_config_file
 from kaso_mashin.config import Config
 from kaso_mashin.db import DB
 from kaso_mashin.commands import (
-    NetworkCommands, ImageCommands, IdentityCommands, InstanceCommands
+    NetworkCommands, ImageCommands, IdentityCommands, BootstrapCommands, InstanceCommands
 )
 
 
@@ -23,6 +23,7 @@ def main(args: typing.Optional[typing.List] = None) -> int:
     network_commands = NetworkCommands(config, db)
     image_commands = ImageCommands(config, db)
     identity_commands = IdentityCommands(config, db)
+    bootstrap_commands = BootstrapCommands(config, db)
     instance_commands = InstanceCommands(config, db)
 
     parser = argparse.ArgumentParser(add_help=True, description=f'kaso-mashin - {__version__}')
@@ -48,6 +49,8 @@ def main(args: typing.Optional[typing.List] = None) -> int:
     image_commands.register_commands(image_parser)
     identity_parser = subparsers.add_parser(name='identity', help='Manage identities')
     identity_commands.register_commands(identity_parser)
+    bootstrap_parser = subparsers.add_parser(name='bootstrap', help='Manage bootstrap')
+    bootstrap_commands.register_commands(bootstrap_parser)
     instance_parser = subparsers.add_parser(name='instance', help='Manage instances')
     instance_commands.register_commands(instance_parser)
 

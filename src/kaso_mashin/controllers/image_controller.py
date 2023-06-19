@@ -1,5 +1,4 @@
 import typing
-import pathlib
 import sqlalchemy
 
 from kaso_mashin.config import Config

@@ -4,7 +4,7 @@ import pathlib
 from kaso_mashin import KasoMashinException
 from kaso_mashin.executor import execute
 from kaso_mashin.controllers import AbstractController
-from kaso_mashin.model import InstanceModel, CIVendorData, CIUserData, CIMetadata, CINetworkConfig
+from kaso_mashin.model import BootstrapKind, InstanceModel, CIVendorData, CIUserData, CIMetadata, CINetworkConfig
 
 
 class BootstrapController(AbstractController):
@@ -12,21 +12,19 @@ class BootstrapController(AbstractController):
     A bootstrap controller
     """
 
-    bootstrappers = ['ci', 'ci-static', 'ignition', 'none']
-
     def bootstrap(self, model: InstanceModel):
         ci_path = pathlib.Path(model.path).joinpath('cloud-init')
         ci_path.mkdir(parents=True, exist_ok=True)
         match model.bootstrapper:
-            case 'ci':
+            case BootstrapKind.CI:
                 self.cloud_init(model=model, ci_path=ci_path)
-            case 'ci-static':
+            case BootstrapKind.CI_STATIC:
                 self.cloud_init(model=model, ci_path=ci_path)
                 self.cloud_init_static(model=model, ci_path=ci_path)
                 self.create_ci_image(model=model, ci_path=ci_path)
-            case 'ignition':
+            case BootstrapKind.IGNITION:
                 self.ignition(model=model, ci_path=ci_path)
-            case 'none':
+            case BootstrapKind.NONE:
                 return
             case _:
                 raise KasoMashinException(status=400, msg=f'There is no bootstrapper {model.bootstrapper}')

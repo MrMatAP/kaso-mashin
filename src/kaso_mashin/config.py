@@ -26,7 +26,7 @@ class Config:
         with open(self.config_file, 'r', encoding='UTF-8') as c:
             config = yaml.load(c, Loader=Loader)
             if 'path' in config:
-                self.path = config.get('path')
+                self.path = pathlib.Path(config.get('path'))
             if 'default_os_disk_size' in config:
                 self.default_os_disk_size = config.get('default_os_disk_size')
             if 'default_phone_home_port' in config:

@@ -1,14 +1,16 @@
 import argparse
 
+import rich.tree
+import rich.table
+
 from kaso_mashin import console
 from kaso_mashin.commands import AbstractCommands
 from kaso_mashin.model import NetworkKind, NetworkModel
-from kaso_mashin.controllers import NetworkController
 
 
 class NetworkCommands(AbstractCommands):
     """
-    Implementation of network commands
+    Implementation of the network command group
     """
 
     def register_commands(self, parser: argparse.ArgumentParser):
@@ -117,23 +119,25 @@ class NetworkCommands(AbstractCommands):
                                            help='The network id')
         network_remove_parser.set_defaults(cmd=self.remove)
 
-    def list(self, args: argparse.Namespace) -> int:
-        network_controller = NetworkController(config=self.config, db=self.db)
-        networks = network_controller.list()
+    def list(self, args: argparse.Namespace) -> int:        # pylint: disable=unused-argument
+        networks = self.network_controller.list()
+        tree = rich.tree.Tree(label='Networks')
         for network in networks:
-            console.print(f'- Id:          {network.network_id}')
-            console.print(f'  Name:        {network.name}')
-            console.print(f'  Kind:        {network.kind.value}')
-            console.print(f'  Host IP4:    {network.host_ip4}')
-            console.print(f'  Netmask4:    {network.nm4}')
-            console.print(f'  Gateway4:    {network.gw4}')
-            console.print(f'  Nameserver4: {network.ns4}')
-            console.print(f'  Phone home port: {network.host_phone_home_port}')
+            table = rich.table.Table(title=f'{network.network_id}: {network.name}', show_header=False)
+            table.add_row('Id', network.network_id)
+            table.add_row('Name', network.name)
+            table.add_row('Kind', network.kind.value)
+            table.add_row('Host IP4', network.host_ip4)
+            table.add_row('Netmask4', network.nm4)
+            table.add_row('Gateway4', network.gw4)
+            table.add_row('Nameserver4', network.nm4)
+            table.add_row('Phone home port', network.host_phone_home_port)
+            tree.add(table)
+        console.print(tree)
         return 0
 
     def get(self, args: argparse.Namespace) -> int:
-        network_controller = NetworkController(config=self.config, db=self.db)
-        network = network_controller.get(args.id)
+        network = self.network_controller.get(args.id)
         if not network:
             console.print(f'ERROR: Network with id {args.id} not found')
             return 1
@@ -157,14 +161,12 @@ class NetworkCommands(AbstractCommands):
                              host_phone_home_port=args.host_phone_home_port,
                              dhcp_start=args.dhcp_start,
                              dhcp_end=args.dhcp_end)
-        network_controller = NetworkController(config=self.config, db=self.db)
-        network_controller.create(model)
+        self.network_controller.create(model)
         console.print(f'Created network {model.network_id}: {args.name}')
         return 0
 
     def modify(self, args: argparse.Namespace) -> int:
-        network_controller = NetworkController(config=self.config, db=self.db)
-        update = network_controller.get(args.id)
+        update = self.network_controller.get(args.id)
         if not update:
             console.print(f'Network id {args.id} not found')
             return 1
@@ -174,10 +176,9 @@ class NetworkCommands(AbstractCommands):
         update.gw4 = args.gw4
         update.ns4 = args.ns4
         update.host_phone_home_port = args.host_phone_home_port
-        network_controller.modify(args.id, update)
+        self.network_controller.modify(args.id, update)
         return 0
 
     def remove(self, args: argparse.Namespace) -> int:
-        network_controller = NetworkController(config=self.config, db=self.db)
-        network_controller.remove(args.id)
+        self.network_controller.remove(args.id)
         return 0

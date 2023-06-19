@@ -22,11 +22,12 @@ console = Console(log_time=True, log_path=False)
 
 default_config_file = pathlib.Path(os.environ.get('KASO_MASHIN_CONFIG', '~/.kaso')).expanduser()
 
-class Base(DeclarativeBase):
+
+class Base(DeclarativeBase):        # pylint: disable=too-few-public-methods
     """
     Base class for database persistence
     """
-    pass
+
 
 class KasoMashinException(Exception):
     """
