@@ -27,7 +27,7 @@ class InstanceController(AbstractController):
             instances = s.scalars(sqlalchemy.select(InstanceModel)).all()
         return instances
 
-    def get(self, instance_id: int) -> InstanceModel:
+    def get(self, instance_id: int) -> InstanceModel | None:
         """
         Get an existing instance
         Args:
@@ -67,7 +67,7 @@ class InstanceController(AbstractController):
         instance_path.mkdir(parents=True, exist_ok=True)
         return model
 
-    def modify(self, instance_id: int, update: InstanceModel) -> InstanceModel:
+    def modify(self, instance_id: int, update: InstanceModel) -> InstanceModel | None:
         with self.db.session() as s:
             instance = s.get(InstanceModel, instance_id)
             instance.name = update.name
