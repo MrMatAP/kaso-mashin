@@ -39,7 +39,7 @@ class KasoMashinException(Exception):
         self.msg = msg
 
     def __repr__(self):
-        return f'PlaygroundException(status={self.status}, msg={self.msg})'
+        return f'PlaygroundException(status={self.status}, msg="{self.msg}")'
 
     def __str__(self):
         return self.__repr__()
