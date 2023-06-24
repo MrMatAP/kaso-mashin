@@ -21,6 +21,7 @@ test_networks = [
                  host_phone_home_port=8000)
 ]
 
+
 @pytest.fixture
 def test_config(tmp_path):
     config_file = tmp_path.joinpath('.kaso')
