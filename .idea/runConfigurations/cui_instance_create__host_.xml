@@ -5,7 +5,6 @@
     <option name="PARENT_ENVS" value="true" />
     <envs>
       <env name="PYTHONUNBUFFERED" value="1" />
-      <env name="ANSIBLE_HOST_KEY_CHECKING" value="False" />
     </envs>
     <option name="SDK_HOME" value="/opt/dyn/python/kaso-mashin/bin/python" />
     <option name="SDK_NAME" value="Python 3.11 (kaso-mashin)" />
@@ -15,7 +14,7 @@
     <option name="ADD_SOURCE_ROOTS" value="true" />
     <EXTENSION ID="PythonCoverageRunConfigurationExtension" runner="coverage.py" />
     <option name="SCRIPT_NAME" value="kaso_mashin.cui" />
-    <option name="PARAMETERS" value="instance create -n host --network-id 1 --image-id 1 --identity-id 1 --static-ip4 172.16.4.15 --bootstrapper ci-static" />
+    <option name="PARAMETERS" value="instance create -n host --network-id 1 --image-id 1 --identity-id 1 --bootstrapper ci-disk" />
     <option name="SHOW_COMMAND_LINE" value="false" />
     <option name="EMULATE_TERMINAL" value="true" />
     <option name="MODULE_MODE" value="true" />
