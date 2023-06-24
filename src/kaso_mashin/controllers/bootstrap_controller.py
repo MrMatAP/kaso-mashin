@@ -16,15 +16,14 @@ class BootstrapController(AbstractController):
         ci_path = pathlib.Path(model.path).joinpath('cloud-init')
         ci_path.mkdir(parents=True, exist_ok=True)
         match model.bootstrapper:
-            case BootstrapKind.CI:
+            case BootstrapKind.CI.value:
                 self.cloud_init(model=model, ci_path=ci_path)
-            case BootstrapKind.CI_STATIC:
+            case BootstrapKind.CI_DISK.value:
                 self.cloud_init(model=model, ci_path=ci_path)
-                self.cloud_init_static(model=model, ci_path=ci_path)
                 self.create_ci_image(model=model, ci_path=ci_path)
-            case BootstrapKind.IGNITION:
+            case BootstrapKind.IGNITION.value:
                 self.ignition(model=model, ci_path=ci_path)
-            case BootstrapKind.NONE:
+            case BootstrapKind.NONE.value:
                 return
             case _:
                 raise KasoMashinException(status=400, msg=f'There is no bootstrapper {model.bootstrapper}')
@@ -38,19 +37,16 @@ class BootstrapController(AbstractController):
                                              f'$INSTANCE_ID',
                               pubkey=model.identity.public_key)
         userdata.render_to(ci_path.joinpath('user-data'))
-
-    def cloud_init_static(self, model: InstanceModel, ci_path: pathlib.Path):
-        if not model.static_ip4:
-            raise KasoMashinException(status=400, msg='There is no static IP4 address registered for this instance')
-        networkconfig = CINetworkConfig(mac=model.mac,
-                                        ip4=model.static_ip4,
-                                        nm4=model.network.nm4,
-                                        gw4=model.network.gw4,
-                                        ns4=model.network.ns4)
-        networkconfig.render_to(ci_path.joinpath('network-config'))
+        if model.static_ip4:
+            networkconfig = CINetworkConfig(mac=model.mac,
+                                            ip4=model.static_ip4,
+                                            nm4=model.network.nm4,
+                                            gw4=model.network.gw4,
+                                            ns4=model.network.ns4)
+            networkconfig.render_to(ci_path.joinpath('network-config'))
 
     def ignition(self, model: InstanceModel, ci_path: pathlib.Path):
-        pass
+        raise KasoMashinException(status=500, msg='Ignition bootstrapper is not yet implemented')
 
     def create_ci_image(self, model: InstanceModel, ci_path: pathlib.Path):
         execute('dd', ['if=/dev/zero', f'of={model.ci_disk_path}', 'bs=512', 'count=2880'])
