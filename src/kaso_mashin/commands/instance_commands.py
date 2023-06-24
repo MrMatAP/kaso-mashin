@@ -83,7 +83,7 @@ class InstanceCommands(AbstractCommands):
                                             help='The instance id')
         instance_remove_parser.set_defaults(cmd=self.remove)
 
-    def list(self, args: argparse.Namespace) -> int:        # pylint: disable=unused-argument
+    def list(self, args: argparse.Namespace) -> int:  # pylint: disable=unused-argument
         instances = self.instance_controller.list()
         for instance in instances:
             console.print(f'- Id:           {instance.instance_id}')
@@ -120,39 +120,39 @@ class InstanceCommands(AbstractCommands):
             identity = self.identity_controller.get(args.identity_id)
             status.update(f'Found identity {identity.identity_id}: {identity.name}')
 
-            instance = InstanceModel(name=args.name,
-                                     vcpu=args.vcpu,
-                                     ram=args.ram,
-                                     os_disk_size=args.os_disk_size or self.config.default_os_disk_size,
-                                     bootstrapper=args.bootstrapper,
-                                     image=image,
-                                     identity=identity,
-                                     network=network)
+            model = InstanceModel(name=args.name,
+                                  vcpu=args.vcpu,
+                                  ram=args.ram,
+                                  os_disk_size=args.os_disk_size or self.config.default_os_disk_size,
+                                  bootstrapper=args.bootstrapper,
+                                  image=image,
+                                  identity=identity,
+                                  network=network)
             if args.static_ip4:
-                instance.static_ip4 = args.static_ip4
-            instance = self.instance_controller.create(instance)
-            status.update(f'Registered instance {instance.instance_id}: {instance.name} at path {instance.path}')
+                model.static_ip4 = args.static_ip4
+            model = self.instance_controller.create(model)
+            status.update(f'Registered instance {model.instance_id}: {model.name} at path {model.path}')
 
-            os_disk_path = pathlib.Path(instance.os_disk_path)
-            image_path = pathlib.Path(instance.image.path)
+            os_disk_path = pathlib.Path(model.os_disk_path)
+            image_path = pathlib.Path(model.image.path)
             self.disk_controller.create(os_disk_path, image_path)
-            status.update(f'Created OS disk with backing image {instance.image.name}')
+            status.update(f'Created OS disk with backing image {model.image.name}')
 
-            self.disk_controller.resize(os_disk_path, instance.os_disk_size)
-            status.update(f'Resized OS disk to {instance.os_disk_size}')
+            self.disk_controller.resize(os_disk_path, model.os_disk_size)
+            status.update(f'Resized OS disk to {model.os_disk_size}')
 
-            self.bootstrap_controller.bootstrap(instance)
-            status.update(f'Created bootstrapper {instance.bootstrapper}')
+            self.bootstrap_controller.bootstrap(model)
+            status.update(f'Created bootstrapper {model.bootstrapper}')
 
-            vm_script_path = pathlib.Path(instance.path).joinpath('vm.sh')
-            VMScriptModel(instance, vm_script_path)
+            vm_script_path = pathlib.Path(model.path).joinpath('vm.sh')
+            VMScriptModel(model, vm_script_path)
             vm_script_path.chmod(0o755)
             status.update(f'Created VM script at {vm_script_path}')
 
             status.update(f'Start the instance using "sudo {vm_script_path} now')
-            if instance.network.kind == NetworkKind.VMNET_SHARED:
+            if model.network.kind == NetworkKind.VMNET_SHARED:
                 status.update('Waiting for the instance to phone home')
-                self.phonehome_controller.wait_for_instance(model=instance)
+                self.phonehome_controller.wait_for_instance(model=model)
                 status.update('Instance phoned home')
         return 0
 
