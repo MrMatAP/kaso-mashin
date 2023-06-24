@@ -2,6 +2,7 @@ import argparse
 
 import rich.tree
 import rich.table
+import rich.columns
 
 from kaso_mashin import console
 from kaso_mashin.commands import AbstractCommands
@@ -123,16 +124,15 @@ class NetworkCommands(AbstractCommands):
         networks = self.network_controller.list()
         tree = rich.tree.Tree(label='Networks')
         for network in networks:
-            table = rich.table.Table(title=f'{network.network_id}: {network.name}', show_header=False)
-            table.add_row('Id', network.network_id)
-            table.add_row('Name', network.name)
-            table.add_row('Kind', network.kind.value)
-            table.add_row('Host IP4', network.host_ip4)
-            table.add_row('Netmask4', network.nm4)
-            table.add_row('Gateway4', network.gw4)
-            table.add_row('Nameserver4', network.nm4)
-            table.add_row('Phone home port', network.host_phone_home_port)
-            tree.add(table)
+            ntree = tree.add(label=f'{network.network_id}: {network.name}')
+            ntree.add(rich.columns.Columns(['Id:', str(network.network_id)]))
+            ntree.add(rich.columns.Columns(['Name:', network.name]))
+            ntree.add(rich.columns.Columns(['Kind:', network.kind.value]))
+            ntree.add(rich.columns.Columns(['Host IP4:', network.host_ip4]))
+            ntree.add(rich.columns.Columns(['Netmask4:', network.nm4]))
+            ntree.add(rich.columns.Columns(['Gateway4:', network.gw4]))
+            ntree.add(rich.columns.Columns(['Nameserver4:', network.ns4]))
+            ntree.add(rich.columns.Columns(['Phone home port:', str(network.host_phone_home_port)]))
         console.print(tree)
         return 0
 
