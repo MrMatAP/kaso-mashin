@@ -1,6 +1,6 @@
 #
 # This file is for convenience only, to quickly set up what is necessary to develop in some IDE
-# The real runtime requirements are held in pyproject.toml. BE SURE to update both files.
+# The real runtime requirements are held in pyproject.toml. BE SURE to update both files if necessary.
 
 # Build/Test requirements
 
