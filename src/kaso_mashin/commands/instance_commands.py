@@ -2,6 +2,9 @@ import argparse
 import shutil
 import pathlib
 
+import rich.tree
+import rich.columns
+
 from kaso_mashin import console
 from kaso_mashin.commands import AbstractCommands
 from kaso_mashin.model import InstanceModel, VMScriptModel, BootstrapKind, NetworkKind
@@ -17,11 +20,15 @@ class InstanceCommands(AbstractCommands):
         instance_list_parser = instance_subparser.add_parser(name='list', help='List instances')
         instance_list_parser.set_defaults(cmd=self.list)
         instance_get_parser = instance_subparser.add_parser(name='get', help='Get an instance')
-        instance_get_parser.add_argument('--id',
-                                         dest='id',
-                                         type=int,
-                                         required=True,
-                                         help='The instance id')
+        instance_get_id_or_name = instance_get_parser.add_mutually_exclusive_group(required=True)
+        instance_get_id_or_name.add_argument('--id',
+                                             dest='id',
+                                             type=int,
+                                             help='The instance id')
+        instance_get_id_or_name.add_argument('--name',
+                                             dest='name',
+                                             type=str,
+                                             help='The instance name')
         instance_get_parser.set_defaults(cmd=self.get)
         instance_create_parser = instance_subparser.add_parser(name='create', help='Create an instance')
         instance_create_parser.add_argument('-n', '--name',
@@ -85,18 +92,21 @@ class InstanceCommands(AbstractCommands):
 
     def list(self, args: argparse.Namespace) -> int:  # pylint: disable=unused-argument
         instances = self.instance_controller.list()
+        tree = rich.tree.Tree(label='Instances')
         for instance in instances:
-            console.print(f'- Id:           {instance.instance_id}')
-            console.print(f'  Name:         {instance.name}')
-            console.print(f'  Path:         {instance.path}')
-            console.print(f'  Image:        {instance.image.name}')
-            console.print(f'  OS disk path: {instance.os_disk_path}')
-            console.print(f'  Network:      {instance.network.name}')
-            console.print(f'  Identity:     {instance.identity.name}')
+            ntree = tree.add(label=f'{instance.instance_id}: {instance.name}')
+            ntree.add(rich.columns.Columns(['Id:', str(instance.instance_id)]))
+            ntree.add(rich.columns.Columns(['Name:', instance.name]))
+            ntree.add(rich.columns.Columns(['Path:', str(instance.path)]))
+            ntree.add(rich.columns.Columns(['Image:', instance.image.name]))
+            ntree.add(rich.columns.Columns(['OS Disk Path:', str(instance.os_disk_path)]))
+            ntree.add(rich.columns.Columns(['Network:', instance.network.name]))
+            ntree.add(rich.columns.Columns(['Identity:', instance.identity.name]))
+        console.print(tree)
         return 0
 
     def get(self, args: argparse.Namespace) -> int:
-        instance = self.instance_controller.get(args.id)
+        instance = self.instance_controller.get(args.id, args.name)
         if not instance:
             console.print(f'ERROR: Instance with id {args.id} not found')
             return 1
@@ -111,6 +121,11 @@ class InstanceCommands(AbstractCommands):
 
     def create(self, args: argparse.Namespace) -> int:
         with console.status(f'[magenta] Creating instance {args.name}') as status:
+            instance_path = self.config.path.joinpath('instances').joinpath(args.name)
+            if instance_path.exists():
+                status.update(f'[red]ERROR: Instance at path {instance_path} already exists')
+                return 1
+
             network = self.network_controller.get(args.network_id)
             status.update(f'Found network {network.network_id}: {network.name}')
 
@@ -121,30 +136,33 @@ class InstanceCommands(AbstractCommands):
             status.update(f'Found identity {identity.identity_id}: {identity.name}')
 
             model = InstanceModel(name=args.name,
+                                  path=instance_path,
                                   vcpu=args.vcpu,
                                   ram=args.ram,
+                                  os_disk_path=instance_path.joinpath('os.qcow2'),
                                   os_disk_size=args.os_disk_size or self.config.default_os_disk_size,
+                                  ci_disk_path=instance_path.joinpath('ci.img'),
                                   bootstrapper=args.bootstrapper,
                                   image=image,
                                   identity=identity,
                                   network=network)
             if args.static_ip4:
                 model.static_ip4 = args.static_ip4
-            model = self.instance_controller.create(model)
-            status.update(f'Registered instance {model.instance_id}: {model.name} at path {model.path}')
+            instance = self.instance_controller.create(model)
+            status.update(f'Registered instance {instance.instance_id}: {model.name} at path {model.path}')
 
-            os_disk_path = pathlib.Path(model.os_disk_path)
-            image_path = pathlib.Path(model.image.path)
+            os_disk_path = pathlib.Path(instance.os_disk_path)
+            image_path = pathlib.Path(instance.image.path)
             self.disk_controller.create(os_disk_path, image_path)
-            status.update(f'Created OS disk with backing image {model.image.name}')
+            status.update(f'Created OS disk with backing image {instance.image.name}')
 
-            self.disk_controller.resize(os_disk_path, model.os_disk_size)
-            status.update(f'Resized OS disk to {model.os_disk_size}')
+            self.disk_controller.modify(os_disk_path, instance.os_disk_size)
+            status.update(f'Resized OS disk to {instance.os_disk_size}')
 
             self.bootstrap_controller.bootstrap(model)
-            status.update(f'Created bootstrapper {model.bootstrapper}')
+            status.update(f'Created bootstrapper {instance.bootstrapper}')
 
-            vm_script_path = pathlib.Path(model.path).joinpath('vm.sh')
+            vm_script_path = pathlib.Path(instance.path).joinpath('vm.sh')
             VMScriptModel(model, vm_script_path)
             vm_script_path.chmod(0o755)
             status.update(f'Created VM script at {vm_script_path}')

@@ -6,6 +6,7 @@ import argparse
 from kaso_mashin import __version__, console, default_config_file
 from kaso_mashin.config import Config
 from kaso_mashin.db import DB
+from kaso_mashin.runtime import Runtime
 from kaso_mashin.commands import (
     NetworkCommands, ImageCommands, IdentityCommands, BootstrapCommands, InstanceCommands
 )
@@ -20,11 +21,12 @@ def main(args: typing.Optional[typing.List] = None) -> int:
     """
     config = Config(config_file=default_config_file)
     db = DB(config)
-    network_commands = NetworkCommands(config, db)
-    image_commands = ImageCommands(config, db)
-    identity_commands = IdentityCommands(config, db)
-    bootstrap_commands = BootstrapCommands(config, db)
-    instance_commands = InstanceCommands(config, db)
+    runtime = Runtime(config=config, db=db)
+    network_commands = NetworkCommands(runtime)
+    image_commands = ImageCommands(runtime)
+    identity_commands = IdentityCommands(runtime)
+    bootstrap_commands = BootstrapCommands(runtime)
+    instance_commands = InstanceCommands(runtime)
 
     parser = argparse.ArgumentParser(add_help=True, description=f'kaso-mashin - {__version__}')
     parser.add_argument('-q', '--quiet', action='store_true', dest='quiet', help='Silent operation')
@@ -61,6 +63,7 @@ def main(args: typing.Optional[typing.List] = None) -> int:
         console.print(f'Creating directory at {args.path}')
         args.path.mkdir(parents=True)
     config.path = args.path
+    runtime.late_init()
     try:
         if hasattr(args, 'cmd'):
             return args.cmd(args)

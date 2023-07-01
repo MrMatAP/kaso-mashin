@@ -1,4 +1,3 @@
-import contextlib
 import sqlalchemy
 import sqlalchemy.orm
 
@@ -14,11 +13,14 @@ class DB:
     def __init__(self, config: Config):
         self._config = config
         self._engine = None
+        self._session = None
 
-    @contextlib.contextmanager
-    def session(self) -> sqlalchemy.orm.Session:
-        with sqlalchemy.orm.Session(self.engine, expire_on_commit=False) as s:
-            yield s
+    def __del__(self):
+        """
+        Destructor
+        """
+        if self._session:
+            self._session.close()
 
     @property
     def config(self) -> Config:
@@ -30,3 +32,9 @@ class DB:
             self._engine = sqlalchemy.create_engine(f'sqlite:///{self.config.path}/cloud.sqlite3')
             Base.metadata.create_all(self._engine)
         return self._engine
+
+    @property
+    def session(self) -> sqlalchemy.orm.Session:
+        if not self._session:
+            self._session = sqlalchemy.orm.Session(self.engine)
+        return self._session

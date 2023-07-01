@@ -10,7 +10,7 @@ class BootstrapCommands(AbstractCommands):
 
     def register_commands(self, parser: argparse.ArgumentParser):
         bootstrap_subparser = parser.add_subparsers()
-        bootstrap_create_ci_disk_parser = bootstrap_subparser.add_parser(name='list',
+        bootstrap_create_ci_disk_parser = bootstrap_subparser.add_parser(name='create',
                                                                          help='(Re-)create a CI disk')
         bootstrap_create_ci_disk_parser.add_argument('--id',
                                                      dest='id',
@@ -20,6 +20,6 @@ class BootstrapCommands(AbstractCommands):
         bootstrap_create_ci_disk_parser.set_defaults(cmd=self.create_ci_disk)
 
     def create_ci_disk(self, args: argparse.Namespace) -> int:
-        instance = self.instance_controller.get(args.id)
-        self.bootstrap_controller.create_ci_image(model=instance, ci_path=instance.ci_disk_path)
+        model = self.instance_controller.get(args.id)
+        self.bootstrap_controller.create_ci_image(model=model)
         return 0

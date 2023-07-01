@@ -1,6 +1,7 @@
 import typing
 import sqlalchemy
 
+from kaso_mashin import KasoMashinException
 from kaso_mashin.config import Config
 from kaso_mashin.controllers import AbstractController
 from kaso_mashin.db import DB
@@ -17,22 +18,34 @@ class ImageController(AbstractController):
         config.path.joinpath('images').mkdir(parents=True, exist_ok=True)
 
     def list(self) -> typing.List[ImageModel]:
-        with self.db.session() as s:
-            images = s.scalars(sqlalchemy.select(ImageModel)).all()
+        images = self.db.session.scalars(sqlalchemy.select(ImageModel)).all()
         return images
 
-    def get(self, image_id: int) -> ImageModel:
-        with self.db.session() as s:
-            return s.get(ImageModel, image_id)
+    def get(self, image_id: typing.Optional[int] = None, name: typing.Optional[str] = None) -> ImageModel | None:
+        """
+        Return a Image by either id or name
+        Args:
+            image_id: The image id
+            name: The network name
+
+        Returns:
+            The ImageModel matching the search parameters
+        Raises:
+            KasoMashinException: When neither image_id nor name is specified
+        """
+        if not image_id and not name:
+            raise KasoMashinException(status=400, msg='Neither image_id nor name are provided')
+        if image_id:
+            return self.db.session.get(ImageModel, image_id)
+        return self.db.session.scalar(
+            sqlalchemy.sql.select(ImageModel).where(ImageModel.name == name))
 
     def create(self, model: ImageModel) -> ImageModel:
-        with self.db.session() as s:
-            s.add(model)
-            s.commit()
+        self.db.session.add(model)
+        self.db.session.commit()
         return model
 
     def remove(self, image_id: int):
-        with self.db.session() as s:
-            image = s.get(ImageModel, image_id)
-            s.delete(image)
-            s.commit()
+        image = self.db.session.get(ImageModel, image_id)
+        self.db.session.delete(image)
+        self.db.session.commit()

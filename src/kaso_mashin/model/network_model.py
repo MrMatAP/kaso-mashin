@@ -1,12 +1,16 @@
 import enum
-from kaso_mashin import Base
+
 from sqlalchemy import String, Integer, Enum
 from sqlalchemy.orm import Mapped, mapped_column
+
+from kaso_mashin import Base
+from kaso_mashin.model import IP4Address
 
 
 class NetworkKind(enum.Enum):
     VMNET_HOST = 'host'
     VMNET_SHARED = 'shared'
+    VMNET_BRIDGED = 'bridged'
 
 
 class NetworkModel(Base):
@@ -18,13 +22,14 @@ class NetworkModel(Base):
     name: Mapped[str] = mapped_column(String(30), unique=True)
     kind: Mapped[NetworkKind] = mapped_column(Enum(NetworkKind))
 
-    host_ip4: Mapped[str] = mapped_column(String(15))
+    host_if: Mapped[str] = mapped_column(String, nullable=True)
+    host_ip4: Mapped[str] = mapped_column(IP4Address, nullable=True)
     host_phone_home_port: Mapped[int] = mapped_column(Integer)
-    nm4: Mapped[str] = mapped_column(String(15))
-    gw4: Mapped[str] = mapped_column(String(15))
-    ns4: Mapped[str] = mapped_column(String(15))
-    dhcp_start: Mapped[str] = mapped_column(String(15), nullable=True)
-    dhcp_end: Mapped[str] = mapped_column(String(15), nullable=True)
+    nm4: Mapped[str] = mapped_column(IP4Address, nullable=True)
+    gw4: Mapped[str] = mapped_column(IP4Address, nullable=True)
+    ns4: Mapped[str] = mapped_column(IP4Address, nullable=True)
+    dhcp_start: Mapped[str] = mapped_column(IP4Address, nullable=True)
+    dhcp_end: Mapped[str] = mapped_column(IP4Address, nullable=True)
 
     def __repr__(self) -> str:
         return f'NetworkModel(id={self.network_id!r}, ' \
@@ -35,4 +40,6 @@ class NetworkModel(Base):
                f'nm4={self.nm4}, ' \
                f'gw4={self.gw4!r}, ' \
                f'ns4={self.nm4!r}' \
+               f'dhcp_start={self.dhcp_start!r}, ' \
+               f'dhcp_end={self.dhcp_end!r}, ' \
                f')'

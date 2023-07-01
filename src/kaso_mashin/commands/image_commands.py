@@ -1,6 +1,8 @@
 import argparse
 
 import requests
+import rich.tree
+import rich.columns
 import rich.progress
 
 from kaso_mashin import console
@@ -18,11 +20,15 @@ class ImageCommands(AbstractCommands):
         image_list_parser = image_subparser.add_parser(name='list', help='List images')
         image_list_parser.set_defaults(cmd=self.list)
         image_get_parser = image_subparser.add_parser(name='get', help='Get a image')
-        image_get_parser.add_argument('--id',
-                                      dest='id',
-                                      type=int,
-                                      required=True,
-                                      help='The image id')
+        image_get_id_or_name = image_get_parser.add_mutually_exclusive_group(required=True)
+        image_get_id_or_name.add_argument('--id',
+                                          dest='id',
+                                          type=int,
+                                          help='The image id')
+        image_get_id_or_name.add_argument('--name',
+                                          dest='name',
+                                          type=str,
+                                          help='The image name')
         image_get_parser.set_defaults(cmd=self.get)
         image_download_parser = image_subparser.add_parser(name='download', help='Download an image')
         image_download_parser.add_argument('-n', '--name',
@@ -34,28 +40,33 @@ class ImageCommands(AbstractCommands):
         image_download_parser.set_defaults(cmd=self.download)
         image_remove_parser = image_subparser.add_parser(name='remove', help='Remove an image')
         image_remove_parser.add_argument('--id',
-                                      dest='id',
-                                      type=int,
-                                      required=True,
-                                      help='The image id')
+                                         dest='id',
+                                         type=int,
+                                         required=True,
+                                         help='The image id')
         image_remove_parser.set_defaults(cmd=self.remove)
 
-    def list(self, args: argparse.Namespace) -> int:        # pylint: disable=unused-argument
+    def list(self, args: argparse.Namespace) -> int:  # pylint: disable=unused-argument
         images = self.image_controller.list()
+        tree = rich.tree.Tree(label='Images')
         for image in images:
-            console.print(f'- Id:   {image.image_id}')
-            console.print(f'  Name: {image.name}')
-            console.print(f'  Path: {image.path}')
+            ntree = tree.add(label=f'{image.image_id}: {image.name}')
+            ntree.add(rich.columns.Columns(['Id:', str(image.image_id)]))
+            ntree.add(rich.columns.Columns(['Name:', image.name]))
+            ntree.add(rich.columns.Columns(['Path:', image.path]))
+        console.print(tree)
         return 0
 
     def get(self, args: argparse.Namespace) -> int:
-        image = self.image_controller.get(args.id)
+        image = self.image_controller.get(image_id=args.id, name=args.name)
         if not image:
             console.print(f'ERROR: Image with id {args.id} not found')
             return 1
-        console.print(f'- Id:   {image.image_id}')
-        console.print(f'  Name: {image.name}')
-        console.print(f'  Path: {image.path}')
+        tree = rich.tree.Tree(label=f'{image.image_id}: {image.name}')
+        tree.add(rich.columns.Columns(['Id:', str(image.image_id)]))
+        tree.add(rich.columns.Columns(['Name:', image.name]))
+        tree.add(rich.columns.Columns(['Path:', image.path]))
+        console.print(tree)
         return 0
 
     def download(self, args: argparse.Namespace) -> int:

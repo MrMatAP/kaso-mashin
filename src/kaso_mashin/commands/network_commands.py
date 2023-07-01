@@ -128,11 +128,13 @@ class NetworkCommands(AbstractCommands):
             ntree.add(rich.columns.Columns(['Id:', str(network.network_id)]))
             ntree.add(rich.columns.Columns(['Name:', network.name]))
             ntree.add(rich.columns.Columns(['Kind:', network.kind.value]))
-            ntree.add(rich.columns.Columns(['Host IP4:', network.host_ip4]))
-            ntree.add(rich.columns.Columns(['Netmask4:', network.nm4]))
-            ntree.add(rich.columns.Columns(['Gateway4:', network.gw4]))
-            ntree.add(rich.columns.Columns(['Nameserver4:', network.ns4]))
+            ntree.add(rich.columns.Columns(['Host IP4:', str(network.host_ip4) or 'N/A']))
+            ntree.add(rich.columns.Columns(['Netmask4:', str(network.nm4) or 'N/A']))
+            ntree.add(rich.columns.Columns(['Gateway4:', str(network.gw4) or 'N/A']))
+            ntree.add(rich.columns.Columns(['Nameserver4:', str(network.ns4) or 'N/A']))
             ntree.add(rich.columns.Columns(['Phone home port:', str(network.host_phone_home_port)]))
+            ntree.add(rich.columns.Columns(['DHCP start:', str(network.dhcp_start) or 'N/A']))
+            ntree.add(rich.columns.Columns(['DHCP end:', str(network.dhcp_end) or 'N/A']))
         console.print(tree)
         return 0
 

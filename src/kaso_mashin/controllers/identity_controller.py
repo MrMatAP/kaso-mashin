@@ -1,6 +1,7 @@
 import typing
 import sqlalchemy
 
+from kaso_mashin import KasoMashinException
 from kaso_mashin.controllers import AbstractController
 from kaso_mashin.model import IdentityModel
 
@@ -11,22 +12,33 @@ class IdentityController(AbstractController):
     """
 
     def list(self) -> typing.List[IdentityModel]:
-        with self.db.session() as s:
-            identities = s.scalars(sqlalchemy.select(IdentityModel)).all()
-        return identities
+        return self.db.session.scalars(sqlalchemy.select(IdentityModel)).all()
 
-    def get(self, identity_id: int) -> IdentityModel:
-        with self.db.session() as s:
-            return s.get(IdentityModel, identity_id)
+    def get(self, identity_id: typing.Optional[int] = None , name: typing.Optional[str] = None) -> IdentityModel | None:
+        """
+        Return an identity by either id or name
+        Args:
+            identity_id: The identity id
+            name: The network name
+
+        Returns:
+            The IdentityModel matching the search parameters or None if not found
+        Raises:
+            KasoMashinException: When neither identity_id nor name are provided
+        """
+        if not identity_id and not name:
+            raise KasoMashinException(status=400, msg='Neither identity_id nor name are provided')
+        if identity_id:
+            return self.db.session.get(IdentityModel, identity_id)
+        return self.db.session.scalar(
+            sqlalchemy.sql.select(IdentityModel).where(IdentityModel.name == name))
 
     def create(self, model: IdentityModel) -> IdentityModel:
-        with self.db.session() as s:
-            s.add(model)
-            s.commit()
+        self.db.session.add(model)
+        self.db.session.commit()
         return model
 
     def remove(self, identity_id: int):
-        with self.db.session() as s:
-            identity = s.get(IdentityModel, identity_id)
-            s.delete(identity)
-            s.commit()
+        identity = self.db.session.get(IdentityModel, identity_id)
+        self.db.session.delete(identity)
+        self.db.session.commit()

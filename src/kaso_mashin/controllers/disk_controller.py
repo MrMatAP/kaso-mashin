@@ -18,7 +18,7 @@ class DiskController(AbstractController):
             raise KasoMashinException(status=400, msg=f'Backing disk at {backing_disk_path} does not exist')
         execute('qemu-img', ['create', '-f', 'qcow2', '-b', backing_disk_path, '-F', 'qcow2', path])
 
-    def resize(self, path: pathlib.Path, size: str):
+    def modify(self, path: pathlib.Path, size: str):
         if not path.exists():
             raise KasoMashinException(status=400, msg=f'Disk at {path} does not exist')
         execute('qemu-img', ['resize', path, size])

@@ -165,7 +165,7 @@ class CIUserData(Renderable):
                     'sudo': 'ALL=(ALL) NOPASSWD:ALL',
                     'shell': '/bin/bash',
                     'lock_passwd': False,
-                    'plain_text_passwd': self.admin_password
+                    'plain_text_passwd': 'foobar'
                 },
                 {
                     'name': 'ansible',
