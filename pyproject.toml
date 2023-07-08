@@ -30,6 +30,7 @@ dependencies = [
     "pyyaml~=6.0",          # MIT
     "netifaces~=0.11.0",    # MIT
     "sqlalchemy~=2.0.15",   # MIT
+    "fastapi>=0.100.0",     # MIT
 ]
 dynamic = ["version"]
 
