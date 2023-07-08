@@ -1,8 +1,0 @@
----
-# handlers file for redirect_console
-
-- name: journald-restart
-  ansible.builtin.systemd:
-    name: systemd-journald
-    state: restarted
-    daemon_reload: true

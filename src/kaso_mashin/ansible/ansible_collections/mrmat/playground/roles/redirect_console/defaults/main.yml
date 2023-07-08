@@ -1,4 +1,0 @@
----
-# defaults file for redirect_console
-redirect: yes
-tty: /dev/ttyAMA0
