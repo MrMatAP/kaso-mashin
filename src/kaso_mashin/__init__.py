@@ -1,10 +1,8 @@
 import os
 import pathlib
-import logging
 import logging.config
 import importlib.metadata
 from rich.console import Console
-from rich.logging import RichHandler
 from sqlalchemy.orm import DeclarativeBase
 
 try:
