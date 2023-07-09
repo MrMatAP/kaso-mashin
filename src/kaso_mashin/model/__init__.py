@@ -8,3 +8,4 @@ from .bootstrap_model import BootstrapKind, CIVendorData, CIMetaData, CIUserData
 from .instance_model import InstanceModel
 from .vm_script_model import VMScriptModel
 from .task_model import TaskState, TaskSchema
+from .exception_model import ExceptionSchema

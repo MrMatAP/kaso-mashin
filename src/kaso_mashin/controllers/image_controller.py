@@ -33,16 +33,15 @@ class ImageController(AbstractController):
         Returns:
             The ImageModel matching the search parameters
         Raises:
-            KasoMashinException: When neither image_id nor name is specified, or no image could be found
+            KasoMashinException: When neither image_id nor name is specified
         """
         if not image_id and not name:
             raise KasoMashinException(status=400, msg='Neither image_id nor name are provided')
         if image_id:
-            return self.db.session.get(ImageModel, image_id)
-        image = self.db.session.scalar(sqlalchemy.sql.select(ImageModel).where(ImageModel.name == name))
-        if not image:
-            raise KasoMashinException(status=404, msg='No such image was found')
-        return image
+            image = self.db.session.get(ImageModel, image_id)
+        else:
+            image = self.db.session.scalar(sqlalchemy.sql.select(ImageModel).where(ImageModel.name == name))
+        return image or None
 
     async def create(self, name: str, url: str, task: TaskSchema) -> ImageModel:
         image_path = self.config.path.joinpath(f'images/{name}.qcow2')
