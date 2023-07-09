@@ -1,10 +1,11 @@
+import typing
 import pathlib
 import ipaddress
-import typing
 
 import sqlalchemy.types
 from sqlalchemy import Dialect
 from sqlalchemy.sql.type_api import _T
+import pydantic
 
 
 class IP4Address(sqlalchemy.types.TypeDecorator):
@@ -53,3 +54,10 @@ class DbPath(sqlalchemy.types.TypeDecorator):
             An initialised pathlib.Path
         """
         return pathlib.Path(value) if value else None
+
+
+SchemaPath = typing.Annotated[pathlib.Path,
+                              pydantic.AfterValidator(lambda x: x),
+                              pydantic.PlainSerializer(lambda x: str(x), return_type=str),
+                              pydantic.WithJsonSchema({'type': 'string'}, mode='serialization')]
+ta = pydantic.TypeAdapter(SchemaPath)
