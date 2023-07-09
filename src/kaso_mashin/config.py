@@ -22,6 +22,8 @@ class Config:
         self._default_shared_network_dhcp_end = '172.16.5.254'
         self._default_host_network_cidr = '172.16.4.0/24'
         self._default_shared_network_cidr = '172.16.5.0/24'
+        self._default_server_host = '127.0.0.1'
+        self._default_server_port = 8000
         self._config_file = config_file
         self.load()
 
@@ -49,6 +51,10 @@ class Config:
                 self.default_host_network_cidr = config.get('default_host_network_cidr')
             if 'default_shared_network_cidr' in config:
                 self.default_shared_network_cidr = config.get('default_shared_network_cidr')
+            if 'default_server_host' in config:
+                self.default_server_host = config.get('default_server_host')
+            if 'default_server_port' in config:
+                self._default_server_port = config.get('default_server_port')
 
     def save(self):
         with open(self.config_file, 'w+', encoding='UTF-8') as c:
@@ -62,6 +68,8 @@ class Config:
                 'default_shared_network_dhcp_end': self._default_shared_network_dhcp_end,
                 'default_host_network_cidr': self._default_host_network_cidr,
                 'default_shared_network_cidr': self._default_shared_network_cidr,
+                'default_server_host': self._default_server_host,
+                'default_server_port': self._default_server_port
             }, c, Dumper=Dumper)
 
     @property
@@ -135,6 +143,22 @@ class Config:
     @default_shared_network_cidr.setter
     def default_shared_network_cidr(self, value: str):
         self._default_shared_network_cidr = value
+
+    @property
+    def default_server_host(self) -> str:
+        return self._default_server_host
+
+    @default_server_host.setter
+    def default_server_host(self, value: str):
+        self._default_server_host = value
+
+    @property
+    def default_server_port(self) -> int:
+        return self._default_server_port
+
+    @default_server_port.setter
+    def default_server_port(self, value: int):
+        self._default_server_port = value
 
     @property
     def config_file(self) -> pathlib.Path:
