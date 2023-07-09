@@ -22,9 +22,8 @@ class ImageBaseSchema(pydantic.BaseModel):
     The common base schema for an image. It deliberately does not contain image_id because we do
     not allow that to be provided during creation of an image
     """
-    name: str
-    path: SchemaPath
-    downloaded: int
+    name: str = pydantic.Field(description='The image name')
+    path: SchemaPath = pydantic.Field(description='Path to the image on the local disk')
 
     class Config:
         from_attributes = True
@@ -35,7 +34,17 @@ class ImageSchema(ImageBaseSchema):
     The full schema of an image, extends the ImageBaseSchema with the image_id because that is
     only available after the image is created
     """
-    image_id: int
+    image_id: int = pydantic.Field(description='The image id')
+
+    model_config = {
+        'json_schema_extra': {
+            'examples': [{
+                'image_id': 1,
+                'name': 'ubuntu-jammy',
+                'path': '/Users/dude/var/kaso/images/ubuntu-jammy.qcow2'
+            }]
+        }
+    }
 
 
 class ImageCreateSchema(pydantic.BaseModel):
@@ -44,6 +53,16 @@ class ImageCreateSchema(pydantic.BaseModel):
     """
     name: str
     url: str
+
+    model_config = {
+        'json_schema_extra': {
+            'examples': [{
+                'image_id': 1,
+                'name': 'ubuntu-jammy',
+                'path': '/Users/dude/var/kaso/images/ubuntu-jammy.qcow2'
+            }]
+        }
+    }
 
 
 class ImageModel(Base):
@@ -55,4 +74,3 @@ class ImageModel(Base):
     image_id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
     name: Mapped[str] = mapped_column(String, unique=True)
     path: Mapped[str] = mapped_column(DbPath, unique=True)
-    downloaded: Mapped[int] = mapped_column(Integer, default=0)
