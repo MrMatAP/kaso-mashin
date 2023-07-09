@@ -8,7 +8,8 @@ from kaso_mashin.config import Config
 from kaso_mashin.db import DB
 from kaso_mashin.runtime import Runtime
 from kaso_mashin.commands import (
-    NetworkCommands, ImageCommands, IdentityCommands, BootstrapCommands, InstanceCommands
+    NetworkCommands, ImageCommands, IdentityCommands, BootstrapCommands, InstanceCommands,
+    ServerCommands
 )
 
 
@@ -27,6 +28,7 @@ def main(args: typing.Optional[typing.List] = None) -> int:
     identity_commands = IdentityCommands(runtime)
     bootstrap_commands = BootstrapCommands(runtime)
     instance_commands = InstanceCommands(runtime)
+    server_commands = ServerCommands(runtime)
 
     parser = argparse.ArgumentParser(add_help=True, description=f'kaso-mashin - {__version__}')
     parser.add_argument('-q', '--quiet', action='store_true', dest='quiet', help='Silent operation')
@@ -55,6 +57,8 @@ def main(args: typing.Optional[typing.List] = None) -> int:
     bootstrap_commands.register_commands(bootstrap_parser)
     instance_parser = subparsers.add_parser(name='instance', help='Manage instances')
     instance_commands.register_commands(instance_parser)
+    server_parser = subparsers.add_parser(name='server', help='Start the Kaso Mashin server')
+    server_commands.register_commands(server_parser)
 
     args = parser.parse_args(args if args is not None else sys.argv[1:])
     if args.config:

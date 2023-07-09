@@ -1,13 +1,17 @@
 import argparse
+import httpx
+import fastapi
+import time
 
-import requests
+import rich.table
+import rich.box
 import rich.tree
 import rich.columns
 import rich.progress
 
 from kaso_mashin import console
 from kaso_mashin.commands import AbstractCommands
-from kaso_mashin.model import ImageURLs, ImageModel
+from kaso_mashin.model import ImageURLs, TaskSchema, TaskState, ImageSchema, ImageCreateSchema
 
 
 class ImageCommands(AbstractCommands):
@@ -22,7 +26,7 @@ class ImageCommands(AbstractCommands):
         image_get_parser = image_subparser.add_parser(name='get', help='Get a image')
         image_get_id_or_name = image_get_parser.add_mutually_exclusive_group(required=True)
         image_get_id_or_name.add_argument('--id',
-                                          dest='id',
+                                          dest='image_id',
                                           type=int,
                                           help='The image id')
         image_get_id_or_name.add_argument('--name',
@@ -34,70 +38,76 @@ class ImageCommands(AbstractCommands):
         image_download_parser.add_argument('-n', '--name',
                                            dest='name',
                                            type=str,
+                                           required=True,
+                                           help='The image name')
+        image_download_parser.add_argument('--common',
+                                           dest='common',
+                                           type=str,
                                            choices=ImageURLs.keys(),
                                            required=True,
-                                           help='The image to download')
+                                           help='Common images')
         image_download_parser.set_defaults(cmd=self.download)
         image_remove_parser = image_subparser.add_parser(name='remove', help='Remove an image')
         image_remove_parser.add_argument('--id',
-                                         dest='id',
+                                         dest='image_id',
                                          type=int,
                                          required=True,
                                          help='The image id')
         image_remove_parser.set_defaults(cmd=self.remove)
 
     def list(self, args: argparse.Namespace) -> int:  # pylint: disable=unused-argument
-        images = self.image_controller.list()
-        tree = rich.tree.Tree(label='Images')
+        resp = httpx.get(f'{self.server_url}/api/images/', timeout=60)
+        if resp.status_code != 200:
+            console.print('ERROR: Failed to make API call')
+            return 1
+        images = [ImageSchema.model_validate(img) for img in resp.json()]
+        table = rich.table.Table(box=rich.box.ROUNDED)
+        table.add_column('ID')
+        table.add_column('Name')
+        table.add_column('Path')
         for image in images:
-            ntree = tree.add(label=f'{image.image_id}: {image.name}')
-            ntree.add(rich.columns.Columns(['Id:', str(image.image_id)]))
-            ntree.add(rich.columns.Columns(['Name:', image.name]))
-            ntree.add(rich.columns.Columns(['Path:', image.path]))
-        console.print(tree)
+            table.add_row(str(image.image_id), image.name, str(image.path))
+        console.print(table)
         return 0
 
     def get(self, args: argparse.Namespace) -> int:
-        image = self.image_controller.get(image_id=args.id, name=args.name)
-        if not image:
-            console.print(f'ERROR: Image with id {args.id} not found')
+        resp = httpx.get(f'{self.server_url}/api/images/{args.image_id}', timeout=60)
+        if resp.status_code != 200:
+            console.print(f'ERROR: Image with id {args.image_id} not found')
             return 1
-        tree = rich.tree.Tree(label=f'{image.image_id}: {image.name}')
-        tree.add(rich.columns.Columns(['Id:', str(image.image_id)]))
-        tree.add(rich.columns.Columns(['Name:', image.name]))
-        tree.add(rich.columns.Columns(['Path:', image.path]))
-        console.print(tree)
+        image = ImageSchema.model_validate_json(resp.content)
+        table = rich.table.Table(box=rich.box.ROUNDED)
+        table.add_column('Field')
+        table.add_column('Value')
+        table.add_row('[blue]Id', str(image.image_id))
+        table.add_row('[blue]Name', image.name)
+        table.add_row('[blue]Path', str(image.path))
+        console.print(table)
         return 0
 
     def download(self, args: argparse.Namespace) -> int:
-        with console.status(f'[magenta] Downloading image {args.name}') as status:
-            image_url = ImageURLs.get(args.name)
-            image_path = self.config.path.joinpath(f'images/{args.name}.qcow2')
-            if image_path.exists():
-                status.update(f'ERROR: Image at path {image_path} already exists. Please remove it first.')
-                return 1
-
-            resp = requests.head(image_url, allow_redirects=True, timeout=60)
-            size = int(resp.headers.get('content-length'))
-            current = 0
-
-            with rich.progress.Progress() as progress:
-                download_task = progress.add_task(f'[green]Download image {args.name}...', total=100, visible=True)
-                with requests.get(image_url,
-                                  allow_redirects=True,
-                                  stream=True,
-                                  timeout=60) as resp, \
-                        open(image_path, 'wb') as i:
-                    for chunk in resp.iter_content(chunk_size=8192):
-                        i.write(chunk)
-                        current += 8192
-                        progress.update(download_task, completed=current / size * 100, refresh=True)
-
-            image = ImageModel(name=args.name, path=str(image_path))
-            image = self.image_controller.create(image)
-            status.update(f'Downloaded image {image.image_id}: {image.name} to {image.path}')
+        create_schema = ImageCreateSchema(name=args.name, url=ImageURLs.get(args.common)).model_dump()
+        resp = httpx.put(f'{self.server_url}/api/images/', json=create_schema)
+        if resp.status_code != 200:
+            console.print('Failed to download image')
+            return 1
+        task = TaskSchema.model_validate(resp.json())
+        with rich.progress.Progress() as progress:
+            download_task = progress.add_task(f'[green]Download image {args.name}...', total=100, visible=True)
+            while not task.state == TaskState.DONE:
+                resp = httpx.get(f'{self.server_url}/api/tasks/{task.task_id}')
+                if resp.status_code != 200:
+                    console.print(f'Failed to fetch status for task {task.task_id}')
+                    return 1
+                task = TaskSchema.model_validate(resp.json())
+                progress.update(download_task, completed=task.percent_complete, refresh=True)
+                time.sleep(2)
         return 0
 
     def remove(self, args: argparse.Namespace) -> int:
-        self.image_controller.remove(args.id)
-        return 0
+        resp = httpx.delete(f'{self.server_url}/api/images/{args.image_id}', timeout=60)
+        if resp.status_code in [fastapi.status.HTTP_410_GONE, fastapi.status.HTTP_204_NO_CONTENT]:
+            console.print(f'Successfully removed image with id {args.image_id}')
+            return 0
+        console.print(f'ERROR: Failed to remove image with id {args.image_id}')
+        return 1

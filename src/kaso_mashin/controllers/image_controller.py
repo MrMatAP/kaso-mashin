@@ -1,11 +1,13 @@
 import typing
 import sqlalchemy
+import httpx
+import aiofiles
 
 from kaso_mashin import KasoMashinException
 from kaso_mashin.config import Config
 from kaso_mashin.controllers import AbstractController
 from kaso_mashin.db import DB
-from kaso_mashin.model import ImageModel
+from kaso_mashin.model import ImageModel, TaskSchema
 
 
 class ImageController(AbstractController):
@@ -31,21 +33,55 @@ class ImageController(AbstractController):
         Returns:
             The ImageModel matching the search parameters
         Raises:
-            KasoMashinException: When neither image_id nor name is specified
+            KasoMashinException: When neither image_id nor name is specified, or no image could be found
         """
         if not image_id and not name:
             raise KasoMashinException(status=400, msg='Neither image_id nor name are provided')
         if image_id:
             return self.db.session.get(ImageModel, image_id)
-        return self.db.session.scalar(
-            sqlalchemy.sql.select(ImageModel).where(ImageModel.name == name))
+        image = self.db.session.scalar(sqlalchemy.sql.select(ImageModel).where(ImageModel.name == name))
+        if not image:
+            raise KasoMashinException(status=404, msg='No such image was found')
+        return image
 
-    def create(self, model: ImageModel) -> ImageModel:
+    async def create(self, name: str, url: str, task: TaskSchema) -> ImageModel:
+        image_path = self.config.path.joinpath(f'images/{name}.qcow2')
+        if image_path.exists():
+            raise KasoMashinException(status=400,
+                                      msg=f'Image at path {image_path} already exists',
+                                      task=task)
+
+        resp = httpx.head(url, follow_redirects=True, timeout=60)
+        size = int(resp.headers.get('content-length'))
+        current = 0
+        client = httpx.AsyncClient(follow_redirects=True, timeout=60)
+        async with client.stream('GET', url) as resp, aiofiles.open(image_path, 'wb') as i:
+            async for chunk in resp.aiter_bytes():
+                await i.write(chunk)
+                current += 8192
+                task.progress(percent_complete=int(current / size * 100), msg='Downloading')
+        model = ImageModel(name=name, path=image_path)
         self.db.session.add(model)
         self.db.session.commit()
+        task.success(f'Downloaded to image with id {model.image_id}')
         return model
 
-    def remove(self, image_id: int):
+    def remove(self, image_id: int) -> bool:
+        """
+        Remove an image
+        Args:
+            image_id: The image id to remove
+
+        Returns:
+            False if the image was actually removed as part of this call, True if it was already gone or didn't exist
+            in the first place
+        """
+        # TODO: Should check whether it's in use somewhere
         image = self.db.session.get(ImageModel, image_id)
+        if not image:
+            # The image is not around, should cause a 410
+            return True
+        image.path.unlink(missing_ok=True)
         self.db.session.delete(image)
         self.db.session.commit()
+        return False

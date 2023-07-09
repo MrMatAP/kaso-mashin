@@ -1,37 +1,24 @@
 import abc
-import argparse
+import fastapi
 
-from kaso_mashin.config import Config
-from kaso_mashin.db import DB
 from kaso_mashin.runtime import Runtime
 from kaso_mashin.controllers import (
     BootstrapController, DiskController, IdentityController, ImageController, InstanceController,
-    NetworkController, PhoneHomeController)
+    NetworkController, PhoneHomeController, TaskController)
 
 
-class AbstractCommands(abc.ABC):
+class AbstractAPI(abc.ABC):
     """
-    An abstract base class for command groups
+    An abstract base class for APIs
     """
 
     def __init__(self, runtime: Runtime):
         self._runtime = runtime
-
-    @abc.abstractmethod
-    def register_commands(self, parser: argparse.ArgumentParser):
-        pass
+        self._router = None
 
     @property
-    def config(self) -> Config:
-        return self._runtime.config
-
-    @property
-    def db(self) -> DB:
-        return self._runtime.db
-
-    @property
-    def server_url(self) -> str:
-        return self._runtime.server_url
+    def router(self) -> fastapi.APIRouter:
+        return self._router
 
     @property
     def bootstrap_controller(self) -> BootstrapController:
@@ -60,3 +47,7 @@ class AbstractCommands(abc.ABC):
     @property
     def phonehome_controller(self) -> PhoneHomeController:
         return self._runtime.phonehome_controller
+
+    @property
+    def task_controller(self) -> TaskController:
+        return self._runtime.task_controller

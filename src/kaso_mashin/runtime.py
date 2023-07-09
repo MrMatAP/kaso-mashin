@@ -4,7 +4,7 @@ from kaso_mashin.config import Config
 from kaso_mashin.db import DB
 from kaso_mashin.controllers import (
     BootstrapController, DiskController, IdentityController, ImageController, InstanceController,
-    NetworkController, PhoneHomeController)
+    NetworkController, PhoneHomeController, TaskController)
 from kaso_mashin.model import NetworkKind, NetworkModel
 
 
@@ -16,6 +16,7 @@ class Runtime:
     def __init__(self, config: Config, db: DB):
         self._config = config
         self._db = db
+        self._server_url = None
         self._bootstrap_controller = BootstrapController(config=config, db=db)
         self._disk_controller = DiskController(config=config, db=db)
         self._identity_controller = IdentityController(config=config, db=db)
@@ -23,11 +24,13 @@ class Runtime:
         self._instance_controller = InstanceController(config=config, db=db)
         self._network_controller = NetworkController(config=config, db=db)
         self._phonehome_controller = PhoneHomeController(config=config, db=db)
+        self._task_controller = TaskController(config=config, db=db)
 
     def late_init(self):
         """
         Perform late initialisation after configuration
         """
+        self._server_url = f'http://{self.config.default_server_host}:{self.config.default_server_port}'
         if not self.network_controller.get(name=NetworkController.DEFAULT_HOST_NETWORK_NAME):
             host_net = ipaddress.ip_network(self.config.default_host_network_cidr)
             model = NetworkModel(name=NetworkController.DEFAULT_HOST_NETWORK_NAME,
@@ -58,6 +61,10 @@ class Runtime:
         return self._db
 
     @property
+    def server_url(self) -> str:
+        return self._server_url
+
+    @property
     def bootstrap_controller(self) -> BootstrapController:
         return self._bootstrap_controller
 
@@ -84,3 +91,7 @@ class Runtime:
     @property
     def phonehome_controller(self) -> PhoneHomeController:
         return self._phonehome_controller
+
+    @property
+    def task_controller(self) -> TaskController:
+        return self._task_controller
