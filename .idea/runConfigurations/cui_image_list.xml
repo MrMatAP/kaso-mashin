@@ -1,5 +1,5 @@
 <component name="ProjectRunConfigurationManager">
-  <configuration default="false" name="cui image download (jammy)" type="PythonConfigurationType" factoryName="Python">
+  <configuration default="false" name="cui image list" type="PythonConfigurationType" factoryName="Python">
     <module name="kaso-mashin" />
     <option name="INTERPRETER_OPTIONS" value="" />
     <option name="PARENT_ENVS" value="true" />
@@ -14,7 +14,7 @@
     <option name="ADD_SOURCE_ROOTS" value="true" />
     <EXTENSION ID="PythonCoverageRunConfigurationExtension" runner="coverage.py" />
     <option name="SCRIPT_NAME" value="kaso_mashin.cui" />
-    <option name="PARAMETERS" value="image download -n test --common ubuntu-jammy" />
+    <option name="PARAMETERS" value="image list" />
     <option name="SHOW_COMMAND_LINE" value="false" />
     <option name="EMULATE_TERMINAL" value="true" />
     <option name="MODULE_MODE" value="true" />
