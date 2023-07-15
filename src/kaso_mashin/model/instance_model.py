@@ -1,8 +1,9 @@
 from sqlalchemy import String, Integer, Table, Column, ForeignKey
 from sqlalchemy.orm import Mapped, mapped_column, relationship
+import pydantic
 
 from kaso_mashin import Base
-from kaso_mashin.model import DbPath, NetworkModel, ImageModel, IdentityModel
+from kaso_mashin.model import DbPath, SchemaPath, NetworkModel, ImageModel, IdentityModel
 
 instance_to_networks = Table(
     'instance_networks',
@@ -10,6 +11,39 @@ instance_to_networks = Table(
     Column('instance_id', ForeignKey('instances.instance_id')),
     Column('network_id', ForeignKey('networks.network_id'))
 )
+
+
+class InstanceBaseSchema(pydantic.BaseModel):
+    """
+    The common base schema for an instance. It deliberately does not contain generated fields such as the instance_id
+    because we do not allow that to be provided during creation of an instance
+    """
+    name: str = pydantic.Field(description='The instance name')
+    vcpu: int = pydantic.Field(description='Number of virtual CPUs')
+    ram: int = pydantic.Field(description='Amount of RAM in MB')
+    bootstrapper: str = pydantic.Field(description='Name of the bootstrapper')
+    image_id: int = pydantic.Field('Image ID to use as the backing OS disk')
+    network_id: int = pydantic.Field('Network ID to connect the instance to')
+
+    class Config:
+        from_attributes = True
+
+
+class InstanceSchema(InstanceBaseSchema):
+    """
+    The full schema of an instance, extends the base schema with fields generated when the instance is created
+    """
+    instance_id: int = pydantic.Field(description='The unique instance ID')
+    path: SchemaPath = pydantic.Field(description='Path to the instance on the local disk')
+    mac: str = pydantic.Field(description='The generated MAC address')
+
+
+class InstanceCreateSchema(InstanceBaseSchema):
+    """
+    An input schema to create an instance
+    """
+    pass
+
 
 
 class InstanceModel(Base):
@@ -20,8 +54,8 @@ class InstanceModel(Base):
     __tablename__ = 'instances'
     instance_id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
     name: Mapped[str] = mapped_column(String(64), unique=True)
-
     path: Mapped[str] = mapped_column(DbPath, unique=True)
+
     vcpu: Mapped[int] = mapped_column(Integer)
     ram: Mapped[int] = mapped_column(Integer)
     mac: Mapped[str] = mapped_column(String, nullable=True)
