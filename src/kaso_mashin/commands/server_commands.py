@@ -5,7 +5,7 @@ import uvicorn
 
 from kaso_mashin import __version__, KasoMashinException
 from kaso_mashin.commands import AbstractCommands
-from kaso_mashin.apis import TaskAPI, ImageAPI, InstanceAPI
+from kaso_mashin.apis import TaskAPI, ImageAPI, IdentityAPI, InstanceAPI
 
 
 class ServerCommands(AbstractCommands):
@@ -37,6 +37,7 @@ class ServerCommands(AbstractCommands):
         image_api = ImageAPI(self._runtime)
         app.include_router(image_api.router, prefix='/api/images')
         app.include_router(task_api.router, prefix='/api/tasks')
+        app.include_router(IdentityAPI(self._runtime).router, prefix='/api/identities')
         app.include_router(InstanceAPI(self._runtime).router, prefix='/api/instances')
 
         @app.exception_handler(KasoMashinException)
