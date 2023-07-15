@@ -22,8 +22,7 @@ class NetworkBaseSchema(pydantic.BaseModel):
     name: str = pydantic.Field(description='The network name')
     kind: NetworkKind = pydantic.Field(description='The network kind', default=NetworkKind.VMNET_SHARED)
 
-    class Config:
-        from_attributes = True
+    model_config = pydantic.ConfigDict(from_attributes=True)
 
 
 class NetworkSchema(NetworkBaseSchema):

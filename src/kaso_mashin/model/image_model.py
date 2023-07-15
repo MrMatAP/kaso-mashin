@@ -25,8 +25,7 @@ class ImageBaseSchema(pydantic.BaseModel):
     name: str = pydantic.Field(description='The image name')
     path: SchemaPath = pydantic.Field(description='Path to the image on the local disk')
 
-    class Config:
-        from_attributes = True
+    model_config = pydantic.ConfigDict(from_attributes=True)
 
 
 class ImageSchema(ImageBaseSchema):

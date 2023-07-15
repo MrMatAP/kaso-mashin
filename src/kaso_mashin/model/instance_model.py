@@ -25,8 +25,7 @@ class InstanceBaseSchema(pydantic.BaseModel):
     image_id: int = pydantic.Field('Image ID to use as the backing OS disk')
     network_id: int = pydantic.Field('Network ID to connect the instance to')
 
-    class Config:
-        from_attributes = True
+    model_config = pydantic.ConfigDict(from_attributes=True)
 
 
 class InstanceSchema(InstanceBaseSchema):
