@@ -30,13 +30,13 @@ class NetworkAPI(AbstractAPI):
         self._router.add_api_route('/{network_id}', self.get_network,
                                    methods=['GET'],
                                    summary='Get a network by its unique id',
-                                   description='Get full information about a network specified by its unique id',
+                                   description='Get full information about a network',
                                    responses={
                                        fastapi.status.HTTP_200_OK: {'model': NetworkSchema}})
-        self._router.add_api_route('/{network_id}', self.create_network,
+        self._router.add_api_route('/', self.create_network,
                                    methods=['POST'],
-                                   summary='Create a network',
-                                   description='Create a network',
+                                   summary='Create a new network',
+                                   description='Create a new network',
                                    responses={
                                        fastapi.status.HTTP_201_CREATED: {'model': NetworkSchema}})
         self._router.add_api_route('/{network_id}', self.modify_network,

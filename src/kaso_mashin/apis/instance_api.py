@@ -35,7 +35,20 @@ class InstanceAPI(AbstractAPI):
                                    responses={
                                        fastapi.status.HTTP_200_OK: {'model': InstanceSchema}
                                    })
-        # TODO: Start/Stop
+        self._router.add_api_route('/', self.create_instance,
+                                   methods=['POST'],
+                                   summary='Create a new instance',
+                                   description='Create a new instance',
+                                   responses={
+                                       fastapi.status.HTTP_201_CREATED: {'model': InstanceSchema}
+                                   })
+        self._router.add_api_route('/{instance_id}', self.modify_instance,
+                                   methods=['PUT'],
+                                   summary='Modify an instance',
+                                   description='Modify an instance',
+                                   responses={
+                                       fastapi.status.HTTP_200_OK: {'model': InstanceSchema}
+                                   })
         self._router.add_api_route('/{instance_id}', self.remove_instance,
                                    methods=['DELETE'],
                                    summary='Remove an instance',
@@ -43,6 +56,24 @@ class InstanceAPI(AbstractAPI):
                                    responses={
                                        fastapi.status.HTTP_204_NO_CONTENT: {'model': None},
                                        fastapi.status.HTTP_410_GONE: {'model': None}
+                                   })
+        self._router.add_api_route('/{instance_id}/state', self.start_instance,
+                                   methods=['POST'],
+                                   summary='Start the instance',
+                                   description='This is an asynchronous operation, you will get a'
+                                               'task object back which you can subsequently check for progress using'
+                                               'the task api',
+                                   responses={
+                                       fastapi.status.HTTP_200_OK: {'model': TaskSchema}
+                                   })
+        self._router.add_api_route('/{instance_id}/state', self.stop_instance,
+                                   methods=['DELETE'],
+                                   summary='Stop the instance',
+                                   description='This is an asynchronous operation, you will get a'
+                                           'task object back which you can subsequently check for progress using'
+                                           'the task api',
+                                   responses={
+                                       fastapi.status.HTTP_200_OK: {'model': None}
                                    })
 
     async def list_instances(self,
@@ -67,13 +98,26 @@ class InstanceAPI(AbstractAPI):
                                                           .model_dump())
 
     async def create_instance(self):
-        pass
+        return fastapi.responses.JSONResponse(status_code=fastapi.status.HTTP_501_NOT_IMPLEMENTED,
+                                              content=ExceptionSchema(status=fastapi.status.HTTP_501_NOT_IMPLEMENTED,
+                                                                      msg='Not yet implemented').model_dump())
+
+    async def modify_instance(self):
+        return fastapi.responses.JSONResponse(status_code=fastapi.status.HTTP_501_NOT_IMPLEMENTED,
+                                              content=ExceptionSchema(status=fastapi.status.HTTP_501_NOT_IMPLEMENTED,
+                                                                      msg='Not yet implemented').model_dump())
 
     async def remove_instance(self):
-        pass
+        return fastapi.responses.JSONResponse(status_code=fastapi.status.HTTP_501_NOT_IMPLEMENTED,
+                                              content=ExceptionSchema(status=fastapi.status.HTTP_501_NOT_IMPLEMENTED,
+                                                                      msg='Not yet implemented').model_dump())
 
     async def start_instance(self):
-        pass
+        return fastapi.responses.JSONResponse(status_code=fastapi.status.HTTP_501_NOT_IMPLEMENTED,
+                                              content=ExceptionSchema(status=fastapi.status.HTTP_501_NOT_IMPLEMENTED,
+                                                                      msg='Not yet implemented').model_dump())
 
     async def stop_instance(self):
-        pass
+        return fastapi.responses.JSONResponse(status_code=fastapi.status.HTTP_501_NOT_IMPLEMENTED,
+                                              content=ExceptionSchema(status=fastapi.status.HTTP_501_NOT_IMPLEMENTED,
+                                                                      msg='Not yet implemented').model_dump())

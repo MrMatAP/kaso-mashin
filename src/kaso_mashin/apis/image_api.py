@@ -29,17 +29,23 @@ class ImageAPI(AbstractAPI):
         self._router.add_api_route('/{image_id}', self.get_image,
                                    methods=['GET'],
                                    summary='Get an image by its unique id',
-                                   description='Get full information about an image specified by its unique id',
+                                   description='Get full information about an image',
                                    responses={
                                        fastapi.status.HTTP_200_OK: {'model': ImageSchema}})
         self._router.add_api_route('/', self.create_image,
                                    methods=['POST'],
-                                   summary='Create an image',
+                                   summary='Create a new image',
                                    description='Creating an image is an asynchronous operation, you will get a task '
                                                'object back which you can subsequently check for progress using the '
                                                'task API',
                                    responses={
                                        fastapi.status.HTTP_201_CREATED: {'model': TaskSchema}})
+        self._router.add_api_route('/{image_id}', self.modify_image,
+                                   methods=['PUT'],
+                                   summary='Modify a image',
+                                   description='Modify a image',
+                                   responses={
+                                       fastapi.status.HTTP_200_OK: {'model': ImageSchema}})
         self._router.add_api_route('/{image_id}', self.remove_image,
                                    methods=['DELETE'],
                                    summary='Remove an image',
@@ -84,6 +90,13 @@ class ImageAPI(AbstractAPI):
         task = self.task_controller.create(f'Download image {schema.name} from URL {schema.url}')
         background_tasks.add_task(self.image_controller.create, name=schema.name, url=schema.url, task=task)
         return task
+
+    async def modify_image(self,
+                           image_id: typing.Annotated[int, fastapi.Path(description='The network id to modify')],
+                           schema: ImageSchema):
+        return fastapi.responses.JSONResponse(status_code=fastapi.status.HTTP_501_NOT_IMPLEMENTED,
+                                              content=ExceptionSchema(status=fastapi.status.HTTP_501_NOT_IMPLEMENTED,
+                                                                      msg='Not yet implemented').model_dump())
 
     async def remove_image(self,
                            image_id: typing.Annotated[int, fastapi.Path(description='The unique image id')],
