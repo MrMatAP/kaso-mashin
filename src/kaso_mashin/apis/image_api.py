@@ -23,8 +23,7 @@ class ImageAPI(AbstractAPI):
                                                'optional "name" query parameter',
                                    responses={
                                        fastapi.status.HTTP_200_OK: {'model': typing.Union[typing.List[ImageSchema], ImageSchema]},
-                                       fastapi.status.HTTP_400_BAD_REQUEST: {'model': ExceptionSchema}
-                                   })
+                                       fastapi.status.HTTP_400_BAD_REQUEST: {'model': ExceptionSchema}})
         self._router.add_api_route('/{image_id}', self.get_image,
                                    methods=['GET'],
                                    summary='Get an image by its unique id',
@@ -32,26 +31,23 @@ class ImageAPI(AbstractAPI):
                                    responses={
                                        fastapi.status.HTTP_404_NOT_FOUND: {'model': ExceptionSchema},
                                        fastapi.status.HTTP_400_BAD_REQUEST: {'model': ExceptionSchema},
-                                       fastapi.status.HTTP_200_OK: {'model': ImageSchema}
-                                   })
+                                       fastapi.status.HTTP_200_OK: {'model': ImageSchema}})
         self._router.add_api_route('/', self.create_image,
-                                   methods=['PUT'],
+                                   methods=['POST'],
                                    summary='Create an image',
                                    description='Creating an image is an asynchronous operation, you will get a task '
                                                'object back which you can subsequently check for progress using the '
                                                'task API',
                                    responses={
                                        fastapi.status.HTTP_400_BAD_REQUEST: {'model': ExceptionSchema},
-                                       fastapi.status.HTTP_200_OK: {'model': TaskSchema}
-                                   })
+                                       fastapi.status.HTTP_200_OK: {'model': TaskSchema}})
         self._router.add_api_route('/{image_id}', self.remove_image,
                                    methods=['DELETE'],
                                    summary='Remove an image',
                                    description='Remove an image specified by its unique id',
                                    responses={
                                        fastapi.status.HTTP_204_NO_CONTENT: {'model': None},
-                                       fastapi.status.HTTP_410_GONE: {'model': None}
-                                   })
+                                       fastapi.status.HTTP_410_GONE: {'model': None}})
 
     async def list_images(self,
                           name: typing.Annotated[str | None,
