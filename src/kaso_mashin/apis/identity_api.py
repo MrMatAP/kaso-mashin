@@ -51,7 +51,7 @@ class IdentityAPI(AbstractAPI):
         self._router.add_api_route('/{identity_id}', self.remove_identity,
                                    methods=['DELETE'],
                                    summary='Remove an identity',
-                                   description='Remove an identity by its unique id',
+                                   description='Remove an identity',
                                    responses={
                                        fastapi.status.HTTP_204_NO_CONTENT: {'model': None},
                                        fastapi.status.HTTP_410_GONE: {'model': None}})
@@ -83,7 +83,7 @@ class IdentityAPI(AbstractAPI):
 
     async def modify_identity(self,
                               identity_id: typing.Annotated[int, fastapi.Path(description='The unique identity id')],
-                              schema: IdentityCreateSchema):
+                              schema: IdentitySchema):
         return fastapi.responses.JSONResponse(status_code=fastapi.status.HTTP_501_NOT_IMPLEMENTED,
                                               content=ExceptionSchema(status=fastapi.status.HTTP_501_NOT_IMPLEMENTED,
                                                                       msg='Not yet implemented').model_dump())

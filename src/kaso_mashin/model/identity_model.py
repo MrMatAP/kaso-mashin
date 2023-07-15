@@ -7,6 +7,11 @@ import pydantic
 from kaso_mashin import Base
 
 
+class IdentityKind(enum.Enum):
+    PUBKEY = 'pubkey'
+    PASSWORD = 'password'
+
+
 class IdentityBaseSchema(pydantic.BaseModel):
     """
     The common base schema for an identity. It deliberately does not contain generated fields we do not
@@ -14,25 +19,24 @@ class IdentityBaseSchema(pydantic.BaseModel):
     """
     name: str = pydantic.Field(description='The identity name')
     kind: str = pydantic.Field(description='The corresponding account kind')
-    credentials: str = pydantic.Field(description='The account credentials')
+    credentials: IdentityKind = pydantic.Field(description='The account credentials', default=IdentityKind.PUBKEY)
+
+    class Config:
+        from_attributes = True
 
 
 class IdentitySchema(IdentityBaseSchema):
     """
-    The identity as it is being returned
+    An identity
     """
     pass
+
 
 class IdentityCreateSchema(IdentityBaseSchema):
     """
     Input schema for creating an identity
     """
     pass
-
-
-class IdentityKind(enum.Enum):
-    PUBKEY = 'pubkey'
-    PASSWORD = 'password'
 
 
 class IdentityModel(Base):
