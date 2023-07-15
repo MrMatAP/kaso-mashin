@@ -22,20 +22,15 @@ class ImageAPI(AbstractAPI):
         self._router.add_api_route('/', self.list_images,
                                    methods=['GET'],
                                    summary='List known images',
-                                   description='List all known images. You can filter the list by image name using the '
-                                               'optional "name" query parameter',
+                                   description='List all known images. You can optionally filter the list by the'
+                                               '"name" query parameter',
                                    responses={
-                                       fastapi.status.HTTP_200_OK: {
-                                           'model': typing.Union[typing.List[ImageSchema], ImageSchema]},
-                                       fastapi.status.HTTP_400_BAD_REQUEST: {
-                                           'model': ExceptionSchema}})
+                                       fastapi.status.HTTP_200_OK: {'model': typing.Union[typing.List[ImageSchema], ImageSchema]}})
         self._router.add_api_route('/{image_id}', self.get_image,
                                    methods=['GET'],
                                    summary='Get an image by its unique id',
                                    description='Get full information about an image specified by its unique id',
                                    responses={
-                                       fastapi.status.HTTP_404_NOT_FOUND: {'model': ExceptionSchema},
-                                       fastapi.status.HTTP_400_BAD_REQUEST: {'model': ExceptionSchema},
                                        fastapi.status.HTTP_200_OK: {'model': ImageSchema}})
         self._router.add_api_route('/', self.create_image,
                                    methods=['POST'],
@@ -44,8 +39,7 @@ class ImageAPI(AbstractAPI):
                                                'object back which you can subsequently check for progress using the '
                                                'task API',
                                    responses={
-                                       fastapi.status.HTTP_400_BAD_REQUEST: {'model': ExceptionSchema},
-                                       fastapi.status.HTTP_200_OK: {'model': TaskSchema}})
+                                       fastapi.status.HTTP_201_CREATED: {'model': TaskSchema}})
         self._router.add_api_route('/{image_id}', self.remove_image,
                                    methods=['DELETE'],
                                    summary='Remove an image',

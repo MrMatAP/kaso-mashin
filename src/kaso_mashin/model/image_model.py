@@ -19,8 +19,8 @@ ImageURLs = {
 
 class ImageBaseSchema(pydantic.BaseModel):
     """
-    The common base schema for an image. It deliberately does not contain image_id because we do
-    not allow that to be provided during creation of an image
+    The common base schema for an image. It deliberately does not contain generated fields we do not
+    allow to be provided when creating an image
     """
     name: str = pydantic.Field(description='The image name')
     path: SchemaPath = pydantic.Field(description='Path to the image on the local disk')
