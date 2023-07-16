@@ -16,68 +16,65 @@ class InstanceAPI(AbstractAPI):
         self._router = fastapi.APIRouter(
             tags=['instances'],
             responses={
-                fastapi.status.HTTP_404_NOT_FOUND: {'model': ExceptionSchema, 'description': 'Instance not found'},
-                fastapi.status.HTTP_400_BAD_REQUEST: {'model': ExceptionSchema, 'description': 'Incorrect input'}
+                404: {'model': ExceptionSchema, 'description': 'Instance not found'},
+                400: {'model': ExceptionSchema, 'description': 'Incorrect input'}
             })
-        self._router.add_api_route('/', self.list_instances,
-                                   methods=['GET'],
-                                   summary='List known instances',
-                                   description='List all known instances. You can optionally filter the list using'
-                                               'the "name" query parameter',
-                                   responses={
-                                       fastapi.status.HTTP_200_OK: {
-                                           'model': typing.Union[typing.List[InstanceSchema], InstanceSchema]}
+        self._router.add_api_route('/', self.list_instances, methods=['GET'],
+                                   summary='List instances',
+                                   description='List all known instances. You can optionally filter the list by the'
+                                               '"name" query parameter. If you do filter using the "name" query '
+                                               'parameter then the corresponding single instance is returned.',
+                                   response_description='A list of instance, or a single instance when filtered by name',
+                                   status_code=200,
+                                   responses={200: {'model': typing.Union[typing.List[InstanceSchema], InstanceSchema]}
                                    })
-        self._router.add_api_route('/{instance_id}', self.get_instance,
-                                   methods=['GET'],
-                                   summary='Get an instance by its unique id',
-                                   description='Get full information about an instance specified by its unique id',
-                                   responses={
-                                       fastapi.status.HTTP_200_OK: {'model': InstanceSchema}
-                                   })
-        self._router.add_api_route('/', self.create_instance,
-                                   methods=['POST'],
-                                   summary='Create a new instance',
-                                   description='Create a new instance',
-                                   responses={
-                                       fastapi.status.HTTP_201_CREATED: {'model': InstanceSchema}
-                                   })
-        self._router.add_api_route('/{instance_id}', self.modify_instance,
-                                   methods=['PUT'],
+        self._router.add_api_route('/{instance_id}', self.get_instance, methods=['GET'],
+                                   summary='Get an instance',
+                                   description='Get full information about an instance specified by its unique ID.',
+                                   response_description='An instance',
+                                   status_code=200,
+                                   response_model=InstanceSchema)
+        self._router.add_api_route('/', self.create_instance, methods=['POST'],
+                                   summary='Create an instance',
+                                   description='Creating an instance is an asynchronous operation, you will get a task '
+                                               'object back which you can subsequently check for progress using the '
+                                               'task API',
+                                   response_description='A task',
+                                   status_code=201,
+                                   response_model=TaskSchema)
+        self._router.add_api_route('/{instance_id}', self.modify_instance, methods=['PUT'],
                                    summary='Modify an instance',
-                                   description='Modify an instance',
-                                   responses={
-                                       fastapi.status.HTTP_200_OK: {'model': InstanceSchema}
-                                   })
-        self._router.add_api_route('/{instance_id}', self.remove_instance,
-                                   methods=['DELETE'],
+                                   description='This will update the permissible fields of an image based on the '
+                                               'provided input.',
+                                   response_description='The updated instance',
+                                   status_code=200,
+                                   response_model=InstanceSchema)
+        self._router.add_api_route('/{instance_id}', self.remove_instance, methods=['DELETE'],
                                    summary='Remove an instance',
-                                   description='Remove an instance specified by its unique id',
-                                   responses={
-                                       fastapi.status.HTTP_204_NO_CONTENT: {'model': None},
-                                       fastapi.status.HTTP_410_GONE: {'model': None}
-                                   })
-        self._router.add_api_route('/{instance_id}/state', self.start_instance,
-                                   methods=['POST'],
+                                   description='Remove the specified image. This will irrevocably and permanently '
+                                               'delete the image.',
+                                   response_description='there is no response content',
+                                   responses={204: {'model': None}, 410: {'model': None}})
+
+        self._router.add_api_route('/{instance_id}/state', self.start_instance, methods=['POST'],
                                    summary='Start the instance',
                                    description='This is an asynchronous operation, you will get a'
                                                'task object back which you can subsequently check for progress using'
                                                'the task api',
-                                   responses={
-                                       fastapi.status.HTTP_200_OK: {'model': TaskSchema}
-                                   })
-        self._router.add_api_route('/{instance_id}/state', self.stop_instance,
-                                   methods=['DELETE'],
+                                   response_description='A task',
+                                   response_model=TaskSchema)
+        self._router.add_api_route('/{instance_id}/state', self.stop_instance, methods=['DELETE'],
                                    summary='Stop the instance',
                                    description='This is an asynchronous operation, you will get a'
                                            'task object back which you can subsequently check for progress using'
                                            'the task api',
-                                   responses={
-                                       fastapi.status.HTTP_200_OK: {'model': None}
-                                   })
+                                   response_description='A task',
+                                   response_model=TaskSchema)
 
     async def list_instances(self,
-                             name: typing.Annotated[str | None, fastapi.Query(description='The instance name')] = None):
+                             name: typing.Annotated[str | None, fastapi.Query(title='Instance name',
+                                                                              description='The instance name',
+                                                                              examples=[1])] = None):
         """
         List instances
         """
@@ -86,38 +83,45 @@ class InstanceAPI(AbstractAPI):
         return self.instance_controller.list()
 
     async def get_instance(self,
-                           instance_id: typing.Annotated[int, fastapi.Path(description='The unique instance id')]):
+                           instance_id: typing.Annotated[int, fastapi.Path(title='Instance ID',
+                                                                           description='The unique instance id',
+                                                                           examples=[1])]):
         """
         Return an instance by its id
         """
         instance = self.instance_controller.get(instance_id=instance_id)
-        return instance or fastapi.responses.JSONResponse(status_code=fastapi.status.HTTP_404_NOT_FOUND,
+        return instance or fastapi.responses.JSONResponse(status_code=404,
                                                           content=ExceptionSchema(
-                                                              status=fastapi.status.HTTP_404_NOT_FOUND,
+                                                              status=410,
                                                               msg='No such instance could be found')
                                                           .model_dump())
 
     async def create_instance(self):
-        return fastapi.responses.JSONResponse(status_code=fastapi.status.HTTP_501_NOT_IMPLEMENTED,
-                                              content=ExceptionSchema(status=fastapi.status.HTTP_501_NOT_IMPLEMENTED,
-                                                                      msg='Not yet implemented').model_dump())
+        return fastapi.responses.JSONResponse(status_code=510,
+                                              content=ExceptionSchema(status=510,
+                                                                      msg='Not yet implemented')
+                                              .model_dump())
 
     async def modify_instance(self):
-        return fastapi.responses.JSONResponse(status_code=fastapi.status.HTTP_501_NOT_IMPLEMENTED,
-                                              content=ExceptionSchema(status=fastapi.status.HTTP_501_NOT_IMPLEMENTED,
-                                                                      msg='Not yet implemented').model_dump())
+        return fastapi.responses.JSONResponse(status_code=510,
+                                              content=ExceptionSchema(status=510,
+                                                                      msg='Not yet implemented')
+                                              .model_dump())
 
     async def remove_instance(self):
-        return fastapi.responses.JSONResponse(status_code=fastapi.status.HTTP_501_NOT_IMPLEMENTED,
-                                              content=ExceptionSchema(status=fastapi.status.HTTP_501_NOT_IMPLEMENTED,
-                                                                      msg='Not yet implemented').model_dump())
+        return fastapi.responses.JSONResponse(status_code=510,
+                                              content=ExceptionSchema(status=510,
+                                                                      msg='Not yet implemented')
+                                              .model_dump())
 
     async def start_instance(self):
-        return fastapi.responses.JSONResponse(status_code=fastapi.status.HTTP_501_NOT_IMPLEMENTED,
-                                              content=ExceptionSchema(status=fastapi.status.HTTP_501_NOT_IMPLEMENTED,
-                                                                      msg='Not yet implemented').model_dump())
+        return fastapi.responses.JSONResponse(status_code=510,
+                                              content=ExceptionSchema(status=510,
+                                                                      msg='Not yet implemented')
+                                              .model_dump())
 
     async def stop_instance(self):
-        return fastapi.responses.JSONResponse(status_code=fastapi.status.HTTP_501_NOT_IMPLEMENTED,
-                                              content=ExceptionSchema(status=fastapi.status.HTTP_501_NOT_IMPLEMENTED,
-                                                                      msg='Not yet implemented').model_dump())
+        return fastapi.responses.JSONResponse(status_code=510,
+                                              content=ExceptionSchema(status=510,
+                                                                      msg='Not yet implemented')
+                                              .model_dump())

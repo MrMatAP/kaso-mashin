@@ -18,23 +18,31 @@ class InstanceBaseSchema(pydantic.BaseModel):
     The common base schema for an instance. It deliberately does not contain generated fields such as the instance_id
     because we do not allow that to be provided during creation of an instance
     """
-    name: str = pydantic.Field(description='The instance name')
-    vcpu: int = pydantic.Field(description='Number of virtual CPUs')
-    ram: int = pydantic.Field(description='Amount of RAM in MB')
-    bootstrapper: str = pydantic.Field(description='Name of the bootstrapper')
-    image_id: int = pydantic.Field('Image ID to use as the backing OS disk')
-    network_id: int = pydantic.Field('Network ID to connect the instance to')
-
     model_config = pydantic.ConfigDict(from_attributes=True)
+
+    name: str = pydantic.Field(description='The instance name',
+                               examples=['mrmat-jammy'])
+    vcpu: int = pydantic.Field(description='Number of virtual CPUs',
+                               examples=[2])
+    ram: int = pydantic.Field(description='Amount of RAM in MB',
+                              examples=[2048])
+    bootstrapper: str = pydantic.Field(description='Name of the bootstrapper')
+    image_id: int = pydantic.Field(description='Image ID to use as the backing OS disk',
+                                   examples=[1])
+    network_id: int = pydantic.Field(description='Network ID to connect the instance to',
+                                     examples=[1])
 
 
 class InstanceSchema(InstanceBaseSchema):
     """
     The full schema of an instance, extends the base schema with fields generated when the instance is created
     """
-    instance_id: int = pydantic.Field(description='The unique instance ID')
-    path: SchemaPath = pydantic.Field(description='Path to the instance on the local disk')
-    mac: str = pydantic.Field(description='The generated MAC address')
+    instance_id: int = pydantic.Field(description='The unique instance ID',
+                                      examples=[1])
+    path: SchemaPath = pydantic.Field(description='Path to the instance on the local disk',
+                                      examples=['/Users/mrmat/var/kaso/instances/mrmat-jammy'])
+    mac: str = pydantic.Field(description='The generated MAC address',
+                              examples=['08:00:20:0a:0b:0c'])
 
 
 class InstanceCreateSchema(InstanceBaseSchema):
@@ -42,7 +50,6 @@ class InstanceCreateSchema(InstanceBaseSchema):
     An input schema to create an instance
     """
     pass
-
 
 
 class InstanceModel(Base):
