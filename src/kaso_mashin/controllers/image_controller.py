@@ -23,12 +23,12 @@ class ImageController(AbstractController):
         images = self.db.session.scalars(sqlalchemy.select(ImageModel)).all()
         return images
 
-    def get(self, image_id: typing.Optional[int] = None, name: typing.Optional[str] = None) -> ImageModel | None:
+    def get(self, image_id: int | None = None, name: str | None = None) -> ImageModel | None:
         """
-        Return a Image by either id or name
+        Return an existing image by either its id or name
         Args:
-            image_id: The image id
-            name: The network name
+            image_id: An optional image id
+            name: An optional network name
 
         Returns:
             The ImageModel matching the search parameters
@@ -64,6 +64,20 @@ class ImageController(AbstractController):
         self.db.session.commit()
         task.success(f'Downloaded to image with id {model.image_id}')
         return model
+
+    def modify(self, image_id: int, update: ImageModel) -> ImageModel:
+        current = self.db.session.get(ImageModel, image_id)
+        if not current:
+            raise KasoMashinException(status=404, msg='The image could not be found')
+        if update.min_cpu > -1:
+            current.min_cpu = update.min_cpu
+        if update.min_ram > -1:
+            current.min_ram = update.min_ram
+        if update.min_space > -1:
+            current.min_space = update.min_space
+        self.db.session.add(current)
+        self.db.session.commit()
+        return current
 
     def remove(self, image_id: int) -> bool:
         """

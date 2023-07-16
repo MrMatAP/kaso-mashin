@@ -1,20 +1,9 @@
-from sqlalchemy import String
+from sqlalchemy import String, Integer
 from sqlalchemy.orm import Mapped, mapped_column
 import pydantic
 
 from kaso_mashin import Base
 from kaso_mashin.model import DbPath, SchemaPath
-
-ImageURLs = {
-    'ubuntu-bionic': 'https://cloud-images.ubuntu.com/bionic/current/bionic-server-cloudimg-arm64.img',
-    'ubuntu-focal': 'https://cloud-images.ubuntu.com/focal/current/focal-server-cloudimg-arm64.img',
-    'ubuntu-jammy': 'https://cloud-images.ubuntu.com/jammy/current/jammy-server-cloudimg-arm64.img',
-    'ubuntu-kinetic': 'https://cloud-images.ubuntu.com/kinetic/current/kinetic-server-cloudimg-arm64.img',
-    'ubuntu-lunar': 'https://cloud-images.ubuntu.com/lunar/current/lunar-server-cloudimg-arm64.img',
-    'ubuntu-mantic': 'https://cloud-images.ubuntu.com/mantic/current/mantic-server-cloudimg-arm64.img',
-    'freebsd-14': 'https://download.freebsd.org/ftp/snapshots/VM-IMAGES/14.0-CURRENT/amd64/Latest/'
-                  'FreeBSD-14.0-CURRENT-amd64.qcow2.xz'
-}
 
 
 class ImageBaseSchema(pydantic.BaseModel):
@@ -22,46 +11,64 @@ class ImageBaseSchema(pydantic.BaseModel):
     The common base schema for an image. It deliberately does not contain generated fields we do not
     allow to be provided when creating an image
     """
-    name: str = pydantic.Field(description='The image name')
-    path: SchemaPath = pydantic.Field(description='Path to the image on the local disk')
-
     model_config = pydantic.ConfigDict(from_attributes=True)
+
+    name: str = pydantic.Field(description='The image name',
+                               examples=['jammy'])
+    path: SchemaPath = pydantic.Field(description='Path to the image on the local disk',
+                                      examples=['/Users/dude/var/kaso/images/ubuntu-jammy.qcow2'])
+    min_cpu: int = pydantic.Field(description='Minimum number of vCPUs',
+                                  default=0,
+                                  examples=[2])
+    min_ram: int = pydantic.Field(description='Minimum number of RAM (in MB)',
+                                  default=0,
+                                  examples=[2048])
+    min_space: int = pydantic.Field(description='Minimum number of disk space (in MB)',
+                                    default=0,
+                                    examples=[10000])
 
 
 class ImageSchema(ImageBaseSchema):
     """
-    The full schema of an image, extends the ImageBaseSchema with the image_id because that is
-    only available after the image is created
+    An Image
     """
-    image_id: int = pydantic.Field(description='The image id')
-
-    model_config = {
-        'json_schema_extra': {
-            'examples': [{
-                'image_id': 1,
-                'name': 'ubuntu-jammy',
-                'path': '/Users/dude/var/kaso/images/ubuntu-jammy.qcow2'
-            }]
-        }
-    }
+    image_id: int = pydantic.Field(description='The image id',
+                                   examples=[1])
 
 
 class ImageCreateSchema(pydantic.BaseModel):
     """
     An input schema to create an image
     """
-    name: str
-    url: str
+    name: str = pydantic.Field(description='The image name',
+                               examples=['jammy'])
+    url: str = pydantic.Field(description='The source URL from where to download the image from. This may be over HTTP '
+                                          'or from a file URL.',
+                              examples=['https://cloud-images.ubuntu.com/jammy/current/jammy-server-cloudimg-arm64.img'])
+    min_cpu: int = pydantic.Field(description='Minimum number of vCPUs',
+                                  default=0,
+                                  examples=[2])
+    min_ram: int = pydantic.Field(description='Minimum number of RAM (in MB)',
+                                  default=0,
+                                  examples=[2048])
+    min_space: int = pydantic.Field(description='Minimum number of disk space (in MB)',
+                                    default=0,
+                                    examples=[10000])
 
-    model_config = {
-        'json_schema_extra': {
-            'examples': [{
-                'image_id': 1,
-                'name': 'ubuntu-jammy',
-                'path': '/Users/dude/var/kaso/images/ubuntu-jammy.qcow2'
-            }]
-        }
-    }
+
+class ImageModifySchema(pydantic.BaseModel):
+    """
+    Input schema for modifying an image
+    """
+    min_cpu: int = pydantic.Field(description='Minimum number of vCPUs',
+                                  default=0,
+                                  examples=[2])
+    min_ram: int = pydantic.Field(description='Minimum number of RAM (in MB)',
+                                  default=0,
+                                  examples=[2048])
+    min_space: int = pydantic.Field(description='Minimum number of disk space (in MB)',
+                                    default=0,
+                                    examples=[10000])
 
 
 class ImageModel(Base):
@@ -73,3 +80,36 @@ class ImageModel(Base):
     image_id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
     name: Mapped[str] = mapped_column(String, unique=True)
     path: Mapped[str] = mapped_column(DbPath, unique=True)
+
+    min_cpu: Mapped[int] = mapped_column(Integer, default=0)
+    min_ram: Mapped[int] = mapped_column(Integer, default=0)
+    min_space: Mapped[int] = mapped_column(Integer, default=0)
+
+    @staticmethod
+    def from_schema(schema: ImageCreateSchema | ImageModifySchema) -> 'ImageModel':
+        model = ImageModel(
+            min_cpu=schema.min_cpu,
+            min_ram=schema.min_ram,
+            min_space=schema.min_space)
+        if isinstance(schema, ImageCreateSchema):
+            model.name = schema.name
+        return model
+
+    def __eq__(self, other) -> bool:
+        return all([
+            isinstance(other, ImageModel),
+            self.image_id == other.image_id,
+            self.name == other.name,
+            self.path == other.path,
+            self.min_cpu == other.min_cpu,
+            self.min_ram == other.min_ram,
+            self.min_space == other.min_space])
+
+    def __repr__(self) -> str:
+        return f'ImageModel(' \
+               f'image_id="{self.image_id}", ' \
+               f'name="{self.name}", ' \
+               f'path="{self.path}, ' \
+               f'min_cpu={self.min_cpu}, ' \
+               f'min_ram={self.min_ram}, ' \
+               f'min_space={self.min_space})'
