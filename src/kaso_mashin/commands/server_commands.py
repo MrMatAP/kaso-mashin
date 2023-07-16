@@ -5,7 +5,7 @@ import uvicorn
 
 from kaso_mashin import __version__, KasoMashinException
 from kaso_mashin.commands import AbstractCommands
-from kaso_mashin.apis import TaskAPI, ImageAPI, IdentityAPI, NetworkAPI, InstanceAPI
+from kaso_mashin.apis import ConfigAPI, TaskAPI, ImageAPI, IdentityAPI, NetworkAPI, InstanceAPI
 
 
 class ServerCommands(AbstractCommands):
@@ -29,10 +29,12 @@ class ServerCommands(AbstractCommands):
         parser.set_defaults(cmd=self.start)
 
     def start(self, args: argparse.Namespace) -> int:
+        self._runtime.late_init(server=True)
         app = fastapi.FastAPI(title='Kaso Mashin API',
                               summary='APIs for the Kaso Mashin controllers',
                               description='Provides APIs for the Kaso Mashin controllers',
                               version=__version__)
+        app.include_router(ConfigAPI(self._runtime).router, prefix='/api/config')
         app.include_router(TaskAPI(self._runtime).router, prefix='/api/tasks')
         app.include_router(IdentityAPI(self._runtime).router, prefix='/api/identities')
         app.include_router(NetworkAPI(self._runtime).router, prefix='/api/networks')

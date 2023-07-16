@@ -5,10 +5,10 @@ from sqlalchemy.orm import Mapped, mapped_column
 import pydantic
 
 from kaso_mashin import Base
-from kaso_mashin.model import IP4Address
+from kaso_mashin.model import IP4Address, SchemaIPv4
 
 
-class NetworkKind(enum.Enum):
+class NetworkKind(str, enum.Enum):
     VMNET_HOST = 'host'
     VMNET_SHARED = 'shared'
     VMNET_BRIDGED = 'bridged'
@@ -19,31 +19,82 @@ class NetworkBaseSchema(pydantic.BaseModel):
     The common base schema for a network. It deliberately does not contain generated fields we do not
     allow to be provided when creating an network
     """
-    name: str = pydantic.Field(description='The network name')
-    kind: NetworkKind = pydantic.Field(description='The network kind', default=NetworkKind.VMNET_SHARED)
-
     model_config = pydantic.ConfigDict(from_attributes=True)
+
+    name: str = pydantic.Field(description='The network name',
+                               examples=['mrmat-shared'])
+    kind: NetworkKind = pydantic.Field(description='The network kind',
+                                       default=NetworkKind.VMNET_SHARED,
+                                       examples=['shared'])
 
 
 class NetworkSchema(NetworkBaseSchema):
     """
     A network
     """
-    network_id: int = pydantic.Field(description='The unique network id')
-    host_if: str = pydantic.Field(description='The name of the host interface this network is currently attached to')
-    host_ip4: str = pydantic.Field(description='The IPv4 address of the host')
-    nm4: str = pydantic.Field(description='The IPv4 netmask')
-    gw4: str = pydantic.Field(description='The IPv4 gateway')
-    ns4: str = pydantic.Field(description='The IPv4 nameserver')
-    dhcp4_start: str = pydantic.Field(description='The IPv4 DHCP4 start address')
-    dhcp4_end: str = pydantic.Field(description='The IPV4 DHCP4 end address')
+    network_id: int = pydantic.Field(description='The unique network id',
+                                     examples=[1])
+    host_if: str | None = pydantic.Field(
+        description='The name of the host interface this network is currently attached to',
+        default=None,
+        examples=['bridge100'])
+    host_ip4: SchemaIPv4 | None = pydantic.Field(description='The IPv4 address of the host',
+                                          default='',
+                                          examples=['172.16.4.28'])
+    nm4: SchemaIPv4 = pydantic.Field(description='The IPv4 netmask',
+                              examples=['255.255.0.0'])
+    gw4: SchemaIPv4 | None = pydantic.Field(description='The IPv4 gateway',
+                                     default=None,
+                              examples=['172.16.4.1'])
+    ns4: SchemaIPv4 | None = pydantic.Field(description='The IPv4 nameserver',
+                                     default=None,
+                                     examples=['172.16.4.15'])
+    dhcp4_start: SchemaIPv4 | None = pydantic.Field(description='The IPv4 DHCP4 start address',
+                                             default=None,
+                                             examples=['172.16.4.100'])
+    dhcp4_end: SchemaIPv4 | None = pydantic.Field(description='The IPv4 DHCP4 end address',
+                                           default=None,
+                                           examples=['172.16.4.254'])
+    host_phone_home_port: int = pydantic.Field(description='The port on which we listen for instances to phone home',
+                                               examples=[12000])
 
 
 class NetworkCreateSchema(NetworkBaseSchema):
     """
     Input schema for creating a network
     """
-    pass
+    ns4: SchemaIPv4 | None = pydantic.Field(description='The IPv4 nameserver',
+                                     default=None,
+                                     examples=['172.16.4.15'])
+    dhcp4_start: SchemaIPv4 | None = pydantic.Field(description='The IPv4 DHCP4 start address',
+                                             default=None,
+                                             examples=['172.16.4.100'])
+    dhcp4_end: SchemaIPv4 | None = pydantic.Field(description='The IPV4 DHCP4 end address',
+                                           default=None,
+                                           examples=['172.16.4.254'])
+    host_phone_home_port: str | None = pydantic.Field(description='The port on which we listen for instances to phone '
+                                                                  'home',
+                                                      default=None,
+                                                      examples=['172.16.4.183'])
+
+
+class NetworkModifySchema(pydantic.BaseModel):
+    """
+    Input schema for modifying a network
+    """
+    ns4: SchemaIPv4 | None = pydantic.Field(description='The IPv4 nameserver',
+                                     default=None,
+                                     examples=['172.16.4.15'])
+    dhcp4_start: SchemaIPv4 | None = pydantic.Field(description='The IPv4 DHCP4 start address',
+                                             default=None,
+                                             examples=['172.16.4.100'])
+    dhcp4_end: SchemaIPv4 | None = pydantic.Field(description='The IPV4 DHCP4 end address',
+                                           default=None,
+                                           examples=['172.16.4.254'])
+    host_phone_home_port: str | None = pydantic.Field(description='The port on which we listen for instances to phone '
+                                                                  'home',
+                                                      default=None,
+                                                      examples=['172.16.4.183'])
 
 
 class NetworkModel(Base):
@@ -57,12 +108,39 @@ class NetworkModel(Base):
 
     host_if: Mapped[str] = mapped_column(String, nullable=True)
     host_ip4: Mapped[str] = mapped_column(IP4Address, nullable=True)
-    host_phone_home_port: Mapped[int] = mapped_column(Integer)
     nm4: Mapped[str] = mapped_column(IP4Address, nullable=True)
     gw4: Mapped[str] = mapped_column(IP4Address, nullable=True)
     ns4: Mapped[str] = mapped_column(IP4Address, nullable=True)
-    dhcp_start: Mapped[str] = mapped_column(IP4Address, nullable=True)
-    dhcp_end: Mapped[str] = mapped_column(IP4Address, nullable=True)
+    dhcp4_start: Mapped[str] = mapped_column(IP4Address, nullable=True)
+    dhcp4_end: Mapped[str] = mapped_column(IP4Address, nullable=True)
+    host_phone_home_port: Mapped[int] = mapped_column(Integer)
+
+    @staticmethod
+    def from_schema(schema: NetworkCreateSchema | NetworkModifySchema) -> 'NetworkModel':
+        model = NetworkModel(
+            ns4=schema.ns4,
+            dhcp4_start=schema.dhcp4_start,
+            dhcp4_end=schema.dhcp4_end,
+            host_phone_home_port=schema.host_phone_home_port)
+        if isinstance(schema, NetworkCreateSchema):
+            model.name = schema.name
+            model.kind = schema.kind
+        return model
+
+    def __eq__(self, other) -> bool:
+        return all([
+            isinstance(other, NetworkModel),
+            self.network_id == other.network_id,
+            self.name == other.name,
+            self.kind == other.kind,
+            self.host_if == other.host_if,
+            self.host_ip4 == other.host_ip4,
+            self.nm4 == other.nm4,
+            self.gw4 == other.gw4,
+            self.ns4 == other.ns4,
+            self.dhcp4_start == other.dhcp4_start,
+            self.dhcp4_end == other.dhcp4_end
+        ])
 
     def __repr__(self) -> str:
         return f'NetworkModel(id={self.network_id!r}, ' \
@@ -73,6 +151,6 @@ class NetworkModel(Base):
                f'nm4={self.nm4}, ' \
                f'gw4={self.gw4!r}, ' \
                f'ns4={self.nm4!r}' \
-               f'dhcp_start={self.dhcp_start!r}, ' \
-               f'dhcp_end={self.dhcp_end!r}, ' \
+               f'dhcp4_start={self.dhcp4_start!r}, ' \
+               f'dhcp4_end={self.dhcp4_end!r}, ' \
                f')'

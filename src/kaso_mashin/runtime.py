@@ -1,5 +1,7 @@
 import ipaddress
 
+import netifaces
+
 from kaso_mashin.config import Config
 from kaso_mashin.db import DB
 from kaso_mashin.controllers import (
@@ -26,11 +28,26 @@ class Runtime:
         self._phonehome_controller = PhoneHomeController(config=config, db=db)
         self._task_controller = TaskController(config=config, db=db)
 
-    def late_init(self):
+    def late_init(self, server: bool=False):
         """
         Perform late initialisation after configuration
         """
         self._server_url = f'http://{self.config.default_server_host}:{self.config.default_server_port}'
+        if not server:
+            return
+        # TODO: Network updates should only happen in server mode, NOT in client mode
+        if not self.network_controller.get(name=NetworkController.DEFAULT_BRIDGED_NETWORK_NAME):
+            gateway = netifaces.gateways().get('default')
+            host_if = list(gateway.values())[0][1]
+            host_addr = netifaces.ifaddresses(host_if)[netifaces.AF_INET][0]
+            model = NetworkModel(name=NetworkController.DEFAULT_BRIDGED_NETWORK_NAME,
+                                 kind=NetworkKind.VMNET_BRIDGED,
+                                 host_phone_home_port=self.config.default_phone_home_port,
+                                 host_if=list(gateway.values())[0][1],
+                                 host_ip4=host_addr.get('addr'),
+                                 nm4=host_addr.get('netmask'),
+                                 gw4=list(gateway.values())[0][0])
+            self.network_controller.create(model)
         if not self.network_controller.get(name=NetworkController.DEFAULT_HOST_NETWORK_NAME):
             host_net = ipaddress.ip_network(self.config.default_host_network_cidr)
             model = NetworkModel(name=NetworkController.DEFAULT_HOST_NETWORK_NAME,
@@ -38,8 +55,8 @@ class Runtime:
                                  host_phone_home_port=self.config.default_phone_home_port,
                                  host_ip4=host_net.network_address + 1,
                                  nm4=host_net.netmask,
-                                 dhcp_start=host_net.network_address + 10,
-                                 dhcp_end=host_net.broadcast_address - 1)
+                                 dhcp4_start=host_net.network_address + 10,
+                                 dhcp4_end=host_net.broadcast_address - 1)
             self.network_controller.create(model)
         if not self.network_controller.get(name=NetworkController.DEFAULT_SHARED_NETWORK_NAME):
             shared_net = ipaddress.ip_network(self.config.default_shared_network_cidr)
@@ -48,8 +65,8 @@ class Runtime:
                                  host_phone_home_port=self.config.default_phone_home_port,
                                  host_ip4=shared_net.network_address + 1,
                                  nm4=shared_net.netmask,
-                                 dhcp_start=shared_net.network_address + 10,
-                                 dhcp_end=shared_net.broadcast_address - 1)
+                                 dhcp4_start=shared_net.network_address + 10,
+                                 dhcp4_end=shared_net.broadcast_address - 1)
             self.network_controller.create(model)
 
     @property

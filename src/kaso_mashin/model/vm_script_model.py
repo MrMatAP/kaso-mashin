@@ -40,8 +40,8 @@ qemu-system-aarch64 \\
         match self.instance.network.kind:
             case NetworkKind.VMNET_HOST:
                 base += f'  -nic vmnet-host,' \
-                        f'start-address={self.instance.network.dhcp_start},' \
-                        f'end-address={self.instance.network.dhcp_end},' \
+                        f'start-address={self.instance.network.dhcp4_start},' \
+                        f'end-address={self.instance.network.dhcp4_end},' \
                         f'subnet-mask={self.instance.network.nm4},' \
                         f'mac={self.instance.mac} \\\n'
             case NetworkKind.VMNET_SHARED:

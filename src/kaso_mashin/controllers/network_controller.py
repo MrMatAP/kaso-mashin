@@ -21,8 +21,8 @@ class NetworkController(AbstractController):
         return networks
 
     def get(self,
-            network_id: typing.Optional[int]=None,
-            name: typing.Optional[str]=None) -> NetworkModel | None:
+            network_id: int | None = None,
+            name: str | None = None) -> NetworkModel | None:
         """
         Return a network by either id or name
         Args:
@@ -34,12 +34,13 @@ class NetworkController(AbstractController):
         Raises:
             KasoMashinException: When neither network_id nor name are provided
         """
+        if not network_id and not name:
+            raise KasoMashinException(status=400, msg='Neither network_id nor name are provided')
         if network_id:
-            return self.db.session.get(NetworkModel, network_id)
-        if name:
-            return self.db.session.scalar(
-                sqlalchemy.sql.select(NetworkModel).where(NetworkModel.name == name))
-        raise KasoMashinException(status=500, msg='Network id or name must be provided')
+            network = self.db.session.get(NetworkModel, network_id)
+        else:
+            network = self.db.session.scalar(sqlalchemy.sql.select(NetworkModel).where(NetworkModel.name == name))
+        return network or None
 
     def create(self, model: NetworkModel) -> NetworkModel:
         self.db.session.add(model)
@@ -47,19 +48,20 @@ class NetworkController(AbstractController):
         return model
 
     def modify(self, network_id: int, update: NetworkModel) -> NetworkModel:
-        network = self.db.session.get(NetworkModel, network_id)
-        network.name = update.name
-        network.kind = update.kind
-        network.host_ip4 = update.host_ip4
-        network.nm4 = update.nm4
-        network.gw4 = update.gw4
-        network.ns4 = update.ns4
-        network.host_phone_home_port = update.host_phone_home_port
-        network.dhcp_start = update.dhcp_start
-        network.dhcp_end = update.dhcp_end
-        self.db.session.add(network)
+        current = self.db.session.get(NetworkModel, network_id)
+        if not current:
+            raise KasoMashinException(status=404, msg='The network could not be found')
+        if update.ns4:
+            current.ns4 = update.ns4
+        if update.dhcp4_start:
+            current.dhcp4_start = update.dhcp4_start
+        if update.dhcp4_end:
+            current.dhcp_end = update.dhcp4_end
+        if update.host_phone_home_port:
+            current.host_phone_home_port = update.host_phone_home_port
+        self.db.session.add(current)
         self.db.session.commit()
-        return network
+        return current
 
     def remove(self, network_id: int):
         network = self.db.session.get(NetworkModel, network_id)

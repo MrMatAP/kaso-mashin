@@ -60,4 +60,10 @@ SchemaPath = typing.Annotated[pathlib.Path,
                               pydantic.AfterValidator(lambda x: x),
                               pydantic.PlainSerializer(lambda x: str(x), return_type=str),
                               pydantic.WithJsonSchema({'type': 'string'}, mode='serialization')]
-ta = pydantic.TypeAdapter(SchemaPath)
+ta_path = pydantic.TypeAdapter(SchemaPath)
+
+SchemaIPv4 = typing.Annotated[ipaddress.IPv4Address,
+                              pydantic.AfterValidator(lambda x: x),
+                              pydantic.PlainSerializer(lambda x: str(x), return_type=str),
+                              pydantic.WithJsonSchema({'type': 'string'}, mode='serialization')]
+ta_ip = pydantic.TypeAdapter(SchemaIPv4)
