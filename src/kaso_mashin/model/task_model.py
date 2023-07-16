@@ -3,7 +3,7 @@ import uuid
 import pydantic
 
 
-class TaskState(enum.Enum):
+class TaskState(str, enum.Enum):
     """
     An enumeration of task state
     """
@@ -14,27 +14,22 @@ class TaskState(enum.Enum):
 
 class TaskSchema(pydantic.BaseModel):
     """
-    Schema for a task being processed
+    A Task
     """
-    task_id: uuid.UUID = pydantic.Field(description='Unique identifier of this task')
-    name: str = pydantic.Field(description='A short description')
-    state: TaskState = pydantic.Field(description='The current state', default=TaskState.RUNNING)
-    msg: str = pydantic.Field(description='A short message', default='')
-    percent_complete: int = pydantic.Field(description='Current percentage of task completion', default=0)
+    task_id: uuid.UUID = pydantic.Field(description='The unique task identifier',
+                                        examples=['79563383-56f8-4d0e-a419-1b8fe5804219'])
+    name: str = pydantic.Field(description='A short description',
+                               examples=['Downloading image ubuntu-jammy'])
+    state: TaskState = pydantic.Field(description='The current task state',
+                                      default=TaskState.RUNNING,
+                                      examples=['running'])
+    msg: str = pydantic.Field(description='A short message',
+                              default='',
+                              examples=['Processing download'])
+    percent_complete: int = pydantic.Field(description='The current percentage of task completion',
+                                           default=0,
+                                           examples=[50])
 
-    model_config = {
-        'json_schema_extra': {
-            'examples': [
-                {
-                    'task_id': '79563383-56f8-4d0e-a419-1b8fe5804219',
-                    'name': 'Downloading image ubuntu-jammy',
-                    'state': 'running',
-                    'msg': '',
-                    'percent_complete': 50
-                }
-            ]
-        }
-    }
 
     def progress(self, percent_complete: int, msg: str):
         self.percent_complete = percent_complete
