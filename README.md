@@ -58,9 +58,28 @@ $ brew install qemu
 Clone this repository and install the Python package:
 
 ```shell
-python -m build -n --wheel
-pip install --user ./dist/*.whl
+$ python -m virtualenv /path/to/virtualenv/kaso-mashin
+$ . /path/to/virtualenv/kaso-mashin/bin/activate
+$ pip install /path/to/cloned/sources/dev-requirements.txt
+$ python -m build -n --wheel
+$ pip install ./dist/*.whl
+$ kaso server
 ```
+
+To clean up again, run `rm --rf /path/to/virtualenv/kaso-mashin`.
+
+To update the version of kaso-mashin:
+
+```shell
+$ git pull
+$ . /path/to/virtualenv/kaso-mashin/bin/activate
+$ pip install /path/to/cloned/sources/dev-requirements.txt
+$ python -m build -n --wheel
+$ pip install ./dist/*.whl
+```
+
+* [OpenAPI docs](http://localhost:8000/docs)
+* [ReDoc](http://localhost:8000/redoc)
 
 ## How to use this
 
