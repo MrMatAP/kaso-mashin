@@ -16,10 +16,10 @@ class Config:
         self._path = pathlib.Path('~/var/kaso').expanduser()
         self._default_os_disk_size = '5G'
         self._default_phone_home_port = 10200
-        self._default_host_network_dhcp_start = '172.16.4.10'
-        self._default_host_network_dhcp_end = '172.16.4.254'
-        self._default_shared_network_dhcp_start = '172.16.5.10'
-        self._default_shared_network_dhcp_end = '172.16.5.254'
+        self._default_host_network_dhcp4_start = '172.16.4.10'
+        self._default_host_network_dhcp4_end = '172.16.4.254'
+        self._default_shared_network_dhcp4_start = '172.16.5.10'
+        self._default_shared_network_dhcp4_end = '172.16.5.254'
         self._default_host_network_cidr = '172.16.4.0/24'
         self._default_shared_network_cidr = '172.16.5.0/24'
         self._default_server_host = '127.0.0.1'
@@ -39,14 +39,14 @@ class Config:
                 self.default_os_disk_size = config.get('default_os_disk_size')
             if 'default_phone_home_port' in config:
                 self.default_phone_home_port = config.get('default_phone_home_port')
-            if 'default_host_network_dhcp_start' in config:
-                self.default_host_network_dhcp_start = config.get('default_host_network_dhcp_start')
-            if 'default_host_network_dhcp_end' in config:
-                self.default_host_network_dhcp_end = config.get('default_host_network_dhcp_end')
-            if 'default_shared_network_dhcp_start' in config:
-                self.default_shared_network_dhcp_start = config.get('default_shared_network_dhcp_start')
-            if 'default_shared_network_dhcp_end' in config:
-                self.default_shared_network_dhcp_end = config.get('default_shared_network_dhcp_end')
+            if 'default_host_network_dhcp4_start' in config:
+                self.default_host_network_dhcp4_start = config.get('default_host_network_dhcp4_start')
+            if 'default_host_network_dhcp4_end' in config:
+                self.default_host_network_dhcp4_end = config.get('default_host_network_dhcp4_end')
+            if 'default_shared_network_dhcp4_start' in config:
+                self.default_shared_network_dhcp4_start = config.get('default_shared_network_dhcp4_start')
+            if 'default_shared_network_dhcp4_end' in config:
+                self.default_shared_network_dhcp4_end = config.get('default_shared_network_dhcp4_end')
             if 'default_host_network_cidr' in config:
                 self.default_host_network_cidr = config.get('default_host_network_cidr')
             if 'default_shared_network_cidr' in config:
@@ -62,10 +62,10 @@ class Config:
                 'path': str(self.path),
                 'default_os_disk_size': self.default_os_disk_size,
                 'default_phone_home_port': self._default_phone_home_port,
-                'default_host_network_dhcp_start': self._default_host_network_dhcp_start,
-                'default_host_network_dhcp_end': self._default_host_network_dhcp_end,
-                'default_shared_network_dhcp_start': self._default_shared_network_dhcp_start,
-                'default_shared_network_dhcp_end': self._default_shared_network_dhcp_end,
+                'default_host_network_dhcp4_start': self._default_host_network_dhcp4_start,
+                'default_host_network_dhcp4_end': self._default_host_network_dhcp4_end,
+                'default_shared_network_dhcp4_start': self._default_shared_network_dhcp4_start,
+                'default_shared_network_dhcp4_end': self._default_shared_network_dhcp4_end,
                 'default_host_network_cidr': self._default_host_network_cidr,
                 'default_shared_network_cidr': self._default_shared_network_cidr,
                 'default_server_host': self._default_server_host,
@@ -97,36 +97,36 @@ class Config:
         self._default_phone_home_port = value
 
     @property
-    def default_host_network_dhcp_start(self) -> str:
-        return self._default_host_network_dhcp_start
+    def default_host_network_dhcp4_start(self) -> str:
+        return self._default_host_network_dhcp4_start
 
-    @default_host_network_dhcp_start.setter
-    def default_host_network_dhcp_start(self, value: str):
-        self._default_host_network_dhcp_start = value
-
-    @property
-    def default_host_network_dhcp_end(self) -> str:
-        return self._default_host_network_dhcp_end
-
-    @default_host_network_dhcp_end.setter
-    def default_host_network_dhcp_end(self, value: str):
-        self._default_host_network_dhcp_end = value
+    @default_host_network_dhcp4_start.setter
+    def default_host_network_dhcp4_start(self, value: str):
+        self._default_host_network_dhcp4_start = value
 
     @property
-    def default_shared_network_dhcp_start(self) -> str:
-        return self._default_shared_network_dhcp_start
+    def default_host_network_dhcp4_end(self) -> str:
+        return self._default_host_network_dhcp4_end
 
-    @default_shared_network_dhcp_start.setter
-    def default_shared_network_dhcp_start(self, value: str):
-        self._default_shared_network_dhcp_start = value
+    @default_host_network_dhcp4_end.setter
+    def default_host_network_dhcp4_end(self, value: str):
+        self._default_host_network_dhcp4_end = value
 
     @property
-    def default_shared_network_dhcp_end(self) -> str:
-        return self._default_shared_network_dhcp_end
+    def default_shared_network_dhcp4_start(self) -> str:
+        return self._default_shared_network_dhcp4_start
 
-    @default_shared_network_dhcp_end.setter
-    def default_shared_network_dhcp_end(self, value: str):
-        self._default_shared_network_dhcp_end = value
+    @default_shared_network_dhcp4_start.setter
+    def default_shared_network_dhcp4_start(self, value: str):
+        self._default_shared_network_dhcp4_start = value
+
+    @property
+    def default_shared_network_dhcp4_end(self) -> str:
+        return self._default_shared_network_dhcp4_end
+
+    @default_shared_network_dhcp4_end.setter
+    def default_shared_network_dhcp4_end(self, value: str):
+        self._default_shared_network_dhcp4_end = value
 
     @property
     def default_host_network_cidr(self) -> str:
