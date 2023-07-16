@@ -7,7 +7,7 @@ import pydantic
 from kaso_mashin import Base
 
 
-class IdentityKind(enum.Enum):
+class IdentityKind(str, enum.Enum):
     PUBKEY = 'pubkey'
     PASSWORD = 'password'
 
@@ -17,22 +17,36 @@ class IdentityBaseSchema(pydantic.BaseModel):
     The common base schema for an identity. It deliberately does not contain generated fields we do not
     allow to be provided when creating an identity
     """
-    gecos: str | None = pydantic.Field(title='The account GECOS field', default=None)
-    homedir: str | None = pydantic.Field(title='The home directory of the account if explicitly set', default=None)
-    shell: str | None = pydantic.Field(title='The account shell if explicitly set', default=None)
-    passwd: str | None = pydantic.Field(title='The account password for identities of kind "password"', default=None)
-    pubkey: str | None = pydantic.Field(title='The account authorised public key for identities of kind "pubkey"', default=None)
-
     model_config = pydantic.ConfigDict(from_attributes=True)
+
+    gecos: str | None = pydantic.Field(description='The account GECOS field',
+                                       default=None,
+                                       examples=['Mr Mat'])
+    homedir: str | None = pydantic.Field(description='The home directory of the account if explicitly set',
+                                         default=None,
+                                         examples=['/home/mrmat'])
+    shell: str | None = pydantic.Field(description='The account shell if explicitly set',
+                                       default=None,
+                                       examples=['/bin/bash'])
+    passwd: str | None = pydantic.Field(description='The account password for identities of kind "password"',
+                                        default=None,
+                                        examples=['secret'])
+    pubkey: str | None = pydantic.Field(description='The account authorised public key for identities of kind "pubkey"',
+                                        default=None,
+                                        examples=['ssh-rsa some-very-long-string'])
 
 
 class IdentitySchema(IdentityBaseSchema):
     """
     An identity
     """
-    identity_id: int = pydantic.Field(description='The unique identity id')
-    name: str = pydantic.Field(description='The identity name, equals the account login on the instance')
-    kind: IdentityKind = pydantic.Field(description='The corresponding account kind', default=IdentityKind.PUBKEY.value)
+    identity_id: int = pydantic.Field(description='The unique identity id',
+                                      examples=[1])
+    name: str = pydantic.Field(description='The identity name, equals the account login on the instance',
+                               examples=['mrmat'])
+    kind: IdentityKind = pydantic.Field(description='The corresponding account kind',
+                                        default=IdentityKind.PUBKEY,
+                                        examples=['ssh-rsa some-very-long-string'])
 
 
 class IdentityCreateSchema(IdentityBaseSchema):
@@ -40,7 +54,7 @@ class IdentityCreateSchema(IdentityBaseSchema):
     Input schema for creating an identity
     """
     name: str = pydantic.Field(description='The identity name, equals the account login on the instance')
-    kind: IdentityKind = pydantic.Field(description='The corresponding account kind', default=IdentityKind.PUBKEY.value)
+    kind: IdentityKind = pydantic.Field(description='The corresponding account kind', default=IdentityKind.PUBKEY)
 
 
 class IdentityModifySchema(IdentityBaseSchema):
@@ -78,6 +92,19 @@ class IdentityModel(Base):
             model.name = schema.name
             model.kind = schema.kind
         return model
+
+    def __eq__(self, other) -> bool:
+        return all([
+            isinstance(other, IdentityModel),
+            self.identity_id == other.identity_id,
+            self.name == other.name,
+            self.kind == other.kind,
+            self.gecos == other.gecos,
+            self.homedir == other.homedir,
+            self.passwd == other.passwd,
+            self.shell == other.shell,
+            self.pubkey == other.pubkey
+        ])
 
     def __repr__(self) -> str:
         return f'IdentityModel(' \
