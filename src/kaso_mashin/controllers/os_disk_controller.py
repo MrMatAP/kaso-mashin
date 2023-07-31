@@ -6,7 +6,7 @@ from kaso_mashin.executor import execute
 from kaso_mashin.controllers import AbstractController
 
 
-class DiskController(AbstractController):
+class OsDiskController(AbstractController):
     """
     A disk controller
     """
