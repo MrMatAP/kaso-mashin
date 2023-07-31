@@ -9,10 +9,10 @@ from kaso_mashin.model import BootstrapKind, InstanceModel, CIVendorData, CIUser
 
 class BootstrapController(AbstractController):
     """
-    A bootstrap controller
+    A bootstrap controller for CloudInit
     """
 
-    def bootstrap(self, model: InstanceModel):
+    def create(self, model: InstanceModel):
         match model.bootstrapper:
             case BootstrapKind.CI.value:
                 self.cloud_init(model=model)
@@ -27,23 +27,25 @@ class BootstrapController(AbstractController):
                 raise KasoMashinException(status=400, msg=f'There is no bootstrapper {model.bootstrapper}')
 
     def cloud_init(self, model: InstanceModel):
-        ci_base_path = pathlib.Path(model.path).joinpath('cloud-init')
-        ci_base_path.mkdir(parents=True, exist_ok=True)
+        model.ci_base_path.mkdir(parents=True, exist_ok=True)
+
         vendordata = CIVendorData()
-        vendordata.render_to(ci_base_path.joinpath('vendor-data'))
+        vendordata.render_to(model.ci_base_path.joinpath('vendor-data'))
+
         metadata = CIMetaData(instance_id=f'instance_{model.instance_id}', hostname=model.name)
-        metadata.render_to(ci_base_path.joinpath('meta-data'))
+        metadata.render_to(model.ci_base_path.joinpath('meta-data'))
+
         userdata = CIUserData(phone_home_url=f'http://{model.network.host_ip4}:{model.network.host_phone_home_port}/'
                                              f'$INSTANCE_ID',
-                              pubkey=model.identity.credentials)
-        userdata.render_to(ci_base_path.joinpath('user-data'))
+                              model=model)
+        userdata.render_to(model.ci_base_path.joinpath('user-data'))
         if model.static_ip4:
             networkconfig = CINetworkConfig(mac=model.mac,
                                             ip4=model.static_ip4,
                                             nm4=model.network.nm4,
                                             gw4=model.network.gw4,
                                             ns4=model.network.ns4)
-            networkconfig.render_to(ci_base_path.joinpath('network-config'))
+            networkconfig.render_to(model.ci_base_path.joinpath('network-config'))
 
     def ignition(self, model: InstanceModel):
         ign_base_path = pathlib.Path(model.path).joinpath('ignition')
