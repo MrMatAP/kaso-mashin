@@ -3,9 +3,7 @@ import uuid
 
 
 from kaso_mashin import KasoMashinException
-from kaso_mashin.config import Config
 from kaso_mashin.controllers import AbstractController
-from kaso_mashin.db import DB
 from kaso_mashin.model import TaskSchema
 
 
@@ -14,12 +12,12 @@ class TaskController(AbstractController):
     A task controller
     """
 
-    def __init__(self, config: Config, db: DB):
-        super().__init__(config, db)
+    def __init__(self, runtime: 'Runtime'):
+        super().__init__(runtime)
         self._tasks: typing.Dict[uuid.UUID, TaskSchema] = {}
 
     def list(self) -> typing.List[TaskSchema]:
-        return self._tasks.values()
+        return list(self._tasks.values())
 
     def get(self, task_id: uuid.UUID) -> TaskSchema:
         if task_id not in self._tasks:
