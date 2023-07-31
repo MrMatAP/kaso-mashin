@@ -1,5 +1,3 @@
-import pytest
-
 from kaso_mashin.model import ConfigSchema
 
 

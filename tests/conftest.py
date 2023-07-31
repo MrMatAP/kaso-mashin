@@ -9,27 +9,11 @@ from kaso_mashin.db import DB
 from kaso_mashin.runtime import Runtime
 from kaso_mashin.model import (
     IdentityKind, IdentityModel,
+    ImageModel,
     NetworkKind, NetworkModel)
 from kaso_mashin.apis import (
     ConfigAPI, TaskAPI, IdentityAPI, NetworkAPI, ImageAPI, InstanceAPI
 )
-
-test_networks = [
-    NetworkModel(name='test-network-0',
-                 kind=NetworkKind.VMNET_HOST,
-                 host_ip4='172.16.100.10',
-                 nm4='255.255.255.0',
-                 gw4='172.16.100.1',
-                 ns4='172.16.100.1',
-                 host_phone_home_port=10200),
-    NetworkModel(name='test-network-1',
-                 kind=NetworkKind.VMNET_SHARED,
-                 host_ip4='172.16.101.10',
-                 nm4='255.255.255.0',
-                 gw4='172.16.101.1',
-                 ns4='8.8.8.8',
-                 host_phone_home_port=8000)
-]
 
 seed = {
     'identities': [
@@ -39,7 +23,30 @@ seed = {
                       pubkey='ssh-rsa test2-pubkey'),
         IdentityModel(name='Test 3', kind=IdentityKind.PASSWORD,
                       gecos='Test Identity 3', homedir='/home/test3', shell='/bin/bash', passwd='foobar')
-    ]
+    ],
+    # 'networks': [
+    #     NetworkModel(name='test-network-0',
+    #                  kind=NetworkKind.VMNET_HOST,
+    #                  host_ip4='172.16.100.10',
+    #                  nm4='255.255.255.0',
+    #                  gw4='172.16.100.1',
+    #                  ns4='172.16.100.1',
+    #                  host_phone_home_port=10200),
+    #     NetworkModel(name='test-network-1',
+    #                  kind=NetworkKind.VMNET_SHARED,
+    #                  host_ip4='172.16.101.10',
+    #                  nm4='255.255.255.0',
+    #                  gw4='172.16.101.1',
+    #                  ns4='8.8.8.8',
+    #                  host_phone_home_port=8000)
+    # ],
+    # 'images': [
+    #     ImageModel(name='ubuntu-jammy', path='/no/where/jammy.qcow2'),
+    #     ImageModel(name='freebsd14', path='/no/where/freebsd14.qcow2',
+    #                min_cpu=2, min_ram=2048, min_space='10G'),
+    #     ImageModel(name='ubuntu-kinetic', path='/no/where/kinetic.qcow2',
+    #                min_cpu=2, min_ram=4096, min_space='2G')
+    # ]
 }
 
 
