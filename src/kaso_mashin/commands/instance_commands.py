@@ -1,13 +1,17 @@
 import argparse
-import shutil
-import pathlib
+import time
 
-import rich.tree
+import rich.table
+import rich.box
 import rich.columns
+import rich.progress
 
 from kaso_mashin import console
 from kaso_mashin.commands import AbstractCommands
-from kaso_mashin.model import InstanceModel, VMScriptModel, BootstrapKind, NetworkKind
+from kaso_mashin.model import (
+    TaskSchema, TaskState,
+    InstanceSchema, InstanceCreateSchema,
+    BootstrapKind)
 
 
 class InstanceCommands(AbstractCommands):
@@ -22,7 +26,7 @@ class InstanceCommands(AbstractCommands):
         instance_get_parser = instance_subparser.add_parser(name='get', help='Get an instance')
         instance_get_id_or_name = instance_get_parser.add_mutually_exclusive_group(required=True)
         instance_get_id_or_name.add_argument('--id',
-                                             dest='id',
+                                             dest='instance_id',
                                              type=int,
                                              help='The instance id')
         instance_get_id_or_name.add_argument('--name',
@@ -61,7 +65,9 @@ class InstanceCommands(AbstractCommands):
         instance_create_parser.add_argument('--identity-id',
                                             dest='identity_id',
                                             type=int,
-                                            required=True,
+                                            required=False,
+                                            default=[],
+                                            action='append',
                                             help='The identity id permitted to log in to this instance')
         instance_create_parser.add_argument('--static-ip4',
                                             dest='static_ip4',
@@ -82,108 +88,103 @@ class InstanceCommands(AbstractCommands):
                                             default='5G',
                                             help='OS disk size, defaults to 5G')
         instance_create_parser.set_defaults(cmd=self.create)
+        instance_modify_parser = instance_subparser.add_parser(name='modify', help='Modify an instance')
+        instance_modify_parser.add_argument('--id',
+                                            dest='instance_id',
+                                            type=int,
+                                            help='The instance id')
+        instance_modify_parser.set_defaults(cmd=self.modify)
         instance_remove_parser = instance_subparser.add_parser(name='remove', help='Remove an instance')
         instance_remove_parser.add_argument('--id',
-                                            dest='id',
+                                            dest='instance_id',
                                             type=int,
                                             required=True,
                                             help='The instance id')
         instance_remove_parser.set_defaults(cmd=self.remove)
 
     def list(self, args: argparse.Namespace) -> int:  # pylint: disable=unused-argument
-        instances = self.instance_controller.list()
-        tree = rich.tree.Tree(label='Instances')
+        resp = self.api_client(uri='/api/instances/', expected_status=[200])
+        if not resp:
+            return 1
+        instances = [InstanceSchema.model_validate(instance) for instance in resp.json()]
+        table = rich.table.Table(box=rich.box.ROUNDED)
+        table.add_column('[blue]ID')
+        table.add_column('[blue]Name')
+        table.add_column('[blue]Path')
+        table.add_column('[blue]Image ID')
+        table.add_column('[blue]Network ID')
         for instance in instances:
-            ntree = tree.add(label=f'{instance.instance_id}: {instance.name}')
-            ntree.add(rich.columns.Columns(['Id:', str(instance.instance_id)]))
-            ntree.add(rich.columns.Columns(['Name:', instance.name]))
-            ntree.add(rich.columns.Columns(['Path:', str(instance.path)]))
-            ntree.add(rich.columns.Columns(['Image:', instance.image.name]))
-            ntree.add(rich.columns.Columns(['OS Disk Path:', str(instance.os_disk_path)]))
-            ntree.add(rich.columns.Columns(['Network:', instance.network.name]))
-            ntree.add(rich.columns.Columns(['Identity:', instance.identity.name]))
-        console.print(tree)
+            table.add_row(str(instance.instance_id),
+                          instance.name,
+                          str(instance.path),
+                          str(instance.image_id),
+                          str(instance.network_id))
+        console.print(table)
         return 0
 
     def get(self, args: argparse.Namespace) -> int:
-        instance = self.instance_controller.get(args.id, args.name)
-        if not instance:
-            console.print(f'ERROR: Instance with id {args.id} not found')
+        resp = self.api_client(uri=f'/api/instances/{args.instance_id}',
+                               expected_status=[200],
+                               fallback_msg=f'Instance with id {args.instance_id} could not be found')
+        if not resp:
             return 1
-        console.print(f'- Id: {instance.instance_id}')
-        console.print(f'  Name: {instance.name}')
-        console.print(f'  Path: {instance.path}')
-        console.print(f'  Image: {instance.image.name}')
-        console.print(f'  OS disk path: {instance.os_disk_path}')
-        console.print(f'  Network:      {instance.network.name}')
-        console.print(f'  Identity:     {instance.identity.name}')
+        instance = InstanceSchema.model_validate_json(resp.content)
+        table = rich.table.Table(box=rich.box.ROUNDED)
+        table.add_column('Field')
+        table.add_column('Value')
+        table.add_row('[blue]Id', str(instance.instance_id))
+        table.add_row('[blue]Name', instance.name)
+        table.add_row('[blue]Path', str(instance.path))
+        table.add_row('[blue]Image ID', str(instance.image_id))
+        table.add_row('[blue]OS Disk Path', str(instance.os_disk_path))
+        table.add_row('[blue]CI Base Path', str(instance.ci_base_path))
+        table.add_row('[blue]CI Disk path', str(instance.ci_disk_path))
+        table.add_row('[blue]Network ID', str(instance.network_id))
+        console.print(table)
         return 0
 
     def create(self, args: argparse.Namespace) -> int:
-        with console.status(f'[magenta] Creating instance {args.name}') as status:
-            instance_path = self.config.path.joinpath('instances').joinpath(args.name)
-            if instance_path.exists():
-                status.update(f'[red]ERROR: Instance at path {instance_path} already exists')
-                return 1
-
-            network = self.network_controller.get(args.network_id)
-            status.update(f'Found network {network.network_id}: {network.name}')
-
-            image = self.image_controller.get(args.image_id)
-            status.update(f'Found image {image.image_id}: {image.name}')
-
-            identity = self.identity_controller.get(args.identity_id)
-            status.update(f'Found identity {identity.identity_id}: {identity.name}')
-
-            model = InstanceModel(name=args.name,
-                                  path=instance_path,
-                                  vcpu=args.vcpu,
-                                  ram=args.ram,
-                                  os_disk_path=instance_path.joinpath('os.qcow2'),
-                                  os_disk_size=args.os_disk_size or self.config.default_os_disk_size,
-                                  ci_disk_path=instance_path.joinpath('ci.img'),
-                                  bootstrapper=args.bootstrapper,
-                                  image=image,
-                                  identity=identity,
-                                  network=network)
-            if args.static_ip4:
-                model.static_ip4 = args.static_ip4
-            instance = self.instance_controller.create(model)
-            status.update(f'Registered instance {instance.instance_id}: {model.name} at path {model.path}')
-
-            os_disk_path = pathlib.Path(instance.os_disk_path)
-            image_path = pathlib.Path(instance.image.path)
-            self.disk_controller.create(os_disk_path, image_path)
-            status.update(f'Created OS disk with backing image {instance.image.name}')
-
-            self.disk_controller.modify(os_disk_path, instance.os_disk_size)
-            status.update(f'Resized OS disk to {instance.os_disk_size}')
-
-            self.bootstrap_controller.bootstrap(model)
-            status.update(f'Created bootstrapper {instance.bootstrapper}')
-
-            vm_script_path = pathlib.Path(instance.path).joinpath('vm.sh')
-            VMScriptModel(model, vm_script_path)
-            vm_script_path.chmod(0o755)
-            status.update(f'Created VM script at {vm_script_path}')
-
-            status.update(f'Start the instance using "sudo {vm_script_path} now')
-            if model.network.kind == NetworkKind.VMNET_SHARED:
-                status.update('Waiting for the instance to phone home')
-                self.phonehome_controller.wait_for_instance(model=model)
-                status.update('Instance phoned home')
+        create_schema = InstanceCreateSchema(name=args.name,
+                                             vcpu=args.vcpu,
+                                             ram=args.ram,
+                                             network_id=args.network_id,
+                                             image_id=args.image_id,
+                                             identities=args.identity_id,
+                                             bootstrapper=args.bootstrapper,
+                                             os_disk_size=args.os_disk_size or self.config.default_os_disk_size)
+        resp = self.api_client(uri='/api/instances/',
+                               method='POST',
+                               body=create_schema.model_dump(),
+                               expected_status=[201],
+                               fallback_msg='Failed to create instance')
+        if not resp:
+            return 1
+        task = TaskSchema.model_validate(resp.json())
+        with rich.progress.Progress() as progress:
+            create_task = progress.add_task(f'[green]Creating instance {args.name}...', total=100)
+            while not task.state == TaskState.DONE:
+                resp = self.api_client(uri=f'/api/tasks/{task.task_id}',
+                                       expected_status=[200],
+                                       fallback_msg=f'Failed to fetch status for task {task.task_id}')
+                if not resp:
+                    return 1
+                task = TaskSchema.model_validate(resp.json())
+                if task.state == TaskState.FAILED:
+                    progress.update(create_task, completed=100, refresh=True,
+                                    description=f'Failed: {task.msg}')
+                    return 1
+                else:
+                    progress.update(create_task, completed=task.percent_complete, refresh=True)
+                time.sleep(2)
         return 0
+
+    def modify(self, args: argparse.Namespace) -> int:
+        console.print('[yellow]Not yet implemented')
+        return 1
 
     def remove(self, args: argparse.Namespace) -> int:
-        with console.status(f'[magenta] Removing instance {args.id}') as status:
-            instance = self.instance_controller.get(args.id)
-            if not instance:
-                status.update(f'ERROR: Instance {args.id} does not exist')
-                return 1
-
-            shutil.rmtree(instance.path)
-            status.update(f'Removed instance path {instance.path}')
-
-            self.instance_controller.remove(instance.instance_id)
-            status.update(f'Removed instance {instance.instance_id}: {instance.name}')
-        return 0
+        resp = self.api_client(uri=f'/api/instances/{args.instance_id}',
+                               method='DELETE',
+                               expected_status=[204, 410],
+                               fallback_msg='Failed to remove instance')
+        return 0 if resp else 1

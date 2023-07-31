@@ -3,7 +3,10 @@ import fastapi
 
 from kaso_mashin.apis import AbstractAPI
 from kaso_mashin.runtime import Runtime
-from kaso_mashin.model import ExceptionSchema, InstanceSchema, InstanceCreateSchema, TaskSchema
+from kaso_mashin.model import (
+    ExceptionSchema, TaskSchema,
+    InstanceModel,
+    InstanceSchema, InstanceCreateSchema, InstanceModifySchema )
 
 
 class InstanceAPI(AbstractAPI):
@@ -96,23 +99,29 @@ class InstanceAPI(AbstractAPI):
                                                               msg='No such instance could be found')
                                                           .model_dump())
 
-    async def create_instance(self):
-        return fastapi.responses.JSONResponse(status_code=510,
-                                              content=ExceptionSchema(status=510,
-                                                                      msg='Not yet implemented')
-                                              .model_dump())
+    async def create_instance(self, schema: InstanceCreateSchema, background_tasks: fastapi.BackgroundTasks):
+        task = self.task_controller.create(name=f'Creating instance {schema.name}')
+        background_tasks.add_task(self.instance_controller.create,
+                                  model=InstanceModel.from_schema(schema),
+                                  task=task)
+        return task
 
-    async def modify_instance(self):
-        return fastapi.responses.JSONResponse(status_code=510,
-                                              content=ExceptionSchema(status=510,
-                                                                      msg='Not yet implemented')
-                                              .model_dump())
+    async def modify_instance(self,
+                              instance_id: typing.Annotated[int, fastapi.Path(title='Instance ID',
+                                                                              description='The instance ID to modify',
+                                                                              examples=[1])],
+                              schema: InstanceModifySchema):
+        return self.instance_controller.modify(instance_id=instance_id,
+                                               update=InstanceModel.from_schema(schema))
 
-    async def remove_instance(self):
-        return fastapi.responses.JSONResponse(status_code=510,
-                                              content=ExceptionSchema(status=510,
-                                                                      msg='Not yet implemented')
-                                              .model_dump())
+    async def remove_instance(self,
+                              instance_id: typing.Annotated[int, fastapi.Path(title='Instance ID',
+                                                                              description='The instance ID to remove',
+                                                                              examples=[1])],
+                              response: fastapi.Response):
+        gone = self.instance_controller.remove(instance_id)
+        response.status_code = 410 if gone else 204
+        return response
 
     async def start_instance(self):
         return fastapi.responses.JSONResponse(status_code=510,
