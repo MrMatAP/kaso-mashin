@@ -4,9 +4,7 @@ import httpx
 import aiofiles
 
 from kaso_mashin import KasoMashinException
-from kaso_mashin.config import Config
 from kaso_mashin.controllers import AbstractController
-from kaso_mashin.db import DB
 from kaso_mashin.model import ImageModel, TaskSchema
 
 
@@ -15,12 +13,12 @@ class ImageController(AbstractController):
     An image controller
     """
 
-    def __init__(self, config: Config, db: DB):
-        super().__init__(config, db)
-        config.path.joinpath('images').mkdir(parents=True, exist_ok=True)
+    def __init__(self, runtime: 'Runtime'):
+        super().__init__(runtime)
+        self.config.path.joinpath('images').mkdir(parents=True, exist_ok=True)
 
     def list(self) -> typing.List[ImageModel]:
-        images = self.db.session.scalars(sqlalchemy.select(ImageModel)).all()
+        images = list(self.db.session.scalars(sqlalchemy.select(ImageModel)).all())
         return images
 
     def get(self, image_id: int | None = None, name: str | None = None) -> ImageModel | None:

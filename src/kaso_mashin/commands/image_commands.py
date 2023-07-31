@@ -12,7 +12,7 @@ from kaso_mashin.commands import AbstractCommands
 from kaso_mashin.model import (
     Predefined_Images,
     TaskSchema, TaskState,
-    ImageSchema, ImageCreateSchema, ImageModifySchema)
+    ImageSchema, ImageCreateSchema, ImageModifySchema )
 
 
 class ImageCommands(AbstractCommands):
@@ -152,7 +152,7 @@ class ImageCommands(AbstractCommands):
             while not task.state == TaskState.DONE:
                 resp = self.api_client(uri=f'/api/tasks/{task.task_id}',
                                        expected_status=[200],
-                                       fallback_msg=f'Failed to fetch status for stask {task.task_id}')
+                                       fallback_msg=f'Failed to fetch status for task {task.task_id}')
                 if not resp:
                     return 1
                 task = TaskSchema.model_validate(resp.json())

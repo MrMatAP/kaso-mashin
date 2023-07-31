@@ -5,7 +5,7 @@ from kaso_mashin.apis import AbstractAPI
 from kaso_mashin.runtime import Runtime
 from kaso_mashin.model import (
     ExceptionSchema, TaskSchema,
-    ImageModel, ImageSchema, ImageCreateSchema, ImageModifySchema)
+    ImageModel, ImageSchema, ImageCreateSchema, ImageModifySchema )
 
 
 class ImageAPI(AbstractAPI):
@@ -57,10 +57,9 @@ class ImageAPI(AbstractAPI):
                                    responses={204: {'model': None}, 410: {'model': None}})
 
     async def list_images(self,
-                          name: typing.Annotated[str | None,
-                                                 fastapi.Query(title='Image name',
-                                                               description='A unique image name',
-                                                               examples=['jammy'])] = None):
+                          name: typing.Annotated[str | None, fastapi.Query(title='Image name',
+                                                                           description='A unique image name',
+                                                                           examples=['jammy'])] = None):
         if name:
             return self.image_controller.get(name=name)
         return self.image_controller.list()

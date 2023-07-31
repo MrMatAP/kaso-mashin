@@ -3,18 +3,17 @@ from sqlalchemy.orm import Mapped, mapped_column
 import pydantic
 
 from kaso_mashin import Base
-from kaso_mashin.model import DbPath, SchemaPath
+from kaso_mashin.custom_types import DbPath, SchemaPath
 
 
-class ImageBaseSchema(pydantic.BaseModel):
+class ImageSchema(pydantic.BaseModel):
     """
-    The common base schema for an image. It deliberately does not contain generated fields we do not
-    allow to be provided when creating an image
+    An Image
     """
     model_config = pydantic.ConfigDict(from_attributes=True)
 
-    name: str = pydantic.Field(description='The image name',
-                               examples=['jammy'])
+    image_id: int = pydantic.Field(description='The image id', examples=[1])
+    name: str = pydantic.Field(description='The image name', examples=['jammy'])
     path: SchemaPath = pydantic.Field(description='Path to the image on the local disk',
                                       examples=['/Users/dude/var/kaso/images/ubuntu-jammy.qcow2'])
     min_cpu: int = pydantic.Field(description='Minimum number of vCPUs',
@@ -26,14 +25,6 @@ class ImageBaseSchema(pydantic.BaseModel):
     min_space: int = pydantic.Field(description='Minimum number of disk space (in MB)',
                                     default=0,
                                     examples=[10000])
-
-
-class ImageSchema(ImageBaseSchema):
-    """
-    An Image
-    """
-    image_id: int = pydantic.Field(description='The image id',
-                                   examples=[1])
 
 
 class ImageCreateSchema(pydantic.BaseModel):
@@ -107,7 +98,7 @@ class ImageModel(Base):
 
     def __repr__(self) -> str:
         return f'ImageModel(' \
-               f'image_id="{self.image_id}", ' \
+               f'image_id={self.image_id}, ' \
                f'name="{self.name}", ' \
                f'path="{self.path}, ' \
                f'min_cpu={self.min_cpu}, ' \
