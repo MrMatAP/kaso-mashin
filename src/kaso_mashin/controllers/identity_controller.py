@@ -12,7 +12,7 @@ class IdentityController(AbstractController):
     """
 
     def list(self) -> typing.List[IdentityModel]:
-        return self.db.session.scalars(sqlalchemy.select(IdentityModel)).all()
+        return list(self.db.session.scalars(sqlalchemy.select(IdentityModel)).all())
 
     def get(self, identity_id: int | None = None, name: str | None = None) -> IdentityModel | None:
         """
