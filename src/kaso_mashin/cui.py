@@ -73,7 +73,7 @@ def main(args: typing.Optional[typing.List] = None) -> int:
             return args.cmd(args)
         else:
             parser.print_help()
-    except Exception as ex:       # pylint: disable=broad-except
+    except Exception:       # pylint: disable=broad-except
         console.print_exception()
     return 1
 
