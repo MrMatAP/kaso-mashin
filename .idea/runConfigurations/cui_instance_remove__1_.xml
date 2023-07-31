@@ -1,5 +1,5 @@
 <component name="ProjectRunConfigurationManager">
-  <configuration default="false" name="cui instance remove (host)" type="PythonConfigurationType" factoryName="Python">
+  <configuration default="false" name="cui instance remove (1)" type="PythonConfigurationType" factoryName="Python">
     <module name="kaso-mashin" />
     <option name="INTERPRETER_OPTIONS" value="" />
     <option name="PARENT_ENVS" value="true" />
