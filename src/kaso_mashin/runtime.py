@@ -1,3 +1,5 @@
+import getpass
+import os
 import ipaddress
 
 import netifaces
@@ -5,7 +7,8 @@ import netifaces
 from kaso_mashin.config import Config
 from kaso_mashin.db import DB
 from kaso_mashin.controllers import (
-    BootstrapController, DiskController, IdentityController, ImageController, InstanceController,
+    BootstrapController, OsDiskController, IdentityController, ImageController,
+    InstanceController,
     NetworkController, PhoneHomeController, TaskController)
 from kaso_mashin.model import NetworkKind, NetworkModel
 
@@ -19,16 +22,18 @@ class Runtime:
         self._config = config
         self._db = db
         self._server_url = None
-        self._bootstrap_controller = BootstrapController(config=config, db=db)
-        self._disk_controller = DiskController(config=config, db=db)
-        self._identity_controller = IdentityController(config=config, db=db)
-        self._image_controller = ImageController(config=config, db=db)
-        self._instance_controller = InstanceController(config=config, db=db)
-        self._network_controller = NetworkController(config=config, db=db)
-        self._phonehome_controller = PhoneHomeController(config=config, db=db)
-        self._task_controller = TaskController(config=config, db=db)
+        self._bootstrap_controller = BootstrapController(self)
+        self._os_disk_controller = OsDiskController(self)
+        self._identity_controller = IdentityController(self)
+        self._image_controller = ImageController(self)
+        self._instance_controller = InstanceController(self)
+        self._network_controller = NetworkController(self)
+        self._phonehome_controller = PhoneHomeController(self)
+        self._task_controller = TaskController(self)
+        self._effective_user = getpass.getuser()
+        self._owning_user = os.environ.get('SUDO_USER', self._effective_user)
 
-    def late_init(self, server: bool=False):
+    def late_init(self, server: bool = False):
         """
         Perform late initialisation after configuration
         """
@@ -86,8 +91,8 @@ class Runtime:
         return self._bootstrap_controller
 
     @property
-    def disk_controller(self) -> DiskController:
-        return self._disk_controller
+    def os_disk_controller(self) -> OsDiskController:
+        return self._os_disk_controller
 
     @property
     def identity_controller(self) -> IdentityController:
@@ -112,3 +117,11 @@ class Runtime:
     @property
     def task_controller(self) -> TaskController:
         return self._task_controller
+
+    @property
+    def effective_user(self) -> str:
+        return self._effective_user
+
+    @property
+    def owning_user(self) -> str:
+        return self._owning_user

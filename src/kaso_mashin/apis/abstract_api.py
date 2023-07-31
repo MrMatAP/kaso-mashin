@@ -3,7 +3,7 @@ import fastapi
 
 from kaso_mashin.runtime import Runtime
 from kaso_mashin.controllers import (
-    BootstrapController, DiskController, IdentityController, ImageController, InstanceController,
+    BootstrapController, OsDiskController, IdentityController, ImageController, InstanceController,
     NetworkController, PhoneHomeController, TaskController)
 
 
@@ -25,8 +25,8 @@ class AbstractAPI(abc.ABC):
         return self._runtime.bootstrap_controller
 
     @property
-    def disk_controller(self) -> DiskController:
-        return self._runtime.disk_controller
+    def disk_controller(self) -> OsDiskController:
+        return self._runtime.os_disk_controller
 
     @property
     def identity_controller(self) -> IdentityController:
