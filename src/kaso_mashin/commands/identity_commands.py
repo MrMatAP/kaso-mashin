@@ -159,7 +159,7 @@ class IdentityCommands(AbstractCommands):
                 console.print(f'[red]ERROR[/red]: Public key at path {args.pubkey_path} does not exist')
                 return 1
             with open(pubkey_path, 'r', encoding='UTF-8') as p:
-                schema.pubkey = p.read().strip()
+                schema.pubkey = p.readline().strip()
         else:
             # TODO: Hash this right here
             schema.passwd = args.passwd
