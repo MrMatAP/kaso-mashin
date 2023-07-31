@@ -10,7 +10,7 @@ from kaso_mashin.config import Config
 from kaso_mashin.db import DB
 from kaso_mashin.runtime import Runtime
 from kaso_mashin.controllers import (
-    BootstrapController, DiskController, IdentityController, ImageController, InstanceController,
+    BootstrapController, OsDiskController, IdentityController, ImageController, InstanceController,
     NetworkController, PhoneHomeController)
 from kaso_mashin.model import ExceptionSchema
 
@@ -31,8 +31,10 @@ class AbstractCommands(abc.ABC):
                    uri: str,
                    body: typing.Dict | typing.List = None,
                    method: str = 'GET',
-                   expected_status: typing.List = [200],
+                   expected_status: typing.List = None,
                    fallback_msg: str = 'Something bad and unknown happened...'):
+        if expected_status is None:
+            expected_status = [200]
         resp = httpx.request(url=f'{self.server_url}{uri}',
                              method=method,
                              json=body)
@@ -65,8 +67,8 @@ class AbstractCommands(abc.ABC):
         return self._runtime.bootstrap_controller
 
     @property
-    def disk_controller(self) -> DiskController:
-        return self._runtime.disk_controller
+    def disk_controller(self) -> OsDiskController:
+        return self._runtime.os_disk_controller
 
     @property
     def identity_controller(self) -> IdentityController:
