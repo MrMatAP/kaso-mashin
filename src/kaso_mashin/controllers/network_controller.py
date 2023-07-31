@@ -17,8 +17,7 @@ class NetworkController(AbstractController):
     DEFAULT_SHARED_NETWORK_NAME = 'default_shared_network'
 
     def list(self) -> typing.List[NetworkModel]:
-        networks = self.db.session.scalars(sqlalchemy.select(NetworkModel)).all()
-        return networks
+        return list(self.db.session.scalars(sqlalchemy.select(NetworkModel)).all())
 
     def get(self,
             network_id: int | None = None,

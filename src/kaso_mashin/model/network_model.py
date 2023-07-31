@@ -5,7 +5,7 @@ from sqlalchemy.orm import Mapped, mapped_column
 import pydantic
 
 from kaso_mashin import Base
-from kaso_mashin.model import IP4Address, SchemaIPv4
+from kaso_mashin.custom_types import IP4Address, SchemaIPv4
 
 
 class NetworkKind(str, enum.Enum):

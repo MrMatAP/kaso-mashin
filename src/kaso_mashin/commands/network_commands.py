@@ -6,7 +6,7 @@ import rich.columns
 
 from kaso_mashin import console
 from kaso_mashin.commands import AbstractCommands
-from kaso_mashin.model import NetworkKind, NetworkModel, NetworkSchema, NetworkCreateSchema, NetworkModifySchema
+from kaso_mashin.model import NetworkKind, NetworkSchema, NetworkCreateSchema, NetworkModifySchema
 
 
 class NetworkCommands(AbstractCommands):
