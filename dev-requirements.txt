@@ -10,3 +10,16 @@ wheel>=0.36.0            # MIT
 pylint~=2.17.4           # MIT
 pytest~=7.4.0            # GPL-2.0-or-later
 pytest-cov~=4.1.0        # MIT
+
+# Runtime requirements
+
+rich~=13.4.1         # MIT
+requests~=2.31.0     # Apache 2.0
+pyyaml~=6.0          # MIT
+netifaces~=0.11.0    # MIT
+sqlalchemy~=2.0.15   # MIT
+fastapi~=0.100.0     # MIT
+uvicorn~=0.22.0      # BSD 3-Clause
+httpx~=0.24.1        # BSD 3-Clause
+aiofiles~=23.1.0     # Apache 2.0
+qemu.qmp~=0.0.3       # ?
