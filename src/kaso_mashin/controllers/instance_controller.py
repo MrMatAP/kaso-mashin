@@ -1,3 +1,5 @@
+import pathlib
+import shutil
 import shutil
 import typing
 import sqlalchemy
@@ -14,7 +16,13 @@ class InstanceController(AbstractController):
 
     def __init__(self, runtime: 'Runtime'):
         super().__init__(runtime)
-        self.config.path.joinpath('instances').mkdir(parents=True, exist_ok=True)
+        self._instance_path = self.config.path.joinpath('instances')
+        self._instance_path.mkdir(parents=True, exist_ok=True)
+        shutil.chown(self._instance_path, user=self._runtime.owning_user)
+
+    @property
+    def instance_path(self) -> pathlib.Path:
+        return self._instance_path
 
     def list(self) -> typing.List[InstanceModel]:
         return list(self.db.session.scalars(sqlalchemy.select(InstanceModel)).all())
@@ -66,9 +74,11 @@ class InstanceController(AbstractController):
         task.progress(4, f'Calculated MAC address {model.mac}')
 
         model.path.mkdir(parents=True, exist_ok=True)
+        shutil.chown(model.path, user=self._runtime.owning_user)
         task.progress(5, f'Created instance path {model.path}')
 
         self.os_disk_controller.create(model.os_disk_path, model.image.path)
+        shutil.chown(model.os_disk_path, user=self._runtime.owning_user)
         task.progress(6, 'Created OS disk')
 
         self.bootstrap_controller.create(model)
@@ -78,6 +88,7 @@ class InstanceController(AbstractController):
         with open(model.vm_script_path, mode='w', encoding='UTF-8') as v:
             v.write(vm_script.render())
         model.vm_script_path.chmod(0o755)
+        shutil.chown(model.vm_script_path, user=self._runtime.owning_user)
         task.progress(8, 'Created VM script')
 
         #     status.update(f'Start the instance using "sudo {vm_script_path} now')

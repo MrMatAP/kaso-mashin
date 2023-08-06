@@ -1,3 +1,5 @@
+import pathlib
+import shutil
 import typing
 import sqlalchemy
 import httpx
@@ -15,7 +17,13 @@ class ImageController(AbstractController):
 
     def __init__(self, runtime: 'Runtime'):
         super().__init__(runtime)
-        self.config.path.joinpath('images').mkdir(parents=True, exist_ok=True)
+        self._image_path = self.config.path.joinpath('images')
+        self._image_path.mkdir(parents=True, exist_ok=True)
+        shutil.chown(self._image_path, user=self._runtime.owning_user)
+
+    @property
+    def image_path(self) -> pathlib.Path:
+        return self._image_path
 
     def list(self) -> typing.List[ImageModel]:
         images = list(self.db.session.scalars(sqlalchemy.select(ImageModel)).all())
@@ -57,6 +65,7 @@ class ImageController(AbstractController):
                 await i.write(chunk)
                 current += 8192
                 task.progress(percent_complete=int(current / size * 100), msg='Downloading')
+        shutil.chown(image_path, user=self._runtime.owning_user)
         model = ImageModel(name=name, path=image_path)
         self.db.session.add(model)
         self.db.session.commit()

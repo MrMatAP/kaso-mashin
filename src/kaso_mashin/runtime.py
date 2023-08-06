@@ -1,3 +1,4 @@
+import shutil
 import getpass
 import os
 import ipaddress
@@ -21,22 +22,24 @@ class Runtime:
     def __init__(self, config: Config, db: DB):
         self._config = config
         self._db = db
-        self._server_url = None
-        self._bootstrap_controller = BootstrapController(self)
-        self._os_disk_controller = OsDiskController(self)
-        self._identity_controller = IdentityController(self)
-        self._image_controller = ImageController(self)
-        self._instance_controller = InstanceController(self)
-        self._network_controller = NetworkController(self)
-        self._phonehome_controller = PhoneHomeController(self)
-        self._task_controller = TaskController(self)
         self._effective_user = getpass.getuser()
         self._owning_user = os.environ.get('SUDO_USER', self._effective_user)
+        self._db.owning_user = self._owning_user
+        self._server_url = None
+        self._bootstrap_controller = BootstrapController(runtime=self)
+        self._os_disk_controller = OsDiskController(runtime=self)
+        self._identity_controller = IdentityController(runtime=self)
+        self._image_controller = ImageController(runtime=self)
+        self._instance_controller = InstanceController(runtime=self)
+        self._network_controller = NetworkController(runtime=self)
+        self._phonehome_controller = PhoneHomeController(runtime=self)
+        self._task_controller = TaskController(runtime=self)
 
     def late_init(self, server: bool = False):
         """
         Perform late initialisation after configuration
         """
+        shutil.chown(self.config.path, user=self.owning_user)
         self._server_url = f'http://{self.config.default_server_host}:{self.config.default_server_port}'
         if not server:
             return
