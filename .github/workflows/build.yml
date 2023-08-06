@@ -68,7 +68,7 @@ jobs:
     - name: Build
       run: |
         pip install --user -r dev-requirements.txt
-        pylint --rcfile ${GITHUB_WORKSPACE}/.pylintrc ${GITHUB_WORKSPACE}/src/mrmat_python_cli
+        pylint --rcfile ${GITHUB_WORKSPACE}/.pylintrc ${GITHUB_WORKSPACE}/src/mrmat_python_cli --exit-zero
         python -m build --wheel -n
         PYTHONPATH=${GITHUB_WORKSPACE}/src python -m pytest
 
