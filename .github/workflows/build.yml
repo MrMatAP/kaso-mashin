@@ -13,7 +13,7 @@ env:
 
 #
 # Establish when the workflow is run
-# We do build on every push except when we push onto main (which we ought to be subject to branch protection)
+# We do build on every push except when we push onto main (which is subject to branch protection)
 # We do build whenever a PR onto main is closed (see on) and the code is actually merged (see release job if)
 # Why is that okay?
 # Since we're making a PR, we know from the previous workflow run on push that the repo is okay and the PR
