@@ -2,6 +2,9 @@
 
 A tool to manage virtual machines on an ARM-based Mac. Kaso Mashin is 'Virtual Machine' in Japanese.
 
+[![Build](https://github.com/MrMatAP/kaso-mashin/actions/workflows/build.yml/badge.svg)](https://github.com/MrMatAP/kaso-mashin/actions/workflows/build.yml)
+[![CodeQL](https://github.com/MrMatAP/kaso-mashin/actions/workflows/codeql.yml/badge.svg)](https://github.com/MrMatAP/kaso-mashin/actions/workflows/codeql.yml)
+
 >*SECURITY*: This is not something that you should be running in an open environment at this stage. The current
 > implementation implements an *unauthenticated* API on localhost. If you choose to create a password-based identity
 > then that password is stored in unencrypted form within the local database.
