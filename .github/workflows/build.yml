@@ -1,0 +1,91 @@
+#
+# How to build this
+
+name: Build
+
+#
+# Operational Variables
+
+env:
+  MAJOR: 0
+  MINOR: 0
+  PYTHON_VERSION: 3.11.0
+
+#
+# Establish when the workflow is run
+# We do build on every push except when we push onto main (which we ought to be subject to branch protection)
+# We do build whenever a PR onto main is closed (see on) and the code is actually merged (see release job if)
+# Why is that okay?
+# Since we're making a PR, we know from the previous workflow run on push that the repo is okay and the PR
+# shows that to us. A PR itself doesn't cause a build, except when it is closed and the changes were merged.
+
+on:
+  push:
+    branches-ignore:
+    - main
+  pull_request_target:
+    branches:
+    - main
+    types:
+    - closed
+
+#
+# Workflow
+
+jobs:
+
+  build:
+    runs-on: ubuntu-latest
+    steps:
+
+    - name: Checkout out our code
+      uses: actions/checkout@v2
+
+    - name: Calculate Build Context
+      run: |
+        MRMAT_VERSION="${MAJOR}.${MINOR}.${GITHUB_RUN_NUMBER}"
+        if [ "$GITHUB_EVENT_NAME" == 'pull_request_target' -a "$GITHUB_BASE_REF" == 'main' ]; then
+          MRMAT_IS_RELEASE=true
+          echo "::warning ::Building release ${MRMAT_VERSION}"
+          echo "MRMAT_IS_RELEASE=true" >> $GITHUB_ENV
+        else
+          MRMAT_VERSION="${MRMAT_VERSION}.dev0"
+          echo "::warning ::Building version ${MRMAT_VERSION}"
+        fi
+        echo "MRMAT_VERSION=${MRMAT_VERSION}" >> $GITHUB_ENV
+
+    - name: Set up Python ${{ env.PYTHON_VERSION }}
+      uses: actions/setup-python@v2
+      with:
+        python-version: ${{ env.PYTHON_VERSION }}
+
+    - name: Establish a cache for dependencies
+      uses: actions/cache@v3
+      with:
+        path: ~/.cache/pip
+        key: ${{ runner.os }}
+
+    - name: Build
+      run: |
+        pip install --user -r dev-requirements.txt
+        pylint --rcfile ${GITHUB_WORKSPACE}/.pylintrc ${GITHUB_WORKSPACE}/src/mrmat_python_cli
+        python -m build --wheel -n
+        PYTHONPATH=${GITHUB_WORKSPACE}/src python -m pytest
+
+    - name: Upload test results
+      uses: actions/upload-artifact@v2
+      if: ${{ always() }}
+      with:
+        name: Test and Coverage
+        path: |
+          build/junit.xml
+          build/coverage.xml
+
+    - name: Conditional Release
+      uses: marvinpinto/action-automatic-releases@latest
+      if: (github.event.pull_request.merged == true && github.base_ref == 'main')
+      with:
+        repo_token: "${{ secrets.GITHUB_TOKEN }}"
+        automatic_release_tag: "${{ env.MRMAT_VERSION }}"
+        prerelease: false
+        title: "Release ${{ env.MRMAT_VERSION }}"
