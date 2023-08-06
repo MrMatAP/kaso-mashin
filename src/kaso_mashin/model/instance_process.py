@@ -22,11 +22,16 @@ class InstanceProcess:
                                               '-device virtio-rng-pci '
                                               '-device nec-usb-xhci,id=usb-bus '
                                               '-device usb-kbd,bus=usb-bus.0 '
-                                              '-drive if=virtio,file=/Users/imfeldma/var/kaso/instances/host/os.qcow2,format=qcow2,cache=writethrough '
-                                              '-smbios type=3,manufacturer=MrMat,version=0,serial=instance_1,asset=host,sku=MrMat '
-                                              '-nic vmnet-shared,start-address=172.16.4.100,end-address=172.16.4.254,subnet-mask=255.255.255.0,mac=00:50:56:00:00:01 '
-                                              '-drive if=virtio,file=/Users/imfeldma/var/kaso/instances/host/ci.img,format=raw '
-                                              '-qmp unix:/Users/imfeldma/var/kaso/instances/host/host.sock,server=on,wait=off'),
+                                              '-drive if=virtio,file=/Users/imfeldma/var/kaso/instances/host/os.qcow2,'
+                                              'format=qcow2,cache=writethrough '
+                                              '-smbios type=3,manufacturer=MrMat,version=0,serial=instance_1,'
+                                              'asset=host,sku=MrMat '
+                                              '-nic vmnet-shared,start-address=172.16.4.100,end-address=172.16.4.254,'
+                                              'subnet-mask=255.255.255.0,mac=00:50:56:00:00:01 '
+                                              '-drive if=virtio,file=/Users/imfeldma/var/kaso/instances/host/'
+                                              'ci.img,format=raw '
+                                              '-qmp unix:/Users/imfeldma/var/kaso/instances/host/host.sock,'
+                                              'server=on,wait=off'),
                                   stdin=None,
                                   stdout=subprocess.PIPE,
                                   stderr=subprocess.PIPE,

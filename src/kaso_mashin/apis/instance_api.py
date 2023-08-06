@@ -27,7 +27,8 @@ class InstanceAPI(AbstractAPI):
                                    description='List all known instances. You can optionally filter the list by the'
                                                '"name" query parameter. If you do filter using the "name" query '
                                                'parameter then the corresponding single instance is returned.',
-                                   response_description='A list of instance, or a single instance when filtered by name',
+                                   response_description='A list of instance, or a single instance when filtered by '
+                                                        'name',
                                    status_code=200,
                                    responses={200: {'model': typing.Union[typing.List[InstanceSchema], InstanceSchema]}
                                    })

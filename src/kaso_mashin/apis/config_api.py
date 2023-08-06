@@ -25,4 +25,5 @@ class ConfigAPI(AbstractAPI):
 
     async def get_config(self):
         return ConfigSchema(version=__version__,
-                            predefined_images=[ImagePredefinedSchema(name=k, url=v) for k,v in Predefined_Images.items()])
+                            predefined_images=[
+                                ImagePredefinedSchema(name=k, url=v) for k, v in Predefined_Images.items()])

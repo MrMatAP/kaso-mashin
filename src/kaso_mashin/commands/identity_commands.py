@@ -112,7 +112,7 @@ class IdentityCommands(AbstractCommands):
                                             help='The identity id to remove')
         identity_remove_parser.set_defaults(cmd=self.remove)
 
-    def list(self, args: argparse.Namespace) -> int:
+    def list(self, args: argparse.Namespace) -> int:    # pylint: disable=unused-argument
         resp = self.api_client(uri='/api/identities/', expected_status=[200])
         if not resp:
             return 1

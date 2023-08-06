@@ -35,7 +35,8 @@ class ImageCreateSchema(pydantic.BaseModel):
                                examples=['jammy'])
     url: str = pydantic.Field(description='The source URL from where to download the image from. This may be over HTTP '
                                           'or from a file URL.',
-                              examples=['https://cloud-images.ubuntu.com/jammy/current/jammy-server-cloudimg-arm64.img'])
+                              examples=[
+                                  'https://cloud-images.ubuntu.com/jammy/current/jammy-server-cloudimg-arm64.img'])
     min_cpu: int = pydantic.Field(description='Minimum number of vCPUs',
                                   default=0,
                                   examples=[2])

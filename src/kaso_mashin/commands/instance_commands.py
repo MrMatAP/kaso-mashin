@@ -178,7 +178,7 @@ class InstanceCommands(AbstractCommands):
                 time.sleep(2)
         return 0
 
-    def modify(self, args: argparse.Namespace) -> int:
+    def modify(self, args: argparse.Namespace) -> int:      # pylint: disable=unused-argument
         console.print('[yellow]Not yet implemented')
         return 1
 

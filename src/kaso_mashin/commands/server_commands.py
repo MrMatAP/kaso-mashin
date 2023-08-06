@@ -44,6 +44,7 @@ class ServerCommands(AbstractCommands):
         app.include_router(InstanceAPI(self._runtime).router, prefix='/api/instances')
 
         @app.exception_handler(KasoMashinException)
+        # pylint: disable=unused-argument
         async def kaso_mashin_exception_handler(request: fastapi.Request, exc: KasoMashinException):
             return fastapi.responses.JSONResponse(
                 status_code=exc.status,
