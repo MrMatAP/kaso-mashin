@@ -1,13 +1,10 @@
-# kaso-mashin
+# Kaso Mashin
 
-A tool to manage virtual machines on an ARM-based Mac.
+A tool to manage virtual machines on an ARM-based Mac. Kaso Mashin is 'Virtual Machine' in Japanese.
 
->*SECURITY*: We use [cloud-init](https://cloudinit.readthedocs.io/en/latest/index.html) to perform initial
-> postconfiguration of the instances The default configuration will create two users, 'ansible' using an SSH 
-> authorized key and 'cloudadmin' with an admin password you specify during the initial creation of the cloud
-> playground. The 'cloudadmin' password is currently stored as clear-text in the cloud-init configuration and 
-> in the cloud database. VMs are consequently not meant for production or in any situation where they directly
-> expose themselves towards an untrusted environment.
+>*SECURITY*: This is not something that you should be running in an open environment at this stage. The current
+> implementation implements an *unauthenticated* API on localhost. If you choose to create a password-based identity
+> then that password is stored in unencrypted form within the local database.
 
 ## Background
 
@@ -27,26 +24,49 @@ This is what this playground is about.
 
 ## Features
 
-* We use [qemu](https://www.qemu.org/) for virtualisation. qemu can emulate a great many architectures, but by default we virtualise native aarch64.
-* We use [qcow](https://en.wikipedia.org/wiki/Qcow) for OS images. This has the benefit of minimising the storage footprint of VM instances because we download a cloud-image in qcow2 once to be shared by all of our instances. Only the instance-specific differences are then written to the instance-specific OS image (copy-on-write).
-* We use [cloud-init](https://cloudinit.readthedocs.io/en/latest/index.html#) for initial post-configuration of the instance, just like in a real cloud
-* We use [Ansible](https://docs.ansible.com/) for further post-configuration. By default we only minimally post-configure, but we expect further customisation of the 1..n VM's you create is likely going to happen via Ansible. So everything is ready for you to do this with minimal effort.
+Kaso Mashin uses
 
-## Prerequisites
+* [qemu](https://www.qemu.org/) for virtualisation. qemu can emulate a great many architectures, but by default we virtualise native aarch64.
+* [qcow](https://en.wikipedia.org/wiki/Qcow) for OS images. This has the benefit of minimising the storage footprint of VM instances because we download a cloud-image in qcow2 once to be shared by all of our instances. Only the instance-specific differences are then written to the instance-specific OS image (copy-on-write).
+* [cloud-init](https://cloudinit.readthedocs.io/en/latest/index.html#) for initial post-configuration of the instance, just like in a real cloud
 
-### Networking
+## Networking
 
-Apple permits us to create VLANs and Bridges using System Settings -> Network. The bridges you can create there are of 
-no use since qemu or libvirtd do not recognise them and vmnet does not simply permit these client tools to create 
-virtual interfaces on them. It is possible to run qemu VM's with an entirely user-space network stack, thereby making
-these VM's unprivileged. But the downside of doing this is that you must forward individual ports to a specific machine,
-it's not a 'real network'. See the Hacking appendix for an example.
+Apple permits us to host VMs on the usual three kinds of networks:
 
-To model some more real-world scenarios and have more flexibility in what you expose from these VM's, I recommend
-you create a dedicated VLAN. That VLAN should currently be routed to the Internet so your router must be aware of
-it. There can be DHCP on that VLAN, but this is not strictly required.
+* Host-only  
+  Communication is limited exclusively between the host and the VM. The VM will not be able to communicate with the Internet.
+* Shared  
+  Communication is limited between the host and the VM but the outbound communication with the Internet is permitted.
+* Bridged with the main interface  
+  This allows full network communication both in- and outbound.
 
-### Software 
+Your typical choice will be the Shared network. If you wish to bridge the VM to the main network then first be aware
+of the security implications involved with that when you're on the go. You also need to be aware that you cannot create
+the bridge yourself, Apples vmnet framework insists on doing that for you.
+
+vmnet also insists of the qemu process starting the process to run as root. It would technically be possible for that
+not to be a requirement but this requires a special entitlement from Apple that is generally incompatible with open
+source software. It is therefore our intention to make this less cumbersome by only having the server component of kaso
+mashin run as root while you drive it via the API (typically using the CLI or a future local web UI).
+
+Kaso Mashin precreates three networks, attempting to figure out the situation on your machine (see late_init() in
+`src/kaso_mashin/runtime.py`). The host-only and shared networks require setting a DHCP range, which vmnet doesn't
+let you turn off, although you can tell Kaso Mashin that your VM ought to have a static IP address. That static IP
+address is then set on the VM via the bootstrap process (cloud-init). The networks and DHCP ranges are configurable.
+
+### Images
+
+Kaso Mashin is based on cloud images just like in a real cloud. There are a number of predefined images that it will
+just download for you using the `kaso image create` command when using the '--predefined' option but you can also 
+browse for them yourself.
+
+We use images in qcow format (copy-on-write). This has the benefit of saving a ton of disk space since every VM will
+just store its differences to the master image held in `~/var/kaso/images`. The downside of that is that you have to
+be careful not to mess with the downloaded images otherwise all VMs that depend on them will break. Kaso Mashin doesn't
+currently check which VMs depend on a given image (it easily could, but we're not there yet) so be careful.
+
+## How to install this
 
 Install [Homebrew](https://brew.sh/) and qemu:
 
@@ -55,140 +75,337 @@ $ /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/
 $ brew install qemu
 ```
 
-Clone this repository and install the Python package:
+Clone this repository and install the Python package. At this stage you will likely want to install this in a virtual
+environment. You can also install the Python package into your home directory directly (`pip install --user`) to
+avoid having to remember activating the virtual environment before executing `kaso`.
 
 ```shell
-python -m build -n --wheel
-pip install --user ./dist/*.whl
+# Create and activate a virtual environment (optional, but recommended)
+$ python -m virtualenv /path/to/virtualenv/kaso-mashin
+$ . /path/to/virtualenv/kaso-mashin/bin/activate
+
+# Build and install Kaso Mashin
+$ pip install -U /path/to/cloned/sources/dev-requirements.txt
+$ python -m build -n --wheel
+$ pip install ./dist/*.whl
+
+# Validate whether it worked
+$ kaso -h
 ```
+
+### How to update this
+
+At this point Kaso Mashin is updated from its sources in git. It will be published in the regular Python Packaging Index
+by the time it reached a bit more maturity.
+
+```shell
+# Navigate to your clone of the Kaso Mashin sources and update
+$ git pull
+
+# Activate the virtual environment in which it is currently installed
+$ . /path/to/virtualenv/kaso-mashin/bin/activate
+
+# Install and update dependencies, then build and install
+$ pip install -U /path/to/cloned/sources/dev-requirements.txt
+$ python -m build -n --wheel
+$ pip install ./dist/*.whl
+
+# Validate whether it worked
+$ kaso -h
+```
+
+## Configuration
+
+Kaso Mashin is configurable using a configuration file located in `~/.kaso` (`kaso -h` will tell you where exactly your
+local installation expects its configuration file in the description of the -c|--config option). That option will also
+permit you to run with a different configuration file.
+
+| Configuration                      | Default       | Description                                                                                          |
+|------------------------------------|---------------|------------------------------------------------------------------------------------------------------|
+| path                               | ~/var/kaso    | Root path for all images, instances and the sqlite database holding it all together                  |
+| default_os_disk_size               | 5G            | The default OS disk size.                                                                            |
+| default_phone_home_port            | 10200         | Local port to listen on for instances to phone home. This will be opened on host and shared networks |
+| default_server_host                | 127.0.0.1     | IP address on which the Kaso Mashin server will listen on                                            |
+| default_server_port                | 8000          | Port on which the Kaso Mashin server will listen on                                                  |
+| default_host_network_dhcp4_start   | 172.16.4.10   | First IP address to hand out for the host-only network                                               |
+| default_host_network_dhcp4_end     | 172.16.4.254  | Last IP address to hand out for the host-only network                                                |
+| default_host_network_cidr          | 172.16.4.0/24 | Host-only network in CIDR notation                                                                   |
+| default_shared_network_dhcp4_start | 172.16.5.10   | First IP address to hand out for the shared network                                                  |
+| default_shared_network_dhcp4_end   | 172.16.5.254  | Last IP address to hand out for the shared network                                                   |
+| default_shared_network_cidr        | 172.16.5.0/24 | Shared network in CIDR notation                                                                      |
 
 ## How to use this
 
-Create a cloud playground (one time. Well, multiple times if you want to have multiple directories using -p)
+### Start the server
+
+Kaso Mashin comes with a single command but both a server and client flavour. **The server must be started
+as root** because that is the only way Apples vmnet framework allows us to create networking for our VMs. All 
+other commands should be run unprivileged, in a separate terminal.
 
 ```shell
-$ kaso \
-  -p /Users/login/var/kaso \   # path to the cloud's home directory. You may wish to exclude this from backup
-  cloud create \
-  -n kaso \                       # Arbitrary name
-  --admin-password verysecret \               # Password for the 'cloudadmin' console user
-  --ssh-public-key /Users/login/.ssh/id_rsa.pub \   # Path to a public key
-  --host-if vlan1 \                           # Name of the interface you wish to run your instances on
-  --host-ip4 172.16.3.10 \                    # Host IP address
-  --host-nm4 255.255.255.0 \                  # Host netmask
-  --host-gw4 172.16.3.1 \                     # Host Gateway
-  --host-ns4 172.16.3.1                       # Host nameserver
+$ sudo kaso server
+Effective user root
+Owning user: imfeldma
+INFO:     Started server process [41585]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://127.0.0.1:8000 (Press CTRL+C to quit)
 ```
 
-Download an image, see 'image download -h' for the available images:
+### Create an identity
+
+You will require at least one identity so you can log in to your VMs. The identity can be either an SSH-key based
+identity or a password-based identity. 
 
 ```shell
-$ kaso \
-  -p /Users/login/var/kaso \   # path to the cloud's home directory. ~/var/kaso is the default
-  image download \
-  -n ubuntu-jammy                          # Name of the cloud image to download
+# Show currently known identities. This will be empty for a fresh installation.
+$ kaso identity list
+╭────┬──────┬──────╮
+│ ID │ Kind │ Name │
+├────┼──────┼──────┤
+╰────┴──────┴──────╯
+
+# Show the syntax for creating an identity
+$ kaso identity create -h
+usage: kaso identity create [-h] -n NAME [-k {pubkey,password}] (--public-key PUBKEY | --password PASSWD)
+                            [--gecos GECOS] [--homedir HOMEDIR] [--shell SHELL]
+
+options:
+  -h, --help            show this help message and exit
+  -n NAME, --name NAME  The identity name
+  -k {pubkey,password}, --kind {pubkey,password}
+                        The identity kind
+  --public-key PUBKEY   Path to the SSH public key for public key-type credentials
+  --password PASSWD     A password for password-type credentials
+  --gecos GECOS         An optional account GECOS to override the default
+  --homedir HOMEDIR     An optional home directory to override the default
+  --shell SHELL         An optional shell to override the default
+  
+# Create an identity with a SSH key
+$ kaso identity create -n mrmat -k pubkey --public-key /Users/mrmat/.ssh/id_rsa.pub
+Created identity with id 1
+
+# Validate
+$ kaso identity list
+╭────┬───────┬─────────────────────╮
+│ ID │ Kind  │ Name                │
+├────┼───────┼─────────────────────┤
+│ 1  │ mrmat │ IdentityKind.PUBKEY │
+╰────┴───────┴─────────────────────╯
 ```
 
-Create an instance:
+There are still a lot of rough edges with Kaso Mashin at this time and that includes the bootstrapping mechanisms. You 
+will likely want to create a password-based identity as a fallback to test problems. **Note that this identity will
+have its unencrypted (!) password stored in the sqlite database** held in the Kaso Mashin directory 
+(by default at `~/var/kaso/kaso.sqlite3). Do not use your real password and do not expose the VMs at this time.
 
 ```shell
-$ kaso \
-  instance create \
-  -n test \                                 # Name of the instance
-  --ip 172.16.3.5                           # Static IP address of the instance
+$ kaso identity create -n debug -k password --password somethingsecret 
+Created identity with id 2
 ```
 
-Open a separate terminal and start the instance. You must do this with elevated privileges (see Limitations & Improvements):
+### Download an image
+
+You will need at least one cloud image for the base OS of your VM. You can upload your own images or download some
+of the predefined ones.
+
+> The downloaded images will be held in `~/var/kaso/images` by default. Be sure not to mess with them at all. If you
+> modify or move them in any way then the VMs based on the images will break.
 
 ```shell
-$ sudo INSTANCEDIR/vm.sh
-.... boots in the same terminal
+# Show currently known images. This will be empty for a fresh installation.
+$ kaso image list
+╭────┬──────┬──────╮
+│ ID │ Name │ Path │
+├────┼──────┼──────┤
+╰────┴──────┴──────╯
+
+# Show the syntax for creating an image
+$ kaso image create -h
+usage: kaso image create [-h] -n NAME
+                         (--url URL | --predefined {ubuntu-bionic,ubuntu-focal,ubuntu-jammy,ubuntu-kinetic,ubuntu-lunar,ubuntu-mantic,freebsd-14})
+                         [--min-cpu MIN_CPU] [--min-ram MIN_RAM] [--min-space MIN_SPACE]
+
+options:
+  -h, --help            show this help message and exit
+  -n NAME, --name NAME  The image name
+  --url URL             Provide the URL to the cloud image
+  --predefined {ubuntu-bionic,ubuntu-focal,ubuntu-jammy,ubuntu-kinetic,ubuntu-lunar,ubuntu-mantic,freebsd-14}
+                        Pick a predefined image
+  --min-cpu MIN_CPU     An optional number of minimum vCPUs for this image
+  --min-ram MIN_RAM     An optional number of minimum RAM (in MB) for this image
+  --min-space MIN_SPACE
+                        An optional number of minimum disk space (in MB) for this image
+                        
+# Download Ubuntu Jammy
+$ kaso image create -n jammy --predefined ubuntu-jammy
+Download image jammy... ━━━━━━━╺━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━  18% 0:01:13
+
+# Validate
+$ kaso image get --id 1
+╭─────────────────────────┬─────────────────────────────────────────────╮
+│ Field                   │ Value                                       │
+├─────────────────────────┼─────────────────────────────────────────────┤
+│ Id                      │ 1                                           │
+│ Name                    │ jammy                                       │
+│ Path                    │ /Users/mrmat/var/kaso/images/jammy.qcow2    │
+│ Minimum vCPUs           │ 0                                           │
+│ Minimum RAM (MB)        │ 0                                           │
+│ Minimum Disk Space (MB) │ 0                                           │
+╰─────────────────────────┴─────────────────────────────────────────────╯
 ```
 
-The instance will now postconfigure itself, once it's done with its cloud initialisation it will phone home to the small
-webserver kasho-mashin has spun up. This will then execute a bit of Ansible to further postconfigure the instance.
-To shut down the instance, you can just close the separate window which will kill the qemu process. A more graceful way
-to do that without logging in is to hit `Ctrl-A C`, which will get you to [qemu's monitor interface](https://qemu-project.gitlab.io/qemu/system/monitor.html).
-Type 'quit' to shut things down.
+### Verify networks
 
-It is obviously more graceful to log in using the 'cloudadmin' user and then `shutdown -h now`. The password for the
-cloudadmin user is the same you provided when you created the cloud. If you forgot what that was, look at the cloud
-table in `cloud.sqlite3`. You can also log in as 'ansible' using the SSH key you provided:
+Kaso Mashin predefines the three kinds of networks Apples vmnet provides you and updates the information of the bridged
+network based on what your host is currently running on. It is worthwhile to doublecheck that information before you
+create a VM.
 
 ```shell
-$ eval $(ssh-agent)
-$ ssh-add
-... type your passphrase
-$ cd INSTANCEDIR
-$ ansible-playbook -i inventory.yaml deploy.yaml
+# List the known networks
+$ kaso network list
+╭────┬─────────────────────────┬─────────╮
+│ ID │ Kind                    │ Name    │
+├────┼─────────────────────────┼─────────┤
+│ 1  │ default_bridged_network │ bridged │
+│ 2  │ default_host_network    │ host    │
+│ 3  │ default_shared_network  │ shared  │
+╰────┴─────────────────────────┴─────────╯
+
+# Get details of the bridged network
+$ kaso network get --id 1
+╭─────────────────┬─────────────────────────╮
+│ Field           │ Value                   │
+├─────────────────┼─────────────────────────┤
+│ Id              │ 1                       │
+│ Name            │ default_bridged_network │
+│ Kind            │ bridged                 │
+│ Host interface  │ en0                     │
+│ Host IPv4       │ 192.168.0.183           │
+│ Gateway4        │ 192.168.0.1             │
+│ Nameserver4     │ 192.168.0.1             │
+│ DHCPv4 Start    │ None                    │
+│ DHCPv4 End      │ None                    │
+│ Phone home port │ 10200                   │
+╰─────────────────┴─────────────────────────╯
 ```
 
-`deploy.yaml`, `inventory.yaml` and `ansible.cfg` are generated for you by kaso-mashin. These are executed once
-the VM has phoned home. They are deliberately light because you might not want to do Ansible, but set things up 
-appropriately when you do. The actual IP address of the VM is placed in `inventory.yaml`, so it does not stricly
-need to be known by DNS, although a future improvement would definitely be to update a DNS server with it. `ansible.cfg`
-is configured to turn off strict host key checking. A future improvement would definitely be to record the host key
-and update your known hosts with it (the host key comes along when the VM phones home). To customise the Ansible, simply 
-hack on the files that were generated. You can create a roles directory in INSTANCEDIR and treat the same directory 
-as your Ansible root. 
+### Create an instance
 
-At this point, you do no longer need the `kaso-mashin` script for that instance. From here on, you can just boot
-it up by running `INSTANCEDIR/vm.sh`.
+You need to know the image id, network id and at least one identity id to create an instance.
+
+```shell
+# List instances
+$ kaso instance list
+╭────┬──────┬──────┬──────────┬────────────╮
+│ ID │ Name │ Path │ Image ID │ Network ID │
+├────┼──────┼──────┼──────────┼────────────┤
+╰────┴──────┴──────┴──────────┴────────────╯
+
+# Show the syntax for creating an instance
+$ kaso instance create -h
+usage: kaso instance create [-h] -n NAME [--vcpu VCPU] [--ram RAM] --network-id NETWORK_ID
+                            --image-id IMAGE_ID [--identity-id IDENTITY_ID]
+                            [--static-ip4 STATIC_IP4] [-b {ci,ci-disk,ignition,none}]
+                            [-s OS_DISK_SIZE]
+
+options:
+  -h, --help            show this help message and exit
+  -n NAME, --name NAME  The instance name
+  --vcpu VCPU           Number of vCPUs to assign to this instance
+  --ram RAM             Amount of RAM in MB to assign to this instance
+  --network-id NETWORK_ID
+                        The network id on which this instance should be attached
+  --image-id IMAGE_ID   The image id containing the OS of this instance
+  --identity-id IDENTITY_ID
+                        The identity id permitted to log in to this instance
+  --static-ip4 STATIC_IP4
+                        An optional static IP address
+  -b {ci,ci-disk,ignition,none}, --bootstrapper {ci,ci-disk,ignition,none}
+                        The bootstrapper to use for this instance
+  -s OS_DISK_SIZE, --size OS_DISK_SIZE
+                        OS disk size, defaults to 5G
+
+# Create an instance (note that you may provide --identity-id multiple times
+$ kaso instance create -n test --vcpu 2 --ram 2048 --network-id 3 --identity-id 1 --identity 2 --image-id 1 -b ci-disk
+Creating instance test... ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 100% 0:00:00
+
+# Validate
+$ kaso instance get --id 1
+╭──────────────┬────────────────────────────────────────────────────╮
+│ Field        │ Value                                              │
+├──────────────┼────────────────────────────────────────────────────┤
+│ Id           │ 1                                                  │
+│ Name         │ test                                               │
+│ Path         │ /Users/mrmat/var/kaso/instances/test               │
+│ Image ID     │ 1                                                  │
+│ OS Disk Path │ /Users/mrmat/var/kaso/instances/test/os.qcow2      │
+│ CI Base Path │ /Users/mrmat/var/kaso/instances/test/cloud-init    │
+│ CI Disk path │ /Users/mrmat/var/kaso/instances/test/ci.img        │
+│ Network ID   │ 3                                                  │
+╰──────────────┴────────────────────────────────────────────────────╯
+```
+
+### Start an instance
+
+There should be the expected `kaso instance start --id 1` at this point, but we're not yet there. What was created for
+you though is a shell script that will start the instance. You will see the instance booting in the same terminal you
+start the shell script. Its serial console is redirected towards that. If you created a password-based user and added
+its identity to the VM then you can log in to the VM right away, otherwise open another terminal and log in with the
+user whose SSH key you specified.
+
+```shell
+$ sudo ~/var/kaso/instances/test/vm.sh
+... boot output
+```
+
+> To stop the instance without logging in and shutting it down, hit <Ctrl-A C> and type 'quit' on the (qemu) prompt.
+> **Note that hitting <Ctrl-C> anywhere within the console will also shut down the VM.** We'll have other display options soon.
+
+It can be difficult to know what IP address was given to the VM you just started and this is one of the reasons why
+we want the VMs to phone home so we can tell you. In the meantime, know that the provided DHCP range on the host-only
+and shared networks will hand out IP addresses from the beginning IP. You find the DHCP ranges by running
+`kaso network get --id <id>`.
+
+## Reference: OpenAPI
+
+Start `kaso server`, then use your preferred web browser to navigate to its [OpenAPI docs](http://localhost:8000/docs)
 
 ## Limitations & Improvements
 
-* *SECURITY*: Creating a cloud-playground involves setting some `--admin-password` for the 'cloudadmin' user. That password is relayed via cloud-init in plain-text. There should be an option for this not to happen, and if it does it should be sha512 hashed.
 * *SECURITY*: VMs need to invoke Apples vmnet framework to create interfaces on a given bridge. qemu offers privileged helpers on other platforms (i.e. Linux) but does not do so on MacOS. You must therefore start VM's as root, making them execute in privileged context.
 * libvirtd has been ported onto MacOS and it could drive VMs in a similar fashion as this solution. It could also deal with (live) migration between more than one Mac, which would be supremely interesting. However, libvirtd continues to attempt creating its own bridge despite configuring a pre-existing bridge for qemu and is therefore not quite ready.
-* Apple permits us to create VLANs and Bridges using System Settings -> Network. The bridges you can create there are of no use since qemu or libvirtd do not recognise them and vmnet does not simply permit these client tools to create virtual interfaces on them.
-* kaso-mashin currently configures VMs to have a static IP address, because we'll want to use it for creating k8s clusters eventually. This is truly not required though and we already have the mechanism to pick up what the IP address obtained via DHCP actually was, then write into some DNS server configuration.
-* kaso-mashin will currently listen on hardcoded port 10300 for VMs to phone home. 
-* *SECURITY*: ansible.cfg explicitly turns off strict host key checking
 
 ## Hacking
 
-### Running VM's with user-space networking
+### Tweaking the shell script
+
+It is ultimately the `kaso server` that should start and stop VMs and that is also the reason why it needs to run as root.
+In the meantime you are encouraged to tweak the shell script that was created for your VM.
 
 ```shell
 #!/bin/bash
+# This script can be used to manually start the instance it is located in
 
-rootdir=$(dirname $0)/..
-name=cloudboot
-
-if [ ! -f $rootdir/disks/$name.qcow2 ]; then
-  cp $rootdir/var/isos/jammy-server-cloudimg-arm64.qcow2 $rootdir/disks/$name.qcow2
-fi
-
-qemu-system-aarch64 \
-  -name $name \
-  -monitor stdio \
+/opt/homebrew/bin/qemu-system-aarch64 \
+  -machine test \
   -machine virt \
-  -cpu host -accel hvf \
-  -smp 2 -m 4096 \
+  -cpu host \
+  -accel hvf \
+  -smp 2 \
+  -m 2048 \
   -bios /opt/homebrew/share/qemu/edk2-aarch64-code.fd \
-  -display default,show-cursor=on \
-  -netdev user,id=net.0,hostname=$name,domainname=covenant.mrmat.org,hostfwd=tcp:127.0.0.1:10022-:22 \
-  -device virtio-gpu-pci \
+  -chardev stdio,mux=on,id=char0 \
+  -mon chardev=char0,mode=readline \
+  -serial chardev:char0 \
+  -nographic \
   -device virtio-rng-pci \
   -device nec-usb-xhci,id=usb-bus \
   -device usb-kbd,bus=usb-bus.0 \
-  -device virtio-net-pci,netdev=net.0 \
-  -drive if=virtio,file=$rootdir/disks/$name.qcow2,format=qcow2,cache=writethrough \
-  -smbios type=3,manufacturer=MrMat,version=0,serial=${name}0,asset=${name}0,sku=cloudboot \
-  -smbios type=1,serial=ds='nocloud-net;s=http://10.0.2.2:8000/__dmi.chassis-asset-tag__'
-```
-
-This script will create a VM with a network device in user-space with id 'net.0' and forward all SSH traffic
-from 127.0.0.1:10022 to port 22 of that VM. The hostname and domainname options configure the implicit DHCP
-server running on that user-space network. The network is 10.0.2.0/24 by default, with the host listening on
-10.0.2.2. The last line of the script tells the VM to obtain its cloud-init configuration from a webserver
-listening on the host address on port 8000.
-
-```
-  ...
-  -netdev user,id=net.0,hostname=$name,domainname=covenant.mrmat.org,hostfwd=tcp:127.0.0.1:10022-:22 \
-  -device virtio-net-pci,netdev=net.0 \
-  ...
+  -drive if=virtio,file=/Users/mrmat/var/kaso/instances/test/os.qcow2,format=qcow2,cache=writethrough \
+  -smbios type=3,manufacturer=MrMat,version=0,serial=instance_1,asset=test,sku=MrMat \
+  -nic vmnet-shared,start-address=172.16.5.10,end-address=172.16.5.254,subnet-mask=255.255.255.0,mac=00:50:56:00:00:01 \
+  -drive if=virtio,file=/Users/mrmat/var/kaso/instances/test/ci.img,format=raw
 ```
 
 ### Playing with cloud-init
@@ -271,4 +488,3 @@ sst25vf032b options:
 ```
 
 To add a piece of emulated or virtualised hardware to your VM, simply add it to `INSTANCEDIR/vm.sh`.
-

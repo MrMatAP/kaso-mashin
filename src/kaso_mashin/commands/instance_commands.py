@@ -1,94 +1,190 @@
-import shutil
 import argparse
-import configparser
-import typing
-from http.server import HTTPServer, BaseHTTPRequestHandler
+import time
+
+import rich.table
+import rich.box
+import rich.columns
+import rich.progress
 
 from kaso_mashin import console
-from kaso_mashin.model import Cloud, Instance, CIMetadata, CINetworkConfig, CIUserData, CIVendorData
+from kaso_mashin.commands import AbstractCommands
+from kaso_mashin.model import (
+    TaskSchema, TaskState,
+    InstanceSchema, InstanceCreateSchema,
+    BootstrapKind)
 
 
-class PhoneHomeServer(HTTPServer):
+class InstanceCommands(AbstractCommands):
     """
-    A small server waiting for an instance to call home. We override this to pass it a function to be called
-    with the actual IP address the instance has. We can't do this in the handler because it is statically
-    referred to by the PhoneHomeServer
-    """
-
-    def __init__(self,
-                 server_address: tuple[str, int],
-                 RequestHandlerClass: typing.Callable,
-                 callback: typing.Callable,
-                 bind_and_activate: bool = ...) -> None:
-        super().__init__(server_address, RequestHandlerClass, bind_and_activate)
-        self._callback = callback
-
-    @property
-    def callback(self):
-        return self._callback
-
-
-class PhoneHomeHandler(BaseHTTPRequestHandler):
-    """
-    A handler for instances calling their mum
+    Implementation of instance command group
     """
 
-    # It is actually required to be called do_POST, despite pylint complaining about it
-    def do_POST(self):              # pylint: disable=invalid-name
-        self.server.callback(self.client_address[0])
-        self.send_response(code=200, message='Well, hello there!')
-        self.end_headers()
+    def register_commands(self, parser: argparse.ArgumentParser):
+        instance_subparser = parser.add_subparsers()
+        instance_list_parser = instance_subparser.add_parser(name='list', help='List instances')
+        instance_list_parser.set_defaults(cmd=self.list)
+        instance_get_parser = instance_subparser.add_parser(name='get', help='Get an instance')
+        instance_get_id_or_name = instance_get_parser.add_mutually_exclusive_group(required=True)
+        instance_get_id_or_name.add_argument('--id',
+                                             dest='instance_id',
+                                             type=int,
+                                             help='The instance id')
+        instance_get_id_or_name.add_argument('--name',
+                                             dest='name',
+                                             type=str,
+                                             help='The instance name')
+        instance_get_parser.set_defaults(cmd=self.get)
+        instance_create_parser = instance_subparser.add_parser(name='create', help='Create an instance')
+        instance_create_parser.add_argument('-n', '--name',
+                                            dest='name',
+                                            type=str,
+                                            required=True,
+                                            help='The instance name')
+        instance_create_parser.add_argument('--vcpu',
+                                            dest='vcpu',
+                                            type=int,
+                                            required=False,
+                                            default=2,
+                                            help='Number of vCPUs to assign to this instance')
+        instance_create_parser.add_argument('--ram',
+                                            dest='ram',
+                                            type=int,
+                                            required=False,
+                                            default=2048,
+                                            help='Amount of RAM in MB to assign to this instance')
+        instance_create_parser.add_argument('--network-id',
+                                            dest='network_id',
+                                            type=int,
+                                            required=True,
+                                            help='The network id on which this instance should be attached')
+        instance_create_parser.add_argument('--image-id',
+                                            dest='image_id',
+                                            type=int,
+                                            required=True,
+                                            help='The image id containing the OS of this instance')
+        instance_create_parser.add_argument('--identity-id',
+                                            dest='identity_id',
+                                            type=int,
+                                            required=False,
+                                            default=[],
+                                            action='append',
+                                            help='The identity id permitted to log in to this instance')
+        instance_create_parser.add_argument('--static-ip4',
+                                            dest='static_ip4',
+                                            type=str,
+                                            required=False,
+                                            help='An optional static IP address')
+        instance_create_parser.add_argument('-b', '--bootstrapper',
+                                            dest='bootstrapper',
+                                            type=str,
+                                            choices=[k.value for k in list(BootstrapKind)],
+                                            required=False,
+                                            default=BootstrapKind.CI,
+                                            help='The bootstrapper to use for this instance')
+        instance_create_parser.add_argument('-s', '--size',
+                                            dest='os_disk_size',
+                                            type=str,
+                                            required=False,
+                                            default='5G',
+                                            help='OS disk size, defaults to 5G')
+        instance_create_parser.set_defaults(cmd=self.create)
+        instance_modify_parser = instance_subparser.add_parser(name='modify', help='Modify an instance')
+        instance_modify_parser.add_argument('--id',
+                                            dest='instance_id',
+                                            type=int,
+                                            help='The instance id')
+        instance_modify_parser.set_defaults(cmd=self.modify)
+        instance_remove_parser = instance_subparser.add_parser(name='remove', help='Remove an instance')
+        instance_remove_parser.add_argument('--id',
+                                            dest='instance_id',
+                                            type=int,
+                                            required=True,
+                                            help='The instance id')
+        instance_remove_parser.set_defaults(cmd=self.remove)
 
-
-class InstanceCommands:
-    """
-    Implementation of instance commands
-    """
-
-    @staticmethod
-    def create(args: argparse.Namespace, config: configparser.ConfigParser) -> int:
-        with console.status(f'[magenta] Creating instance {args.name}') as status:
-            cloud = Cloud(path=args.path)
-            cloud.load()
-
-            instance = Instance(path=cloud.instances_path.joinpath(args.name),
-                                name=args.name)
-            instance.backing_disk_path = cloud.images_path.joinpath(f'{args.os}.qcow2')
-            instance.os_disk_size = args.os_disk_size or config['DEFAULT']['default_os_disk_size']
-            instance.public_key = cloud.public_key
-
-            (instance.instance_id, instance.mac) = cloud.register_instance(path=instance.path, name=args.name)
-            instance.metadata = CIMetadata(instance.instance_id, args.name)
-            instance.userdata = CIUserData(phone_home_url=f'http://{cloud.host_ip4}:{cloud.ph_port}/$INSTANCE_ID',
-                                           pubkey=cloud.public_key)
-            instance.userdata.admin_password = cloud.admin_password
-            instance.vendordata = CIVendorData()
-            instance.network_config = CINetworkConfig(mac=instance.mac,
-                                                      ipv4=args.ip,
-                                                      nm4=cloud.host_nm4,
-                                                      gw4=cloud.host_gw4,
-                                                      ns4=cloud.host_ns4)
-            instance.create()
-
-            status.update('Waiting for the instance to phone home')
-            httpd = PhoneHomeServer(server_address=(cloud.host_ip4, cloud.ph_port),
-                                    callback=instance.configure,
-                                    RequestHandlerClass=PhoneHomeHandler)
-            httpd.timeout = 120
-            httpd.handle_request()
+    def list(self, args: argparse.Namespace) -> int:  # pylint: disable=unused-argument
+        resp = self.api_client(uri='/api/instances/', expected_status=[200])
+        if not resp:
+            return 1
+        instances = [InstanceSchema.model_validate(instance) for instance in resp.json()]
+        table = rich.table.Table(box=rich.box.ROUNDED)
+        table.add_column('[blue]ID')
+        table.add_column('[blue]Name')
+        table.add_column('[blue]Path')
+        table.add_column('[blue]Image ID')
+        table.add_column('[blue]Network ID')
+        for instance in instances:
+            table.add_row(str(instance.instance_id),
+                          instance.name,
+                          str(instance.path),
+                          str(instance.image_id),
+                          str(instance.network_id))
+        console.print(table)
         return 0
 
-    @staticmethod
-    def remove(args: argparse.Namespace, config: configparser.ConfigParser) -> int:   # pylint: disable=unused-argument
-        with console.status(f'[magenta] Removing instance {args.name}') as status:
-            cloud = Cloud(path=args.path)
-            cloud.load()
-
-            instance_path = cloud.instances_path.joinpath(args.name)
-            if not instance_path.exists():
-                console.log(f'Instance at {instance_path} does not exist')
-                return 0
-            status.update(f'Removing instance at {instance_path}')
-            shutil.rmtree(instance_path)
-            console.log(f'Removed instance at {instance_path}')
+    def get(self, args: argparse.Namespace) -> int:
+        resp = self.api_client(uri=f'/api/instances/{args.instance_id}',
+                               expected_status=[200],
+                               fallback_msg=f'Instance with id {args.instance_id} could not be found')
+        if not resp:
+            return 1
+        instance = InstanceSchema.model_validate_json(resp.content)
+        table = rich.table.Table(box=rich.box.ROUNDED)
+        table.add_column('Field')
+        table.add_column('Value')
+        table.add_row('[blue]Id', str(instance.instance_id))
+        table.add_row('[blue]Name', instance.name)
+        table.add_row('[blue]Path', str(instance.path))
+        table.add_row('[blue]Image ID', str(instance.image_id))
+        table.add_row('[blue]OS Disk Path', str(instance.os_disk_path))
+        table.add_row('[blue]CI Base Path', str(instance.ci_base_path))
+        table.add_row('[blue]CI Disk path', str(instance.ci_disk_path))
+        table.add_row('[blue]Network ID', str(instance.network_id))
+        console.print(table)
         return 0
+
+    def create(self, args: argparse.Namespace) -> int:
+        create_schema = InstanceCreateSchema(name=args.name,
+                                             vcpu=args.vcpu,
+                                             ram=args.ram,
+                                             network_id=args.network_id,
+                                             image_id=args.image_id,
+                                             identities=args.identity_id,
+                                             bootstrapper=args.bootstrapper,
+                                             os_disk_size=args.os_disk_size or self.config.default_os_disk_size)
+        resp = self.api_client(uri='/api/instances/',
+                               method='POST',
+                               body=create_schema.model_dump(),
+                               expected_status=[201],
+                               fallback_msg='Failed to create instance')
+        if not resp:
+            return 1
+        task = TaskSchema.model_validate(resp.json())
+        with rich.progress.Progress() as progress:
+            create_task = progress.add_task(f'[green]Creating instance {args.name}...', total=100)
+            while not task.state == TaskState.DONE:
+                resp = self.api_client(uri=f'/api/tasks/{task.task_id}',
+                                       expected_status=[200],
+                                       fallback_msg=f'Failed to fetch status for task {task.task_id}')
+                if not resp:
+                    return 1
+                task = TaskSchema.model_validate(resp.json())
+                if task.state == TaskState.FAILED:
+                    progress.update(create_task, completed=100, refresh=True,
+                                    description=f'Failed: {task.msg}')
+                    return 1
+                else:
+                    progress.update(create_task, completed=task.percent_complete, refresh=True)
+                time.sleep(2)
+        return 0
+
+    def modify(self, args: argparse.Namespace) -> int:      # pylint: disable=unused-argument
+        console.print('[yellow]Not yet implemented')
+        return 1
+
+    def remove(self, args: argparse.Namespace) -> int:
+        resp = self.api_client(uri=f'/api/instances/{args.instance_id}',
+                               method='DELETE',
+                               expected_status=[204, 410],
+                               fallback_msg='Failed to remove instance')
+        return 0 if resp else 1
