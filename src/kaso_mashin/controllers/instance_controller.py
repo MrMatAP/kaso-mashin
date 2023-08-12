@@ -15,13 +15,13 @@ class InstanceController(AbstractController):
 
     def __init__(self, runtime: 'Runtime'):
         super().__init__(runtime)
-        self._instance_path = self.config.path.joinpath('instances')
-        self._instance_path.mkdir(parents=True, exist_ok=True)
-        shutil.chown(self._instance_path, user=self._runtime.owning_user)
+        self._instances_path = self.config.path.joinpath('instances')
+        self._instances_path.mkdir(parents=True, exist_ok=True)
+        shutil.chown(self._instances_path, user=self._runtime.owning_user)
 
     @property
-    def instance_path(self) -> pathlib.Path:
-        return self._instance_path
+    def instances_path(self) -> pathlib.Path:
+        return self._instances_path
 
     def list(self) -> typing.List[InstanceModel]:
         return list(self.db.session.scalars(sqlalchemy.select(InstanceModel)).all())
