@@ -33,7 +33,7 @@ dependencies = [
     "fastapi~=0.101.0",     # MIT
     "uvicorn~=0.23.2",      # BSD 3-Clause
     "httpx~=0.24.1",        # BSD 3-Clause
-    "aiofiles~=23.1.0",     # Apache 2.0
+    "aiofiles~=23.2.1",     # Apache 2.0
     "qemu.qmp~=0.0.3"       # ?
 ]
 dynamic = ["version"]
