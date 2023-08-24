@@ -11,7 +11,7 @@ from kaso_mashin.commands import AbstractCommands
 from kaso_mashin.model import (
     TaskSchema, TaskState,
     InstanceSchema, InstanceCreateSchema,
-    BootstrapKind)
+    DisplayKind, BootstrapKind)
 
 
 class InstanceCommands(AbstractCommands):
@@ -52,6 +52,13 @@ class InstanceCommands(AbstractCommands):
                                             required=False,
                                             default=2048,
                                             help='Amount of RAM in MB to assign to this instance')
+        instance_create_parser.add_argument('--display',
+                                            dest='display',
+                                            type=str,
+                                            required=False,
+                                            default=DisplayKind.VNC,
+                                            choices=[k.value for k in DisplayKind],
+                                            help='How this VM should show its display')
         instance_create_parser.add_argument('--network-id',
                                             dest='network_id',
                                             type=int,
@@ -101,6 +108,20 @@ class InstanceCommands(AbstractCommands):
                                             required=True,
                                             help='The instance id')
         instance_remove_parser.set_defaults(cmd=self.remove)
+        instance_start_parser = instance_subparser.add_parser(name='start', help='Start an instance')
+        instance_start_parser.add_argument('--id',
+                                           dest='instance_id',
+                                           type=int,
+                                           required=True,
+                                           help='The instance id')
+        instance_start_parser.set_defaults(cmd=self.start)
+        instance_stop_parser = instance_subparser.add_parser(name='stop', help='Stop an instance')
+        instance_stop_parser.add_argument('--id',
+                                          dest='instance_id',
+                                          type=int,
+                                          required=True,
+                                          help='The instance id')
+        instance_stop_parser.set_defaults(cmd=self.stop)
 
     def list(self, args: argparse.Namespace) -> int:  # pylint: disable=unused-argument
         resp = self.api_client(uri='/api/instances/', expected_status=[200])
@@ -135,11 +156,21 @@ class InstanceCommands(AbstractCommands):
         table.add_row('[blue]Id', str(instance.instance_id))
         table.add_row('[blue]Name', instance.name)
         table.add_row('[blue]Path', str(instance.path))
+        table.add_row('[blue]MAC', instance.mac)
+        table.add_row('[blue]vCPUs', str(instance.vcpu))
+        table.add_row('[blue]RAM', str(instance.ram))
+        table.add_row('[blue]Display', instance.display)
+        table.add_row('[blue]Bootstrapper', instance.bootstrapper)
         table.add_row('[blue]Image ID', str(instance.image_id))
+        table.add_row('[blue]Network ID', str(instance.network_id))
         table.add_row('[blue]OS Disk Path', str(instance.os_disk_path))
+        table.add_row('[blue]OS Disk Size', instance.os_disk_size)
         table.add_row('[blue]CI Base Path', str(instance.ci_base_path))
         table.add_row('[blue]CI Disk path', str(instance.ci_disk_path))
-        table.add_row('[blue]Network ID', str(instance.network_id))
+        table.add_row('[blue]VM Script Path', str(instance.vm_script_path))
+        table.add_row('[blue]VNC Socket Path', str(instance.vnc_path))
+        table.add_row('[blue]QMP Socket Path', str(instance.qmp_path))
+        table.add_row('[blue]Console Socket Path', str(instance.console_path))
         console.print(table)
         return 0
 
@@ -147,6 +178,7 @@ class InstanceCommands(AbstractCommands):
         create_schema = InstanceCreateSchema(name=args.name,
                                              vcpu=args.vcpu,
                                              ram=args.ram,
+                                             display=args.display,
                                              network_id=args.network_id,
                                              image_id=args.image_id,
                                              identities=args.identity_id,
@@ -178,7 +210,7 @@ class InstanceCommands(AbstractCommands):
                 time.sleep(2)
         return 0
 
-    def modify(self, args: argparse.Namespace) -> int:      # pylint: disable=unused-argument
+    def modify(self, args: argparse.Namespace) -> int:  # pylint: disable=unused-argument
         console.print('[yellow]Not yet implemented')
         return 1
 
@@ -187,4 +219,18 @@ class InstanceCommands(AbstractCommands):
                                method='DELETE',
                                expected_status=[204, 410],
                                fallback_msg='Failed to remove instance')
+        return 0 if resp else 1
+
+    def start(self, args: argparse.Namespace) -> int:
+        resp = self.api_client(uri=f'/api/instances/{args.instance_id}/state',
+                               method='POST',
+                               expected_status=[200],
+                               fallback_msg='Failed to start instance')
+        return 0 if resp else 1
+
+    def stop(self, args: argparse.Namespace) -> int:
+        resp = self.api_client(uri=f'/api/instances/{args.instance_id}/state',
+                               method='DELETE',
+                               expected_status=[200],
+                               fallback_msg='Failed to start instance')
         return 0 if resp else 1

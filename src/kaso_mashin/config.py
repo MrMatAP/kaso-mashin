@@ -1,3 +1,4 @@
+import logging
 import pathlib
 
 import yaml
@@ -13,6 +14,8 @@ class Config:
     """
 
     def __init__(self, config_file: pathlib.Path):
+        self._logger = logging.getLogger(f'{self.__class__.__module__}.{self.__class__.__name__}')
+        self._logger.info('Started')
         self._path = pathlib.Path('~/var/kaso').expanduser()
         self._default_os_disk_size = '5G'
         self._default_phone_home_port = 10200
@@ -27,10 +30,16 @@ class Config:
         self._config_file = config_file
         self.load()
 
+    @property
+    def logger(self) -> logging.Logger:
+        return self._logger
+
     def load(self):
         if not self.config_file.exists():
+            self.logger.info('No configuration file exists, using defaults')
             # We keep the defaults
             return
+        self.logger.info(f'Loading config file at {self.config_file}')
         with open(self.config_file, 'r', encoding='UTF-8') as c:
             config = yaml.load(c, Loader=Loader)
             if 'path' in config:
@@ -57,6 +66,7 @@ class Config:
                 self._default_server_port = config.get('default_server_port')
 
     def save(self):
+        self.logger.debug(f'Storing configuration at {self.config_file}')
         with open(self.config_file, 'w+', encoding='UTF-8') as c:
             yaml.dump({
                 'path': str(self.path),

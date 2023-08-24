@@ -391,7 +391,6 @@ In the meantime you are encouraged to tweak the shell script that was created fo
 # This script can be used to manually start the instance it is located in
 
 /opt/homebrew/bin/qemu-system-aarch64 \
-  -machine test \
   -machine virt \
   -cpu host \
   -accel hvf \

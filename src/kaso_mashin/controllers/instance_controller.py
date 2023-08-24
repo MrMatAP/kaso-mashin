@@ -1,3 +1,4 @@
+import logging
 import pathlib
 import shutil
 import typing
@@ -5,7 +6,7 @@ import sqlalchemy
 
 from kaso_mashin import KasoMashinException
 from kaso_mashin.controllers import AbstractController
-from kaso_mashin.model import InstanceModel, VMScriptModel, TaskSchema
+from kaso_mashin.model import InstanceModel, QEmuModel, TaskSchema
 
 
 class InstanceController(AbstractController):
@@ -15,6 +16,7 @@ class InstanceController(AbstractController):
 
     def __init__(self, runtime: 'Runtime'):
         super().__init__(runtime)
+        self._vms = {}
         self._instances_path = self.config.path.joinpath('instances')
         self._instances_path.mkdir(parents=True, exist_ok=True)
         shutil.chown(self._instances_path, user=self._runtime.owning_user)
@@ -55,6 +57,9 @@ class InstanceController(AbstractController):
         model.ci_base_path = model.path.joinpath('cloud-init')
         model.ci_disk_path = model.path.joinpath('ci.img')
         model.vm_script_path = model.path.joinpath('vm.sh')
+        model.vnc_path = model.path.joinpath('vnc.sock')
+        model.qmp_path = model.path.joinpath('qmp.sock')
+        model.console_path = model.path.joinpath('console.sock')
         task.progress(1, f'Calculated instance path at {model.path}')
 
         identities = [self.identity_controller.get(i.identity_id) for i in model.identities]
@@ -83,10 +88,8 @@ class InstanceController(AbstractController):
         self.bootstrap_controller.create(model)
         task.progress(7, 'Created bootstrap')
 
-        vm_script = VMScriptModel(model=model)
-        with open(model.vm_script_path, mode='w', encoding='UTF-8') as v:
-            v.write(vm_script.render())
-        model.vm_script_path.chmod(0o755)
+        qemu_model = QEmuModel(model=model)
+        qemu_model.generate_script()
         shutil.chown(model.vm_script_path, user=self._runtime.owning_user)
         task.progress(8, 'Created VM script')
 
@@ -116,3 +119,19 @@ class InstanceController(AbstractController):
         self.db.session.delete(instance)
         self.db.session.commit()
         return False
+
+    def start(self, instance_id: int, task: TaskSchema):
+        model = self.db.session.get(InstanceModel, instance_id)
+        if not model:
+            raise KasoMashinException(status=400, msg='No such instance could be found')
+        vm = QEmuModel(model)
+        vm.start()
+        self._vms[instance_id] = vm
+        task.success(msg='Instance started')
+
+    def stop(self, instance_id: int, task: TaskSchema):
+        if instance_id not in self._vms:
+            task.success(msg='Instance is already stopped')
+            return
+        self._vms[instance_id].stop()
+        task.success(msg='Instance stopped')

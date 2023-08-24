@@ -1,4 +1,5 @@
 import abc
+import logging
 import fastapi
 
 from kaso_mashin.runtime import Runtime
@@ -15,6 +16,12 @@ class AbstractAPI(abc.ABC):
     def __init__(self, runtime: Runtime):
         self._runtime = runtime
         self._router = None
+        self._logger = logging.getLogger(f'{self.__class__.__module__}.{self.__class__.__name__}')
+        self._logger.debug('Started')
+
+    @property
+    def logger(self) -> logging.Logger:
+        return self._logger
 
     @property
     def router(self) -> fastapi.APIRouter:

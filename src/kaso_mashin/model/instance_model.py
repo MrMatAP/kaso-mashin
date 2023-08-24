@@ -1,5 +1,6 @@
 import typing
-from sqlalchemy import String, Integer, Table, Column, ForeignKey
+import enum
+from sqlalchemy import String, Integer, Enum, Table, Column, ForeignKey
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 import pydantic
 
@@ -7,19 +8,11 @@ from kaso_mashin import Base
 from kaso_mashin.custom_types import DbPath, SchemaPath
 from kaso_mashin.model import NetworkModel, ImageModel, IdentityModel
 
-instance_to_networks = Table(
-    'instance_networks',
-    Base.metadata,
-    Column('instance_id', ForeignKey('instances.instance_id')),
-    Column('network_id', ForeignKey('networks.network_id'))
-)
 
-instance_to_identities = Table(
-    'instance_identities',
-    Base.metadata,
-    Column('instance_id', ForeignKey('instances.instance_id')),
-    Column('identity_id', ForeignKey('identities.identity_id'))
-)
+class DisplayKind(str, enum.Enum):
+    HEADLESS = 'headless'
+    VNC = 'vnc'
+    COCOA = 'cocoa'
 
 
 class InstanceSchema(pydantic.BaseModel):
@@ -36,6 +29,7 @@ class InstanceSchema(pydantic.BaseModel):
     mac: str = pydantic.Field(description='The generated MAC address', examples=['08:00:20:0a:0b:0c'])
     vcpu: int = pydantic.Field(description='Number of virtual CPUs', examples=[2])
     ram: int = pydantic.Field(description='Amount of RAM in MB', examples=[2048])
+    display: str = pydantic.Field(description='Display kind', examples=['headless', 'vnc'])
     bootstrapper: str = pydantic.Field(description='Name of the bootstrapper')
     image_id: int = pydantic.Field(description='Image ID to use as the backing OS disk', examples=[1])
     network_id: int = pydantic.Field(description='Network ID to connect the instance to', examples=[1])
@@ -44,6 +38,9 @@ class InstanceSchema(pydantic.BaseModel):
     ci_base_path: SchemaPath = pydantic.Field(description='CI base path', examples=['/path/to/cloud-init'])
     ci_disk_path: SchemaPath = pydantic.Field(description='CI disk path', examples=['/path/to/ci.img'])
     vm_script_path: SchemaPath = pydantic.Field(description='VM script path', examples=['/path/to/vm.sh'])
+    vnc_path: SchemaPath = pydantic.Field(description='VNC Socket path', examples=['/path/to/vnc.sock'])
+    qmp_path: SchemaPath = pydantic.Field(description='QMP Socket path', examples=['/path/to/qmp.sock'])
+    console_path: SchemaPath = pydantic.Field(description='Console Socket path', examples=['/path/to/console.sock'])
 
 
 class InstanceCreateSchema(pydantic.BaseModel):
@@ -53,6 +50,7 @@ class InstanceCreateSchema(pydantic.BaseModel):
     name: str = pydantic.Field(description='The instance name', examples=['mrmat-jammy'])
     vcpu: int = pydantic.Field(description='Number of virtual CPUs', examples=[2])
     ram: int = pydantic.Field(description='Amount of RAM in MB', examples=[2048])
+    display: str = pydantic.Field(description='Display kind', examples=['headless', 'vnc'])
     bootstrapper: str = pydantic.Field(description='Name of the bootstrapper')
     image_id: int = pydantic.Field(description='Image ID to use as the backing OS disk', examples=[1])
     network_id: int = pydantic.Field(description='Network ID to connect the instance to', examples=[1])
@@ -66,6 +64,22 @@ class InstanceModifySchema(pydantic.BaseModel):
     """
     vcpu: int = pydantic.Field(description='Number of virtual CPUs', examples=[2])
     ram: int = pydantic.Field(description='Amount of RAM in MB', examples=[2048])
+    display: str = pydantic.Field(description='Display kind', examples=['headless', 'vnc'])
+
+
+instance_to_networks = Table(
+    'instance_networks',
+    Base.metadata,
+    Column('instance_id', ForeignKey('instances.instance_id')),
+    Column('network_id', ForeignKey('networks.network_id'))
+)
+
+instance_to_identities = Table(
+    'instance_identities',
+    Base.metadata,
+    Column('instance_id', ForeignKey('instances.instance_id')),
+    Column('identity_id', ForeignKey('identities.identity_id'))
+)
 
 
 class InstanceModel(Base):
@@ -81,6 +95,7 @@ class InstanceModel(Base):
     vcpu: Mapped[int] = mapped_column(Integer)
     ram: Mapped[int] = mapped_column(Integer)
     mac: Mapped[str] = mapped_column(String, nullable=True)
+    display: Mapped[DisplayKind] = mapped_column(Enum(DisplayKind))
     static_ip4: Mapped[str] = mapped_column(String, nullable=True)
     bootstrapper: Mapped[str] = mapped_column(String)
     image_id: Mapped[int] = mapped_column(ForeignKey('images.image_id'))
@@ -90,6 +105,9 @@ class InstanceModel(Base):
     ci_base_path: Mapped[str] = mapped_column(DbPath, nullable=True)
     ci_disk_path: Mapped[str] = mapped_column(DbPath, nullable=True)
     vm_script_path: Mapped[str] = mapped_column(DbPath, nullable=True)
+    vnc_path: Mapped[str] = mapped_column(DbPath, nullable=True)
+    qmp_path: Mapped[str] = mapped_column(DbPath, nullable=True)
+    console_path: Mapped[str] = mapped_column(DbPath, nullable=True)
 
     network: Mapped[NetworkModel] = relationship(lazy=False)
     image: Mapped[ImageModel] = relationship(lazy=False)
@@ -102,6 +120,7 @@ class InstanceModel(Base):
             ram=schema.ram)
         if isinstance(schema, InstanceCreateSchema):
             model.name = schema.name
+            model.display = schema.display
             model.bootstrapper = schema.bootstrapper
             model.image_id = schema.image_id
             model.network_id = schema.network_id
@@ -118,6 +137,7 @@ class InstanceModel(Base):
             self.vcpu == other.vcpu,
             self.ram == other.ram,
             self.mac == other.mac,
+            self.display == other.display,
             self.static_ip4 == other.static_ip4,
             self.bootstrapper == other.bootstrapper,
             self.image_id == other.image_id,
@@ -126,7 +146,10 @@ class InstanceModel(Base):
             self.os_disk_size == other.os_disk_size,
             self.ci_base_path == other.ci_base_path,
             self.ci_disk_path == other.ci_disk_path,
-            self.vm_script_path == other.vm_script_path])
+            self.vm_script_path == other.vm_script_path,
+            self.vnc_path == other.vnc_path,
+            self.qmp_path == other.qmp_path,
+            self.console_path == other.console_path])
 
     def __repr__(self) -> str:
         return f'InstanceModel(instance_id={self.instance_id}, name="{self.name}", path="{self.path}")'

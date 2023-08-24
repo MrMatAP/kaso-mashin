@@ -9,9 +9,9 @@ from .network_model import (
     NetworkBaseSchema, NetworkSchema, NetworkCreateSchema, NetworkModifySchema)
 from .bootstrap_model import BootstrapKind, CIVendorData, CIMetaData, CIUserData, CINetworkConfig
 from .instance_model import (
+    DisplayKind,
     InstanceModel,
     InstanceSchema, InstanceCreateSchema, InstanceModifySchema )
-from .instance_process import InstanceProcess
-from .vmscript_model import VMScriptModel
+from .qemu_model import QEmuModel
 from .task_model import TaskState, TaskSchema
 from .exception_model import ExceptionSchema

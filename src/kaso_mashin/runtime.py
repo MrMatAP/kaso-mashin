@@ -61,7 +61,8 @@ class Runtime:
             model = NetworkModel(name=NetworkController.DEFAULT_HOST_NETWORK_NAME,
                                  kind=NetworkKind.VMNET_HOST,
                                  host_phone_home_port=self.config.default_phone_home_port,
-                                 host_ip4=host_net.network_address + 1,
+                                 # vmnet assignes the first dhcp4_start address
+                                 host_ip4=host_net.network_address + 10,
                                  nm4=host_net.netmask,
                                  dhcp4_start=host_net.network_address + 10,
                                  dhcp4_end=host_net.broadcast_address - 1)
@@ -71,7 +72,8 @@ class Runtime:
             model = NetworkModel(name=NetworkController.DEFAULT_SHARED_NETWORK_NAME,
                                  kind=NetworkKind.VMNET_SHARED,
                                  host_phone_home_port=self.config.default_phone_home_port,
-                                 host_ip4=shared_net.network_address + 1,
+                                 # vmnet assignes the first dhcp4_start address
+                                 host_ip4=shared_net.network_address + 10,
                                  nm4=shared_net.netmask,
                                  dhcp4_start=shared_net.network_address + 10,
                                  dhcp4_end=shared_net.broadcast_address - 1)

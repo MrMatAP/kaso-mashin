@@ -1,11 +1,12 @@
 import abc
+import logging
 import typing
 import argparse
 import httpx
 import rich.table
 import rich.box
 
-from kaso_mashin import console
+from kaso_mashin import console, tracer
 from kaso_mashin.config import Config
 from kaso_mashin.db import DB
 from kaso_mashin.runtime import Runtime
@@ -22,6 +23,12 @@ class AbstractCommands(abc.ABC):
 
     def __init__(self, runtime: Runtime):
         self._runtime = runtime
+        self._logger = logging.getLogger(f'{self.__class__.__module__}.{self.__class__.__name__}')
+        self._logger.debug('Started')
+
+    @property
+    def logger(self) -> logging.Logger:
+        return self._logger
 
     @abc.abstractmethod
     def register_commands(self, parser: argparse.ArgumentParser):

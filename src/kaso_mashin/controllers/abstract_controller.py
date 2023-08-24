@@ -1,4 +1,5 @@
 import abc
+import logging
 
 from kaso_mashin.config import Config
 from kaso_mashin.db import DB
@@ -11,6 +12,8 @@ class AbstractController(abc.ABC):
 
     def __init__(self, runtime: 'Runtime'):
         self._runtime = runtime
+        self._logger = logging.getLogger(f'{self.__class__.__module__}.{self.__class__.__name__}')
+        self._logger.debug('Started')
 
     @property
     def config(self) -> Config:
@@ -19,6 +22,10 @@ class AbstractController(abc.ABC):
     @property
     def db(self) -> DB:
         return self._runtime.db
+
+    @property
+    def logger(self) -> logging.Logger:
+        return self._logger
 
     @property
     def bootstrap_controller(self) -> 'BootstrapController':

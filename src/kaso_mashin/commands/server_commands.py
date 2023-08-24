@@ -1,4 +1,5 @@
 import argparse
+import logging
 
 import fastapi
 import uvicorn
@@ -30,8 +31,9 @@ class ServerCommands(AbstractCommands):
 
     def start(self, args: argparse.Namespace) -> int:
         self._runtime.late_init(server=True)
-        console.print(f'[blue]Effective user {self._runtime.effective_user}')
-        console.print(f'[blue]Owning user: {self._runtime.owning_user}')
+        logger = logging.getLogger(__name__)
+        logger.info(f'Effective user {self._runtime.effective_user}')
+        logger.info(f'Owning user {self._runtime.owning_user}')
         app = fastapi.FastAPI(title='Kaso Mashin API',
                               summary='APIs for the Kaso Mashin controllers',
                               description='Provides APIs for the Kaso Mashin controllers',

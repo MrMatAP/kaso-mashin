@@ -65,6 +65,7 @@ class InstanceAPI(AbstractAPI):
                                    description='This is an asynchronous operation, you will get a'
                                                'task object back which you can subsequently check for progress using'
                                                'the task api',
+                                   status_code=200,
                                    response_description='A task',
                                    response_model=TaskSchema)
         self._router.add_api_route('/{instance_id}/state', self.stop_instance, methods=['DELETE'],
@@ -72,6 +73,7 @@ class InstanceAPI(AbstractAPI):
                                    description='This is an asynchronous operation, you will get a'
                                            'task object back which you can subsequently check for progress using'
                                            'the task api',
+                                   status_code=200,
                                    response_description='A task',
                                    response_model=TaskSchema)
 
@@ -124,14 +126,24 @@ class InstanceAPI(AbstractAPI):
         response.status_code = 410 if gone else 204
         return response
 
-    async def start_instance(self):
-        return fastapi.responses.JSONResponse(status_code=510,
-                                              content=ExceptionSchema(status=510,
-                                                                      msg='Not yet implemented')
-                                              .model_dump())
+    async def start_instance(self,
+                             instance_id: typing.Annotated[int, fastapi.Path(title='Instance ID',
+                                                                             description='The instance ID to start',
+                                                                             examples=[1])],
+                             background_tasks: fastapi.BackgroundTasks):
+        task = self.task_controller.create(name=f'Starting instance id {instance_id}')
+        background_tasks.add_task(self.instance_controller.start,
+                                  instance_id=instance_id,
+                                  task=task)
+        return task
 
-    async def stop_instance(self):
-        return fastapi.responses.JSONResponse(status_code=510,
-                                              content=ExceptionSchema(status=510,
-                                                                      msg='Not yet implemented')
-                                              .model_dump())
+    async def stop_instance(self,
+                            instance_id: typing.Annotated[int, fastapi.Path(title='Instance ID',
+                                                                            description='The instance ID to start',
+                                                                            examples=[1])],
+                            background_tasks: fastapi.BackgroundTasks):
+        task = self.task_controller.create(name=f'Stopping instance id {instance_id}')
+        background_tasks.add_task(self.instance_controller.stop,
+                                  instance_id=instance_id,
+                                  task=task)
+        return task
