@@ -17,7 +17,7 @@ class AbstractAPI(abc.ABC):
         self._runtime = runtime
         self._router = None
         self._logger = logging.getLogger(f'{self.__class__.__module__}.{self.__class__.__name__}')
-        self._logger.debug('Started')
+        self._logger.info('Started')
 
     @property
     def logger(self) -> logging.Logger:
