@@ -3,8 +3,7 @@ import fastapi
 
 from kaso_mashin.apis import AbstractAPI
 from kaso_mashin.runtime import Runtime
-from kaso_mashin.model import (
-    ExceptionSchema, IdentitySchema, IdentityCreateSchema, IdentityModifySchema, IdentityModel )
+from kaso_mashin.model import ExceptionSchema, IdentitySchema, IdentityCreateSchema, IdentityModifySchema, IdentityModel
 
 
 class IdentityAPI(AbstractAPI):
