@@ -4,14 +4,12 @@ import fastapi
 import fastapi.testclient
 
 from kaso_mashin import __version__, KasoMashinException
-from kaso_mashin.config import Config
-from kaso_mashin.db import DB
-from kaso_mashin.runtime import Runtime
-from kaso_mashin.model import (
-    IdentityKind, IdentityModel,
-    ImageModel,
-    NetworkKind, NetworkModel)
-from kaso_mashin.apis import (
+from kaso_mashin.common.config import Config
+from kaso_mashin.server.db import DB
+from kaso_mashin.server.runtime import Runtime
+from kaso_mashin.common.model import (
+    IdentityKind, IdentityModel)
+from kaso_mashin.server.apis import (
     ConfigAPI, TaskAPI, IdentityAPI, NetworkAPI, ImageAPI, InstanceAPI
 )
 

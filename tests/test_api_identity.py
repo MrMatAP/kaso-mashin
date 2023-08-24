@@ -1,6 +1,6 @@
 import pytest
 from conftest import seed
-from kaso_mashin.model import ExceptionSchema, IdentityModifySchema, IdentitySchema
+from kaso_mashin.common.model import ExceptionSchema, IdentityModifySchema, IdentitySchema
 
 
 class TestEmptyIdentityAPI:

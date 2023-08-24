@@ -16,24 +16,34 @@ console = rich.console.Console(log_time=False, log_path=False)
 __log_config__ = {
     'version': 1,
     'formatters': {
-        'verbose': {
+        'server': {
+            'format': '[%(name)s] %(message)s'
+        },
+        'client': {
             'format': '[%(name)s] %(message)s'
         }
     },
     'handlers': {
-        'rich': {
+        'server': {
+            '()': 'rich.logging.RichHandler',
+            'show_time': True,
+            'show_path': False,
+            'formatter': 'server'
+        },
+        'cui': {
             '()': 'rich.logging.RichHandler',
             'show_time': False,
-            'show_path': True,
-            'formatter': 'verbose'
+            'show_path': False,
+            'formatter': 'client'
         }
     },
     'loggers': {
-        '': {'level': 'INFO', 'handlers': ['rich'], 'propagate': False},
-        'kaso_mashin': {'level': 'INFO', 'handlers': ['rich'], 'propagate': False},
-        'httpx': {'level': 'WARNING', 'handlers': ['rich']},
-        'httpcore': {'level': 'WARNING', 'handlers': ['rich']},
-        'uvicorn': {'level': 'WARNING', 'handlers': ['rich']}
+        '': {'level': 'INFO', 'handlers': ['server'], 'propagate': False},
+        'kaso_mashin': {'level': 'INFO', 'handlers': ['server'], 'propagate': False},
+        'kaso_mashin.cui': {'level': 'INFO', 'handlers': ['cui'], 'propagate': False},
+        'httpx': {'level': 'WARNING', 'handlers': ['server']},
+        'httpcore': {'level': 'WARNING', 'handlers': ['server']},
+        'uvicorn': {'level': 'WARNING', 'handlers': ['server']}
     },
 }
 logging.config.dictConfig(__log_config__)

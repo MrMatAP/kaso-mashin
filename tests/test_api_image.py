@@ -1,6 +1,4 @@
-import pytest
-from conftest import seed
-from kaso_mashin.model import ExceptionSchema, ImageModifySchema, ImageSchema
+from kaso_mashin.common.model import ExceptionSchema
 
 
 class TestEmptyImageAPI:
