@@ -6,7 +6,7 @@ import httpx
 import rich.table
 import rich.box
 
-from kaso_mashin import console, tracer
+from kaso_mashin import console
 from kaso_mashin.config import Config
 from kaso_mashin.db import DB
 from kaso_mashin.runtime import Runtime
