@@ -1,4 +1,5 @@
 import typing
+
 import sqlalchemy
 import sqlalchemy.sql
 
