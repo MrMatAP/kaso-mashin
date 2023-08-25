@@ -18,8 +18,8 @@ def main(args: typing.Optional[typing.List] = None) -> int:
     Returns
         An exit code. 0 when successful, non-zero otherwise
     """
-    logger = logging.getLogger(__name__)
-    config = Config(config_file=default_config_file)
+    logger = logging.getLogger('kaso_mashin')
+    config = Config()
     network_commands = NetworkCommands(config)
     image_commands = ImageCommands(config)
     identity_commands = IdentityCommands(config)
@@ -33,13 +33,18 @@ def main(args: typing.Optional[typing.List] = None) -> int:
                         required=False,
                         default=default_config_file,
                         help=f'Path to the configuration file. Defaults to {default_config_file}')
-    # TODO: We should keep this in the config file alone
-    parser.add_argument('-p', '--path',
-                        dest='path',
-                        type=pathlib.Path,
+    parser.add_argument('--host',
+                        dest='default_server_host',
+                        type=str,
                         required=False,
-                        default=config.path,
-                        help=f'Cloud directory. Defaults to {config.path}')
+                        default=config.default_server_host,
+                        help='The server host to communicate with')
+    parser.add_argument('--port',
+                        dest='default_server_port',
+                        type=int,
+                        required=False,
+                        default=config.default_server_port,
+                        help='The server port to communicate with')
     subparsers = parser.add_subparsers(dest='group')
 
     network_parser = subparsers.add_parser(name='network', help='Manage Networks')
@@ -53,14 +58,8 @@ def main(args: typing.Optional[typing.List] = None) -> int:
 
     args = parser.parse_args(args if args is not None else sys.argv[1:])
     logger.setLevel(logging.DEBUG if args.debug else logging.INFO)
-    logger.debug('Parsed commands')
-    if args.config:
-        config.config_file = args.config
-    # TODO: We should not do this here
-    if not args.path.exists():
-        console.print(f'Creating directory at {args.path}')
-        args.path.mkdir(parents=True)
-    config.path = args.path
+    config.load(args.config)
+    config.cli_override(args)
     try:
         if hasattr(args, 'cmd'):
             return args.cmd(args)
