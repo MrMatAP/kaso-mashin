@@ -103,14 +103,14 @@ class CIUserData(Renderable):
             'package_upgrade': True,
             'phone_home': {
                 'url': self.phone_home_url,
-                'post': [
-                    'pub_key_rsa',
-                    'instance_id',
-                    'hostname',
-                    'fqdn'
-                ],
+                'post': 'all',
                 'tries': 5
             },
+            'final': '\n'.join(['kaso-mashin bootstrap finished',
+                                'version:    $version',
+                                'timestamp:  $timestamp',
+                                'datasource: $datasource',
+                                'uptime:     $uptime']),
             'users': []
         }
         for identity in self.model.identities:
