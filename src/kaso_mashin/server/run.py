@@ -26,7 +26,7 @@ def main(args: typing.Optional[typing.List] = None) -> int:
     db = DB(config)
     runtime = Runtime(config=config, db=db)
 
-    parser = argparse.ArgumentParser(add_help=True, description=f'kaso-mashin - {__version__}')
+    parser = argparse.ArgumentParser(add_help=True, description=f'kaso-server - {__version__}')
     parser.add_argument('-d', '--debug', action='store_true', dest='debug', help='Debug')
     parser.add_argument('-c', '--config',
                         dest='config',
