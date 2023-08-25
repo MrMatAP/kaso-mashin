@@ -1,3 +1,4 @@
+import logging
 import time
 import typing
 import subprocess
@@ -25,10 +26,15 @@ class PhoneHomeServer(HTTPServer):
                  bind_and_activate: bool = ...) -> None:
         super().__init__(server_address, RequestHandlerClass, bind_and_activate)
         self._callback = callback
+        self._logger = logging.getLogger(f'{self.__class__.__module__}.{self.__class__.__name__}')
 
     @property
     def callback(self):
         return self._callback
+
+    @property
+    def logger(self):
+        return self._logger
 
 
 class PhoneHomeHandler(BaseHTTPRequestHandler):
@@ -38,6 +44,9 @@ class PhoneHomeHandler(BaseHTTPRequestHandler):
 
     # It is actually required to be called do_POST, despite pylint complaining about it
     def do_POST(self):              # pylint: disable=invalid-name
+        self.log_request()
+        self.server.logger.info(f'Instance phone home with {self.client_address[0]}')
+        self.server.logger.info(f'Request line: {self.requestline}')
         self.server.callback(self.client_address[0])
         self.send_response(code=200, message='Well, hello there!')
         self.end_headers()
@@ -53,6 +62,8 @@ class QEmuModel:
         self._emulator = '/opt/homebrew/bin/qemu-system-aarch64'
         self._cmd = self._generate_cmd()
         self._process: subprocess.Popen | None = None
+        self._logger = logging.getLogger(f'{self.__class__.__module__}.{self.__class__.__name__}')
+        self._logger.info(f'Initialised for {model.name}')
 
     def _generate_cmd(self) -> str:
         cmd = (f'{self.emulator} -name {self.model.name} -machine virt -cpu host -accel hvf -smp {self.model.vcpu} -m {self.model.ram} '
@@ -112,37 +123,47 @@ class QEmuModel:
                     f'This script can be used to manually start the instance it is located in\n\n{self._generate_cmd()}')
         self.model.vm_script_path.chmod(0o755)
 
-    def _get_bridge(self) -> str | None:
-        for bridge in list(filter(lambda e: e.startswith('bridge'), netifaces.interfaces())):
-            if netifaces.AF_INET not in netifaces.ifaddresses(bridge):
-                continue
-            for addr in netifaces.ifaddresses(bridge)[netifaces.AF_INET]:
-                if addr == self.model.network.host_ip4:
-                    return bridge
-        return None
+    def _wait_for_bridge(self) -> bool | None:
+        # if2addr = {}
+        # addr2if = {}
+        # for iface in netifaces.interfaces():
+        #     for ip in netifaces.ifaddresses(iface).get(netifaces.AF_INET, []):
+        #         if2addr[iface] = [ip.get('addr')]
+        #         addr2if[ip.get('addr')] = iface
+        addr2if = {}
+        for br in list(filter(lambda e: e.startswith('bridge'), netifaces.interfaces())):
+            for ip in netifaces.ifaddresses(br).get(netifaces.AF_INET, []):
+                addr2if[ip.get('addr')] = br
+        return self.model.network.host_ip4 in addr2if
 
     def start(self):
         self.process = subprocess.Popen(args=shlex.split(self._generate_cmd()), encoding='UTF-8')
-
+        self._logger.info('Started QEmu process')
+        # TODO: Cloud-init will only ever phone home once per instance, unless we make it a runcmd
         # Wait for the bridge to come up
         attempt = 0
-        while attempt < 10 and not self._get_bridge():
+        while attempt < 15 and not self._wait_for_bridge():
+            self._logger.info(f'Waiting for bridge to come up ({attempt}/15)')
+            attempt += 1
             time.sleep(1)
         if attempt == 9:
-            raise KasoMashinException(status=500,
-                                      msg='Bridge never came up')
+            raise KasoMashinException(status=500, msg='Bridge never came up')
+        self._logger.info('Bridge has come up')
 
         def _instance_phoned_home(actual_ip: str):
-            print(f'Actual IP: ${actual_ip}')
+            self._logger.info(f'Instance has phoned home. Actual IP: ${actual_ip}')
 
+        self._logger.info(f'Starting phone home server on host {self.model.network.host_ip4}')
         httpd = PhoneHomeServer(server_address=(str(self.model.network.host_ip4), self.model.network.host_phone_home_port),
                                 callback=_instance_phoned_home,
                                 RequestHandlerClass=PhoneHomeHandler)
-        httpd.timeout = 120
+        httpd.timeout = 60
         httpd.handle_request()
+        self._logger.info('Instance has started')
 
     def stop(self):
         if self.process:
+            self._logger.info('Stopping instance')
             self.process.terminate()
 
     @property
