@@ -5,13 +5,11 @@ import fastapi.testclient
 
 from kaso_mashin import __version__, KasoMashinException
 from kaso_mashin.common.config import Config
+from kaso_mashin.server.run import create_server
 from kaso_mashin.server.db import DB
 from kaso_mashin.server.runtime import Runtime
 from kaso_mashin.common.model import (
     IdentityKind, IdentityModel)
-from kaso_mashin.server.apis import (
-    ConfigAPI, TaskAPI, IdentityAPI, NetworkAPI, ImageAPI, InstanceAPI
-)
 
 seed = {
     'identities': [
@@ -60,7 +58,7 @@ def test_config(class_temp_dir):
     config_file = class_temp_dir.joinpath('.kaso')
     with config_file.open('w', encoding='UTF-8') as c:
         c.write(f'path: {class_temp_dir}')
-    return Config(config_file=config_file)
+    return Config(config_file)
 
 
 @pytest.fixture(scope='class')
@@ -74,24 +72,7 @@ def test_runtime(test_config, test_db):
 
 
 def test_api_server(test_runtime):
-    app = fastapi.FastAPI(title='Kaso Mashin API',
-                          summary='APIs for the Kaso Mashin controllers',
-                          description='Provides APIs for the Kaso Mashin controllers',
-                          version=__version__)
-    app.include_router(ConfigAPI(test_runtime).router, prefix='/api/config')
-    app.include_router(TaskAPI(test_runtime).router, prefix='/api/tasks')
-    app.include_router(IdentityAPI(test_runtime).router, prefix='/api/identities')
-    app.include_router(NetworkAPI(test_runtime).router, prefix='/api/networks')
-    app.include_router(ImageAPI(test_runtime).router, prefix='/api/images')
-    app.include_router(InstanceAPI(test_runtime).router, prefix='/api/instances')
-
-    @app.exception_handler(KasoMashinException)
-    async def kaso_mashin_exception_handler(request: fastapi.Request, exc: KasoMashinException):
-        return fastapi.responses.JSONResponse(
-            status_code=exc.status,
-            content={'status': exc.status, 'message': exc.msg})
-
-    return app
+    return create_server(test_runtime)
 
 
 @pytest.fixture(scope='class')

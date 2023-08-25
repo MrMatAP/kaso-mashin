@@ -14,6 +14,27 @@ from kaso_mashin.server.runtime import Runtime
 from kaso_mashin.server.apis import ConfigAPI, TaskAPI, ImageAPI, IdentityAPI, NetworkAPI, InstanceAPI
 
 
+def create_server(runtime: Runtime) -> fastapi.applications.FastAPI:
+    app = fastapi.FastAPI(title='Kaso Mashin API',
+                          summary='APIs for the Kaso Mashin controllers',
+                          description='Provides APIs for the Kaso Mashin controllers',
+                          version=__version__)
+    app.include_router(ConfigAPI(runtime).router, prefix='/api/config')
+    app.include_router(TaskAPI(runtime).router, prefix='/api/tasks')
+    app.include_router(IdentityAPI(runtime).router, prefix='/api/identities')
+    app.include_router(NetworkAPI(runtime).router, prefix='/api/networks')
+    app.include_router(ImageAPI(runtime).router, prefix='/api/images')
+    app.include_router(InstanceAPI(runtime).router, prefix='/api/instances')
+
+    @app.exception_handler(KasoMashinException)
+    # pylint: disable=unused-argument
+    async def kaso_mashin_exception_handler(request: fastapi.Request, exc: KasoMashinException):
+        return fastapi.responses.JSONResponse(
+            status_code=exc.status,
+            content={'status': exc.status, 'message': exc.msg})
+    return app
+
+
 def main(args: typing.Optional[typing.List] = None) -> int:
     """
     Main entry point for the server
@@ -56,24 +77,7 @@ def main(args: typing.Optional[typing.List] = None) -> int:
     try:
         logger.info(f'Effective user {runtime.effective_user}')
         logger.info(f'Owning user {runtime.owning_user}')
-        app = fastapi.FastAPI(title='Kaso Mashin API',
-                              summary='APIs for the Kaso Mashin controllers',
-                              description='Provides APIs for the Kaso Mashin controllers',
-                              version=__version__)
-        app.include_router(ConfigAPI(runtime).router, prefix='/api/config')
-        app.include_router(TaskAPI(runtime).router, prefix='/api/tasks')
-        app.include_router(IdentityAPI(runtime).router, prefix='/api/identities')
-        app.include_router(NetworkAPI(runtime).router, prefix='/api/networks')
-        app.include_router(ImageAPI(runtime).router, prefix='/api/images')
-        app.include_router(InstanceAPI(runtime).router, prefix='/api/instances')
-
-        @app.exception_handler(KasoMashinException)
-        # pylint: disable=unused-argument
-        async def kaso_mashin_exception_handler(request: fastapi.Request, exc: KasoMashinException):
-            return fastapi.responses.JSONResponse(
-                status_code=exc.status,
-                content={'status': exc.status, 'message': exc.msg})
-
+        app = create_server(runtime)
         uvicorn.run(app, host=config.default_server_host, port=config.default_server_port)
         return 0
     except Exception:   # pylint: disable=broad-except
