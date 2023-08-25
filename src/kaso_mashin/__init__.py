@@ -2,7 +2,8 @@ import os
 import pathlib
 import logging.config
 import importlib.metadata
-from rich.console import Console
+
+import rich.logging
 from sqlalchemy.orm import DeclarativeBase
 
 try:
@@ -11,16 +12,42 @@ except importlib.metadata.PackageNotFoundError:
     # You have not yet installed this as a package, likely because you're hacking on it in some IDE
     __version__ = '0.0.0.dev0'
 
-logging.config.dictConfig({
+console = rich.console.Console(log_time=False, log_path=False)
+__log_config__ = {
     'version': 1,
-    'loggers': {
-        '': {'level': 'INFO'},
-        'httpx': {'level': 'WARNING'},
-        'httpcore': {'level': 'WARNING'}
+    'formatters': {
+        'server': {
+            'format': '[%(name)s] %(message)s'
+        },
+        'client': {
+            'format': '[%(name)s] %(message)s'
+        }
     },
-})
+    'handlers': {
+        'server': {
+            '()': 'rich.logging.RichHandler',
+            'show_time': True,
+            'show_path': False,
+            'formatter': 'server'
+        },
+        'cui': {
+            '()': 'rich.logging.RichHandler',
+            'show_time': False,
+            'show_path': False,
+            'formatter': 'client'
+        }
+    },
+    'loggers': {
+        '': {'level': 'INFO', 'handlers': ['server'], 'propagate': False},
+        'kaso_mashin': {'level': 'INFO', 'handlers': ['server'], 'propagate': False},
+        'kaso_mashin.cui': {'level': 'INFO', 'handlers': ['cui'], 'propagate': False},
+        'httpx': {'level': 'WARNING', 'handlers': ['server']},
+        'httpcore': {'level': 'WARNING', 'handlers': ['server']},
+        'uvicorn': {'level': 'WARNING', 'handlers': ['server']}
+    },
+}
+logging.config.dictConfig(__log_config__)
 log = logging.getLogger(__name__)
-console = Console(log_time=True, log_path=False)
 
 default_config_file = pathlib.Path(os.environ.get('KASO_MASHIN_CONFIG', '~/.kaso')).expanduser()
 
