@@ -1,5 +1,5 @@
 <component name="ProjectRunConfigurationManager">
-  <configuration default="false" name="cui image remove (1)" type="PythonConfigurationType" factoryName="Python">
+  <configuration default="false" name="kaso identity list" type="PythonConfigurationType" factoryName="Python">
     <module name="kaso-mashin" />
     <option name="INTERPRETER_OPTIONS" value="" />
     <option name="PARENT_ENVS" value="true" />
@@ -13,8 +13,8 @@
     <option name="ADD_CONTENT_ROOTS" value="true" />
     <option name="ADD_SOURCE_ROOTS" value="true" />
     <EXTENSION ID="PythonCoverageRunConfigurationExtension" runner="coverage.py" />
-    <option name="SCRIPT_NAME" value="kaso_mashin.cui" />
-    <option name="PARAMETERS" value="image remove --id 1" />
+    <option name="SCRIPT_NAME" value="kaso_mashin.cli.run" />
+    <option name="PARAMETERS" value="identity list" />
     <option name="SHOW_COMMAND_LINE" value="false" />
     <option name="EMULATE_TERMINAL" value="true" />
     <option name="MODULE_MODE" value="true" />

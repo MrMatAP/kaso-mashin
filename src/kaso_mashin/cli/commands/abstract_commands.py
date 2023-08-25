@@ -18,8 +18,6 @@ class AbstractCommands(abc.ABC):
 
     def __init__(self, config: Config):
         self._config = config
-        # TODO: We should move this into late_config with config
-        self._server_url = f'http://{self.config.default_server_host}:{self.config.default_server_port}'
         self._logger = logging.getLogger(f'{self.__class__.__module__}.{self.__class__.__name__}')
         self._logger.debug('Started')
 
@@ -29,6 +27,11 @@ class AbstractCommands(abc.ABC):
 
     @abc.abstractmethod
     def register_commands(self, parser: argparse.ArgumentParser):
+        """
+        Placeholder to attach commands and parameters the command class implements
+        Args:
+            parser: The parser to attach the commands and parameters to
+        """
         pass
 
     def api_client(self,
@@ -36,28 +39,36 @@ class AbstractCommands(abc.ABC):
                    body: typing.Dict | typing.List = None,
                    method: str = 'GET',
                    expected_status: typing.List = None,
-                   fallback_msg: str = 'Something bad and unknown happened...'):
+                   fallback_msg: str = 'Something bad and unknown happened...') -> httpx.Response:
+        """
+        Convenience method for invoking the server API and perform error handling. Since this is for a CLI
+        Args:
+            uri: The relative URI to invoke
+            body: An optional body for PUT or POST requests
+            method: The HTTP method, defaults to 'GET'
+            expected_status: A list of HTTP status codes the client deems to be acceptable for success
+            fallback_msg: A custom error message for failures
+
+        Returns:
+            The httpx response or None upon failure
+        """
         if expected_status is None:
             expected_status = [200]
-        resp = httpx.request(url=f'{self.server_url}{uri}',
+        resp = httpx.request(url=f'{self.config.server_url}{uri}',
                              method=method,
                              json=body)
-        if resp.status_code in expected_status:
-            return resp
-        table = rich.table.Table(title='ERROR', box=rich.box.ROUNDED, show_header=False)
-        table.add_row('[red]Status:', str(resp.status_code))
-        try:
-            ex = ExceptionSchema.model_validate_json(resp.content)
-            table.add_row('[red]Message:', ex.msg)
-        except ValueError:
-            table.add_row('[red]Message:', fallback_msg)
-        console.print(table)
-        return None
+        if resp.status_code not in expected_status:
+            table = rich.table.Table(title='ERROR', box=rich.box.ROUNDED, show_header=False)
+            table.add_row('[red]Status:', str(resp.status_code))
+            try:
+                ex = ExceptionSchema.model_validate_json(resp.content)
+                table.add_row('[red]Message:', ex.msg)
+            except ValueError:
+                table.add_row('[red]Message:', fallback_msg)
+            console.print(table)
+        return resp
 
     @property
     def config(self) -> Config:
         return self._config
 
-    @property
-    def server_url(self) -> str:
-        return self._server_url
