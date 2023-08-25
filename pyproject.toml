@@ -50,7 +50,8 @@ namespaces = true
 "*" = [".mo", "*.yml", "*.md", "inventory", "*.j2"]
 
 [project.scripts]
-kaso = "kaso_mashin.cui:main"
+kaso = "kaso_mashin.cli.run:main"
+kaso-server = "kaso_mashin.server.run:main"
 
 # If you are debugging your tests using PyCharm then comment out the coverage options
 # in addopts

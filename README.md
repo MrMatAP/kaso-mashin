@@ -146,10 +146,25 @@ as root** because that is the only way Apples vmnet framework allows us to creat
 other commands should be run unprivileged, in a separate terminal.
 
 ```shell
-$ sudo kaso server
-Effective user root
-Owning user: imfeldma
-INFO:     Started server process [41585]
+$ sudo kaso-server
+Password:
+[08/25/23 16:12:13] INFO     [kaso_mashin.server.controllers.bootstrap_controller.BootstrapController] Started
+                    INFO     [kaso_mashin.server.controllers.os_disk_controller.OsDiskController] Started
+                    INFO     [kaso_mashin.server.controllers.identity_controller.IdentityController] Started
+                    INFO     [kaso_mashin.server.controllers.image_controller.ImageController] Started
+                    INFO     [kaso_mashin.server.controllers.instance_controller.InstanceController] Started
+                    INFO     [kaso_mashin.server.controllers.network_controller.NetworkController] Started
+                    INFO     [kaso_mashin.server.controllers.phone_home_controller.PhoneHomeController] Started
+                    INFO     [kaso_mashin.server.controllers.task_controller.TaskController] Started
+                    INFO     [kaso_mashin.server.run] Effective user root
+                    INFO     [kaso_mashin.server.run] Owning user imfeldma
+                    INFO     [kaso_mashin.server.apis.config_api.ConfigAPI] Started
+                    INFO     [kaso_mashin.server.apis.task_api.TaskAPI] Started
+                    INFO     [kaso_mashin.server.apis.identity_api.IdentityAPI] Started
+                    INFO     [kaso_mashin.server.apis.network_api.NetworkAPI] Started
+                    INFO     [kaso_mashin.server.apis.image_api.ImageAPI] Started
+                    INFO     [kaso_mashin.server.apis.instance_api.InstanceAPI] Started
+INFO:     Started server process [2096]
 INFO:     Waiting for application startup.
 INFO:     Application startup complete.
 INFO:     Uvicorn running on http://127.0.0.1:8000 (Press CTRL+C to quit)
@@ -307,16 +322,17 @@ $ kaso instance list
 
 # Show the syntax for creating an instance
 $ kaso instance create -h
-usage: kaso instance create [-h] -n NAME [--vcpu VCPU] [--ram RAM] --network-id NETWORK_ID
-                            --image-id IMAGE_ID [--identity-id IDENTITY_ID]
-                            [--static-ip4 STATIC_IP4] [-b {ci,ci-disk,ignition,none}]
-                            [-s OS_DISK_SIZE]
+usage: kaso instance create [-h] -n NAME [--vcpu VCPU] [--ram RAM] [--display {headless,vnc,cocoa}] --network-id NETWORK_ID
+                            --image-id IMAGE_ID [--identity-id IDENTITY_ID] [--static-ip4 STATIC_IP4]
+                            [-b {ci,ci-disk,ignition,none}] [-s OS_DISK_SIZE]
 
 options:
   -h, --help            show this help message and exit
   -n NAME, --name NAME  The instance name
   --vcpu VCPU           Number of vCPUs to assign to this instance
   --ram RAM             Amount of RAM in MB to assign to this instance
+  --display {headless,vnc,cocoa}
+                        How this VM should show its display
   --network-id NETWORK_ID
                         The network id on which this instance should be attached
   --image-id IMAGE_ID   The image id containing the OS of this instance
@@ -330,45 +346,47 @@ options:
                         OS disk size, defaults to 5G
 
 # Create an instance (note that you may provide --identity-id multiple times
-$ kaso instance create -n test --vcpu 2 --ram 2048 --network-id 3 --identity-id 1 --identity 2 --image-id 1 -b ci-disk
+$ kaso instance create -n test --vcpu 2 --ram 2048 --network-id 3 --identity-id 1 --identity 2 --image-id 1 -b ci-disk --display cocoa
 Creating instance test... ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 100% 0:00:00
 
 # Validate
 $ kaso instance get --id 1
-╭──────────────┬────────────────────────────────────────────────────╮
-│ Field        │ Value                                              │
-├──────────────┼────────────────────────────────────────────────────┤
-│ Id           │ 1                                                  │
-│ Name         │ test                                               │
-│ Path         │ /Users/mrmat/var/kaso/instances/test               │
-│ Image ID     │ 1                                                  │
-│ OS Disk Path │ /Users/mrmat/var/kaso/instances/test/os.qcow2      │
-│ CI Base Path │ /Users/mrmat/var/kaso/instances/test/cloud-init    │
-│ CI Disk path │ /Users/mrmat/var/kaso/instances/test/ci.img        │
-│ Network ID   │ 3                                                  │
-╰──────────────┴────────────────────────────────────────────────────╯
+╭─────────────────────┬──────────────────────────────────────────────────────╮
+│ Field               │ Value                                                │
+├─────────────────────┼──────────────────────────────────────────────────────┤
+│ Id                  │ 1                                                    │
+│ Name                │ test                                                 │
+│ Path                │ /Users/imfeldma/var/kaso/instances/test              │
+│ MAC                 │ 00:50:56:00:00:01                                    │
+│ vCPUs               │ 2                                                    │
+│ RAM                 │ 2048                                                 │
+│ Display             │ cocoa                                                │
+│ Bootstrapper        │ ci-disk                                              │
+│ Image ID            │ 1                                                    │
+│ Network ID          │ 3                                                    │
+│ OS Disk Path        │ /Users/imfeldma/var/kaso/instances/test/os.qcow2     │
+│ OS Disk Size        │ 10G                                                  │
+│ CI Base Path        │ /Users/imfeldma/var/kaso/instances/test/cloud-init   │
+│ CI Disk path        │ /Users/imfeldma/var/kaso/instances/test/ci.img       │
+│ VM Script Path      │ /Users/imfeldma/var/kaso/instances/test/vm.sh        │
+│ VNC Socket Path     │ /Users/imfeldma/var/kaso/instances/test/vnc.sock     │
+│ QMP Socket Path     │ /Users/imfeldma/var/kaso/instances/test/qmp.sock     │
+│ Console Socket Path │ /Users/imfeldma/var/kaso/instances/test/console.sock │
+╰─────────────────────┴──────────────────────────────────────────────────────╯
 ```
 
 ### Start an instance
 
-There should be the expected `kaso instance start --id 1` at this point, but we're not yet there. What was created for
-you though is a shell script that will start the instance. You will see the instance booting in the same terminal you
-start the shell script. Its serial console is redirected towards that. If you created a password-based user and added
-its identity to the VM then you can log in to the VM right away, otherwise open another terminal and log in with the
-user whose SSH key you specified.
+You can now start the instance using the `kaso instance start` command. The instance will attempt to phone home a single
+time when it is first started. Kaso Mashin will temporarily start a HTTP server to listen on the host IP address of the
+chosen network to enable this. 
 
-```shell
-$ sudo ~/var/kaso/instances/test/vm.sh
-... boot output
-```
+An additional window will open up depending on your choice of display. You can log in to the instance directly in that
+console window or connect via SSH to the IP address the instance finally ended up having. The instance IP address
+will be shown in the server log, at least for the first time the instance boots.
 
-> To stop the instance without logging in and shutting it down, hit <Ctrl-A C> and type 'quit' on the (qemu) prompt.
-> **Note that hitting <Ctrl-C> anywhere within the console will also shut down the VM.** We'll have other display options soon.
-
-It can be difficult to know what IP address was given to the VM you just started and this is one of the reasons why
-we want the VMs to phone home so we can tell you. In the meantime, know that the provided DHCP range on the host-only
-and shared networks will hand out IP addresses from the beginning IP. You find the DHCP ranges by running
-`kaso network get --id <id>`.
+You can simply shut down the instance from its console using any of the Linux commands intended for that purpose 
+(e.g. `shutdown -h now`) or more roughly stop it via `kaso instance stop`.
 
 ## Reference: OpenAPI
 
@@ -391,7 +409,6 @@ In the meantime you are encouraged to tweak the shell script that was created fo
 # This script can be used to manually start the instance it is located in
 
 /opt/homebrew/bin/qemu-system-aarch64 \
-  -machine test \
   -machine virt \
   -cpu host \
   -accel hvf \
