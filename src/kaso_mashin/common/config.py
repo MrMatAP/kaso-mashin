@@ -17,7 +17,7 @@ class Config:
     """
     Configuration handling for kaso_mashin
     """
-    path: pathlib.Path = pathlib.Path('~/var/kaso').expanduser()
+    path: pathlib.Path = dataclasses.field(default=pathlib.Path('~/var/kaso').expanduser())
     default_os_disk_size: str = dataclasses.field(default='5G')
     default_phone_home_port: int = dataclasses.field(default=10200)
     default_host_network_dhcp4_start: str = dataclasses.field(default='172.16.4.10')
@@ -29,8 +29,10 @@ class Config:
     default_server_host: str = dataclasses.field(default='127.0.0.1')
     default_server_port: int = dataclasses.field(default=8000)
 
-    def __init__(self):
+    def __init__(self, config_file: pathlib.Path = None):
         self._logger = logging.getLogger(f'{self.__class__.__module__}.{self.__class__.__name__}')
+        if config_file:
+            self.load(config_file)
 
     def load(self, config_file: pathlib.Path):
         """
@@ -40,14 +42,17 @@ class Config:
             self._logger.debug('No configuration file exists, using defaults')
             return
         self._logger.debug(f'Loading config file at {config_file}')
-        configurable = [field.name for field in dataclasses.fields(self)]
+        configurable = {field.name: field.type for field in dataclasses.fields(self)}
         try:
             with open(config_file, 'r', encoding='UTF-8') as c:
                 configured = yaml.load(c, Loader=Loader)
                 # Set the values for the intersection of what is configurable and actually configured
-            for key in list(set(configurable) & set(configured.keys())):
+            for key in list(set(configurable.keys()) & set(configured.keys())):
                 value = configured.get(key)
-                setattr(self, key, value)
+                if configurable.get(key) == pathlib.Path:
+                    setattr(self, key, pathlib.Path(value))
+                else:
+                    setattr(self, key, value)
                 self._logger.debug(f'Config file overrides {key} to {value}')
         except yaml.YAMLError as exc:
             raise KasoMashinException(status=400, msg='Invalid config file') from exc
@@ -58,9 +63,9 @@ class Config:
         Args:
             args: The CLI arguments
         """
-        configurable = [field.name for field in dataclasses.fields(self)]
+        configurable = {field.name: field.type for field in dataclasses.fields(self)}
         configured = vars(args)
-        for key in list(set(configurable) & set(configured.keys())):
+        for key in list(set(configurable.keys()) & set(configured.keys())):
             value = configured.get(key)
             if value != getattr(self, key):
                 setattr(self, key, value)
