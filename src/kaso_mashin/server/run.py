@@ -6,9 +6,11 @@ import argparse
 
 import fastapi
 import uvicorn
+import sqlalchemy.exc
 
 from kaso_mashin import __version__, console, default_config_file, KasoMashinException
 from kaso_mashin.common.config import Config
+from kaso_mashin.common.model import ExceptionSchema
 from kaso_mashin.server.db import DB
 from kaso_mashin.server.runtime import Runtime
 from kaso_mashin.server.apis import ConfigAPI, TaskAPI, ImageAPI, IdentityAPI, NetworkAPI, InstanceAPI
@@ -29,9 +31,19 @@ def create_server(runtime: Runtime) -> fastapi.applications.FastAPI:
     @app.exception_handler(KasoMashinException)
     # pylint: disable=unused-argument
     async def kaso_mashin_exception_handler(request: fastapi.Request, exc: KasoMashinException):
-        return fastapi.responses.JSONResponse(
-            status_code=exc.status,
-            content={'status': exc.status, 'message': exc.msg})
+        logging.getLogger('kaso_mashin.server').error(f'({exc.status}) {exc.msg}')
+        return fastapi.responses.JSONResponse(status_code=exc.status,
+                                              content=ExceptionSchema(status=exc.status, msg=exc.msg)
+                                              .model_dump())
+
+    @app.exception_handler(sqlalchemy.exc.SQLAlchemyError)
+    # pylint: disable=unused-argument
+    async def sqlalchemy_exception_handler(request: fastapi.Request, exc: sqlalchemy.exc.SQLAlchemyError):
+        logging.getLogger('kaso_mashin.server').error(f'(500) Database exception {exc}')
+        return fastapi.responses.JSONResponse(status_code=500,
+                                              content=ExceptionSchema(status=500, msg=f'Database exception {exc}')
+                                              .model_dump())
+
     return app
 
 
@@ -80,7 +92,7 @@ def main(args: typing.Optional[typing.List] = None) -> int:
         app = create_server(runtime)
         uvicorn.run(app, host=config.default_server_host, port=config.default_server_port)
         return 0
-    except Exception:   # pylint: disable=broad-except
+    except Exception:  # pylint: disable=broad-except
         console.print_exception()
     return 1
 

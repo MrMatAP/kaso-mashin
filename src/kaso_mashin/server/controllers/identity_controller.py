@@ -1,5 +1,6 @@
 import typing
 import sqlalchemy
+import sqlalchemy.exc
 
 from kaso_mashin import KasoMashinException
 from kaso_mashin.server.controllers import AbstractController
@@ -36,38 +37,54 @@ class IdentityController(AbstractController):
         return identity or None
 
     def create(self, model: IdentityModel) -> IdentityModel:
-        self.db.session.add(model)
-        self.db.session.commit()
-        return model
+        try:
+            self.db.session.add(model)
+            self.db.session.commit()
+            return model
+        except sqlalchemy.exc.SQLAlchemyError as sae:
+            self.db.session.rollback()
+            raise KasoMashinException(status=500, msg=f'Database exception: {sae}')
 
     def modify(self, identity_id: int, update: IdentityModel) -> IdentityModel:
-        current = self.db.session.get(IdentityModel, identity_id)
-        if not current:
-            raise KasoMashinException(status=404, msg='The identity could not be found')
-        if current.kind == IdentityKind.PUBKEY and update.passwd:
-            raise KasoMashinException(status=400, msg='Identities of the public key kind cannot have a password')
-        if current.kind == IdentityKind.PASSWORD and update.pubkey:
-            raise KasoMashinException(status=400, msg='Identities of the password kind cannot have a public key')
-        if update.gecos:
-            current.gecos = update.gecos
-        if update.homedir:
-            current.homedir = update.homedir
-        if update.shell:
-            current.shell = update.shell
-        if update.pubkey:
-            current.pubkey = update.pubkey
-        if update.passwd:
-            current.passwd = update.passwd
-        self.db.session.add(current)
-        self.db.session.commit()
-        return current
+        try:
+            current = self.db.session.get(IdentityModel, identity_id)
+            if not current:
+                raise KasoMashinException(status=404, msg='The identity could not be found')
+            if current.kind == IdentityKind.PUBKEY and update.passwd:
+                raise KasoMashinException(status=400, msg='Identities of kind public key cannot have a password')
+            if current.kind == IdentityKind.PASSWORD and update.pubkey:
+                raise KasoMashinException(status=400, msg='Identities of kind password cannot have a public key')
+            if update.gecos:
+                current.gecos = update.gecos
+            if update.homedir:
+                current.homedir = update.homedir
+            if update.shell:
+                current.shell = update.shell
+            if update.pubkey:
+                current.pubkey = update.pubkey
+            if update.passwd:
+                current.passwd = update.passwd
+            self.db.session.add(current)
+            self.db.session.commit()
+            return current
+        except sqlalchemy.exc.SQLAlchemyError as sae:
+            self.db.session.rollback()
+            raise KasoMashinException(status=500, msg=f'Database exception: {sae}')
 
     def remove(self, identity_id: int):
-        # TODO: Should check whether it's in use somewhere
-        identity = self.db.session.get(IdentityModel, identity_id)
-        if not identity:
-            # The identity is not around, should cause a 410
-            return True
-        self.db.session.delete(identity)
-        self.db.session.commit()
-        return False
+        try:
+            identity = self.db.session.get(IdentityModel, identity_id)
+            if not identity:
+                # The identity is not around, should cause a 410
+                return True
+            if len(identity.instances) > 0:
+                instances = [i.name for i in identity.instances]
+                raise KasoMashinException(status=400,
+                                          msg=f'Identity {identity.name} is used by instance(s) '
+                                              f'{" ".join(instances)}')
+            self.db.session.delete(identity)
+            self.db.session.commit()
+            return False
+        except sqlalchemy.exc.SQLAlchemyError as sae:
+            self.db.session.rollback()
+            raise KasoMashinException(status=500, msg=f'Database exception: {sae}')

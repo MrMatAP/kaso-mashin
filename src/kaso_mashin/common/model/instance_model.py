@@ -1,12 +1,15 @@
 import typing
 import enum
-from sqlalchemy import String, Integer, Enum, Table, Column, ForeignKey
+from sqlalchemy import String, Integer, Enum, ForeignKey
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 import pydantic
 
 from kaso_mashin import Base
 from kaso_mashin.common.custom_types import DbPath, SchemaPath
-from kaso_mashin.common.model import NetworkModel, ImageModel, IdentityModel
+from kaso_mashin.common.model.relation_tables import instance_to_identities
+from kaso_mashin.common.model.network_model import NetworkModel
+from kaso_mashin.common.model.image_model import ImageModel
+from kaso_mashin.common.model.identity_model import IdentityModel
 
 
 class DisplayKind(str, enum.Enum):
@@ -67,21 +70,6 @@ class InstanceModifySchema(pydantic.BaseModel):
     display: str = pydantic.Field(description='Display kind', examples=['headless', 'vnc'])
 
 
-instance_to_networks = Table(
-    'instance_networks',
-    Base.metadata,
-    Column('instance_id', ForeignKey('instances.instance_id')),
-    Column('network_id', ForeignKey('networks.network_id'))
-)
-
-instance_to_identities = Table(
-    'instance_identities',
-    Base.metadata,
-    Column('instance_id', ForeignKey('instances.instance_id')),
-    Column('identity_id', ForeignKey('identities.identity_id'))
-)
-
-
 class InstanceModel(Base):
     """
     Representation of an instance in the database
@@ -111,7 +99,8 @@ class InstanceModel(Base):
 
     network: Mapped[NetworkModel] = relationship(lazy=False)
     image: Mapped[ImageModel] = relationship(lazy=False)
-    identities: Mapped[typing.List[IdentityModel]] = relationship(secondary=instance_to_identities)
+    identities: Mapped[typing.List['IdentityModel']] = relationship(secondary=instance_to_identities,
+                                                                    back_populates='instances')
 
     @staticmethod
     def from_schema(schema: InstanceCreateSchema | InstanceModifySchema) -> 'InstanceModel':

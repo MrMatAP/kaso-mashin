@@ -1,6 +1,7 @@
 import argparse
 import pathlib
 
+import passlib.hash
 import rich.table
 import rich.box
 import rich.tree
@@ -36,20 +37,16 @@ class IdentityCommands(AbstractCommands):
                                             type=str,
                                             required=True,
                                             help='The identity name')
-        identity_create_parser.add_argument('-k', '--kind',
-                                            dest='kind',
-                                            type=str,
-                                            required=False,
-                                            choices=[k.value for k in IdentityKind],
-                                            help='The identity kind')
         identity_create_pass_or_pubkey = identity_create_parser.add_mutually_exclusive_group(required=True)
         identity_create_pass_or_pubkey.add_argument('--public-key',
                                                     dest='pubkey',
                                                     type=pathlib.Path,
+                                                    default=None,
                                                     help='Path to the SSH public key for public key-type credentials')
         identity_create_pass_or_pubkey.add_argument('--password',
                                                     dest='passwd',
                                                     type=str,
+                                                    default=None,
                                                     help='A password for password-type credentials')
         identity_create_parser.add_argument('--gecos',
                                             dest='gecos',
@@ -119,10 +116,10 @@ class IdentityCommands(AbstractCommands):
         identities = [IdentitySchema.model_validate(identity) for identity in resp.json()]
         table = rich.table.Table(box=rich.box.ROUNDED)
         table.add_column('[blue]ID')
-        table.add_column('[blue]Kind')
         table.add_column('[blue]Name')
+        table.add_column('[blue]Kind')
         for identity in identities:
-            table.add_row(str(identity.identity_id), identity.name, str(identity.kind))
+            table.add_row(str(identity.identity_id), identity.name, identity.kind)
         console.print(table)
         return 0
 
@@ -133,27 +130,19 @@ class IdentityCommands(AbstractCommands):
         if not resp:
             return 1
         identity = IdentitySchema.model_validate_json(resp.content)
-        table = rich.table.Table(box=rich.box.ROUNDED)
-        table.add_column('Field')
-        table.add_column('Value')
-        table.add_row('[blue]Id', str(identity.identity_id))
-        table.add_row('[blue]Name', identity.name)
-        table.add_row('[blue]Kind', str(identity.kind))
-        table.add_row('[blue]GECOS', identity.gecos or '')
-        table.add_row('[blue]Home Directory', identity.homedir or '')
-        table.add_row('[blue]Shell', identity.shell or '')
-        table.add_row('[blue]Password', identity.passwd or '')
-        table.add_row('[blue]Public Key', identity.pubkey or '')
-        console.print(table)
+        self._print_identity(identity)
         return 0
 
     def create(self, args: argparse.Namespace) -> int:
         schema = IdentityCreateSchema(name=args.name,
-                                      kind=args.kind,
                                       gecos=args.gecos,
                                       homedir=args.homedir,
                                       shell=args.shell)
-        if args.kind == IdentityKind.PUBKEY.value:
+        if not args.pubkey and not args.passwd:
+            console.print(f'[red]ERROR[/red]: You must either provide the path to a public key or a password')
+            return 1
+        if args.pubkey:
+            schema.kind = IdentityKind.PUBKEY
             pubkey_path = args.pubkey.expanduser()
             if not pubkey_path.exists():
                 console.print(f'[red]ERROR[/red]: Public key at path {args.pubkey_path} does not exist')
@@ -161,9 +150,8 @@ class IdentityCommands(AbstractCommands):
             with open(pubkey_path, 'r', encoding='UTF-8') as p:
                 schema.pubkey = p.readline().strip()
         else:
-            # TODO: Hash this right here
-            schema.passwd = args.passwd
-
+            schema.kind = IdentityKind.PASSWORD
+            schema.passwd = passlib.hash.sha512_crypt.using(rounds=4096).hash(args.passwd)
         resp = self.api_client(uri='/api/identities/',
                                method='POST',
                                body=schema.model_dump(),
@@ -186,20 +174,43 @@ class IdentityCommands(AbstractCommands):
                 return 1
             with open(pubkey_path, 'r', encoding='UTF-8') as p:
                 schema.pubkey = p.read().strip()
-        else:
-            # TODO: Hash this right here
-            schema.passwd = args.passwd
-
+        if args.passwd:
+            schema.passwd = passlib.hash.sha512_crypt.using(rounds=4096).hash(args.passwd)
         resp = self.api_client(uri=f'/api/identities/{args.identity_id}',
                                method='PUT',
                                body=schema.model_dump(),
                                expected_status=[200],
                                fallback_msg='Failed to modify identity')
-        return 0 if resp else 1
+        if not resp:
+            return 1
+        identity = IdentitySchema.model_validate_json(resp.content)
+        self._print_identity(identity)
+        return 0
 
     def remove(self, args: argparse.Namespace) -> int:
         resp = self.api_client(uri=f'/api/identities/{args.identity_id}',
                                method='DELETE',
                                expected_status=[204, 410],
                                fallback_msg='Failed to remove identity')
+        if not resp:
+            return 1
+        if resp.status_code == 204:
+            console.print(f'Removed identity with id {args.identity_id}')
+        else:
+            console.print(f'Identity with id {args.identity_id} does not exist')
         return 0 if resp else 1
+
+    @staticmethod
+    def _print_identity(identity: IdentitySchema):
+        table = rich.table.Table(box=rich.box.ROUNDED)
+        table.add_column('Field')
+        table.add_column('Value')
+        table.add_row('[blue]Id', str(identity.identity_id))
+        table.add_row('[blue]Name', identity.name)
+        table.add_row('[blue]Kind', identity.kind)
+        table.add_row('[blue]GECOS', identity.gecos or '')
+        table.add_row('[blue]Home Directory', identity.homedir or '')
+        table.add_row('[blue]Shell', identity.shell or '')
+        table.add_row('[blue]Password', identity.passwd or '')
+        table.add_row('[blue]Public Key', identity.pubkey or '')
+        console.print(table)

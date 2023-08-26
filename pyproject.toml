@@ -34,7 +34,8 @@ dependencies = [
     "uvicorn~=0.23.2",      # BSD 3-Clause
     "httpx~=0.24.1",        # BSD 3-Clause
     "aiofiles~=23.2.1",     # Apache 2.0
-    "qemu.qmp~=0.0.3"       # ?
+    "qemu.qmp~=0.0.3",      # ?
+    "passlib~=1.7.4"        # BSD
 ]
 dynamic = ["version"]
 

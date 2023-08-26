@@ -1,3 +1,4 @@
+from .relation_tables import instance_to_identities
 from .config_model import Predefined_Images, ConfigSchema, ImagePredefinedSchema
 from .image_model import (
     ImageModel, ImageSchema, ImageCreateSchema, ImageModifySchema)

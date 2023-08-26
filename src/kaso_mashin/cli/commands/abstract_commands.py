@@ -39,9 +39,11 @@ class AbstractCommands(abc.ABC):
                    body: typing.Dict | typing.List = None,
                    method: str = 'GET',
                    expected_status: typing.List = None,
-                   fallback_msg: str = 'Something bad and unknown happened...') -> httpx.Response:
+                   fallback_msg: str = 'Something bad and unknown happened...') -> httpx.Response | None:
         """
-        Convenience method for invoking the server API and perform error handling. Since this is for a CLI
+        Convenience method for invoking the server API and perform error handling. Since this is specifically for the
+        CLI we print a generic exception message right here if we get one.
+
         Args:
             uri: The relative URI to invoke
             body: An optional body for PUT or POST requests
@@ -66,6 +68,7 @@ class AbstractCommands(abc.ABC):
             except ValueError:
                 table.add_row('[red]Message:', fallback_msg)
             console.print(table)
+            return None
         return resp
 
     @property
