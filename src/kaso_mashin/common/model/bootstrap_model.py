@@ -129,7 +129,7 @@ class CIUserData(Renderable):
                 account['ssh_authorized_keys'] = [f'{identity.pubkey}']
                 account['lock_passwd'] = True
             else:
-                account['plain_text_passwd'] = identity.passwd
+                account['hashed_passwd'] = identity.passwd
                 account['lock_passwd'] = False
             userdata['users'].append(account)
         return '#cloud-config\n---\n' + dump(userdata)

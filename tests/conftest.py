@@ -1,9 +1,12 @@
 import pytest
+import logging
+import pathlib
+import tempfile
+import collections
 import shutil
 import fastapi
 import fastapi.testclient
 
-from kaso_mashin import __version__, KasoMashinException
 from kaso_mashin.common.config import Config
 from kaso_mashin.server.run import create_server
 from kaso_mashin.server.db import DB
@@ -11,14 +14,33 @@ from kaso_mashin.server.runtime import Runtime
 from kaso_mashin.common.model import (
     IdentityKind, IdentityModel)
 
+KasoTestContext = collections.namedtuple('KasoTestContext', 'runtime client')
+KasoIdentity = collections.namedtuple('KasoIdentity',
+                                      'name kind gecos homedir shell pubkey passwd')
+
 seed = {
     'identities': [
-        IdentityModel(name='Test 1', kind=IdentityKind.PUBKEY,
-                      gecos='Test Identity 1', homedir='/home/test1', shell='/bin/bash', pubkey='ssh-rsa test1-pubkey'),
-        IdentityModel(name='Test 2', kind=IdentityKind.PUBKEY,
-                      pubkey='ssh-rsa test2-pubkey'),
-        IdentityModel(name='Test 3', kind=IdentityKind.PASSWORD,
-                      gecos='Test Identity 3', homedir='/home/test3', shell='/bin/bash', passwd='foobar')
+        KasoIdentity(name='Test 1',
+                     kind=IdentityKind.PUBKEY,
+                     gecos='Test Identity 1',
+                     homedir='/home/test1',
+                     shell='/bin/bash',
+                     pubkey='ssh-rsa test1-pubkey',
+                     passwd=None),
+        KasoIdentity(name='Test 2',
+                     kind=IdentityKind.PUBKEY,
+                     gecos=None,
+                     homedir=None,
+                     shell=None,
+                     pubkey='ssh-rsa test2-pubkey',
+                     passwd=None),
+        KasoIdentity(name='Test 3',
+                     kind=IdentityKind.PASSWORD,
+                     gecos='Test Identity 3',
+                     homedir='/home/test3',
+                     shell='/bin/bash',
+                     pubkey=None,
+                     passwd='foobar')
     ],
     # 'networks': [
     #     NetworkModel(name='test-network-0',
@@ -47,55 +69,39 @@ seed = {
 
 
 @pytest.fixture(scope='class')
-def class_temp_dir(tmp_path_factory):
-    temp_dir = tmp_path_factory.mktemp('pytest')
-    yield temp_dir
-    shutil.rmtree(temp_dir, ignore_errors=True)
-
-
-@pytest.fixture(scope='class')
-def test_config(class_temp_dir):
-    config_file = class_temp_dir.joinpath('.kaso')
+def test_kaso_context_empty() -> KasoTestContext:
+    """
+    Fixture producing an empty Kaso test context with an api client and direct DB access
+    """
+    temp_dir = pathlib.Path(tempfile.mkdtemp(prefix='kaso-test'))
+    config_file = temp_dir.joinpath('.kaso')
     with config_file.open('w', encoding='UTF-8') as c:
-        c.write(f'path: {class_temp_dir}')
-    return Config(config_file)
+        c.write(f'path: {temp_dir}')
+    config = Config(config_file)
+    db = DB(config)
+    runtime = Runtime(config=config, db=db)
+    server = create_server(runtime)
+    logging.getLogger().info(f'Yielding Kaso Mashin context at {temp_dir}')
+    yield KasoTestContext(runtime=runtime,
+                          client=fastapi.testclient.TestClient(server))
+    shutil.rmtree(temp_dir, ignore_errors=True)
+    logging.getLogger().info(f'Removed Kaso Mashin context at {temp_dir}')
 
 
 @pytest.fixture(scope='class')
-def test_db(test_config):
-    return DB(config=test_config)
-
-
-@pytest.fixture(scope='class')
-def test_runtime(test_config, test_db):
-    return Runtime(config=test_config, db=test_db)
-
-
-def test_api_server(test_runtime):
-    return create_server(test_runtime)
-
-
-@pytest.fixture(scope='class')
-def test_api_server_empty(test_runtime):
-    app = test_api_server(test_runtime)
-    yield app
-
-
-@pytest.fixture(scope='class')
-def test_api_server_seeded(test_runtime):
-    app = test_api_server(test_runtime)
+def test_kaso_context_seeded(test_kaso_context_empty) -> KasoTestContext:
+    """
+    Fixture producing a fully seeded Kaso test context with an api client and direct DB access
+    """
     for kind, entries in seed.items():
         for model in entries:
-            test_runtime.db.session.add(model)
-    test_runtime.db.session.commit()
-    yield app
-
-
-@pytest.fixture(scope='class')
-def test_api_client_empty(test_api_server_empty):
-    yield fastapi.testclient.TestClient(test_api_server_empty)
-
-
-@pytest.fixture(scope='class')
-def test_api_client_seeded(test_api_server_seeded):
-    yield fastapi.testclient.TestClient(test_api_server_seeded)
+            test_kaso_context_empty.runtime.db.session.add(IdentityModel(name=model.name,
+                                                                         kind=model.kind,
+                                                                         gecos=model.gecos,
+                                                                         homedir=model.homedir,
+                                                                         shell=model.shell,
+                                                                         pubkey=model.pubkey,
+                                                                         passwd=model.passwd))
+    test_kaso_context_empty.runtime.db.session.commit()
+    logging.getLogger().info(f'Yielding seeded Kaso Mashin context')
+    yield test_kaso_context_empty

@@ -6,8 +6,7 @@ A tool to manage virtual machines on an ARM-based Mac. Kaso Mashin is 'Virtual M
 [![CodeQL](https://github.com/MrMatAP/kaso-mashin/actions/workflows/codeql.yml/badge.svg)](https://github.com/MrMatAP/kaso-mashin/actions/workflows/codeql.yml)
 
 >*SECURITY*: This is not something that you should be running in an open environment at this stage. The current
-> implementation implements an *unauthenticated* API on localhost. If you choose to create a password-based identity
-> then that password is stored in unencrypted form within the local database.
+> implementation implements an *unauthenticated* API on localhost.
 
 ## Background
 
@@ -179,20 +178,18 @@ identity or a password-based identity.
 # Show currently known identities. This will be empty for a fresh installation.
 $ kaso identity list
 ╭────┬──────┬──────╮
-│ ID │ Kind │ Name │
+│ ID │ Name │ Kind │
 ├────┼──────┼──────┤
 ╰────┴──────┴──────╯
 
 # Show the syntax for creating an identity
 $ kaso identity create -h
-usage: kaso identity create [-h] -n NAME [-k {pubkey,password}] (--public-key PUBKEY | --password PASSWD)
-                            [--gecos GECOS] [--homedir HOMEDIR] [--shell SHELL]
+usage: kaso identity create [-h] -n NAME (--public-key PUBKEY | --password PASSWD) [--gecos GECOS] [--homedir HOMEDIR]
+                            [--shell SHELL]
 
 options:
   -h, --help            show this help message and exit
   -n NAME, --name NAME  The identity name
-  -k {pubkey,password}, --kind {pubkey,password}
-                        The identity kind
   --public-key PUBKEY   Path to the SSH public key for public key-type credentials
   --password PASSWD     A password for password-type credentials
   --gecos GECOS         An optional account GECOS to override the default
@@ -205,20 +202,34 @@ Created identity with id 1
 
 # Validate
 $ kaso identity list
-╭────┬───────┬─────────────────────╮
-│ ID │ Kind  │ Name                │
-├────┼───────┼─────────────────────┤
-│ 1  │ mrmat │ IdentityKind.PUBKEY │
-╰────┴───────┴─────────────────────╯
+╭────┬───────┬────────────────╮
+│ ID │ Name  │ Kind           │
+├────┼───────┼────────────────┤
+│ 5  │ mrmat │ SSH Public Key │
+╰────┴───────┴────────────────╯
+
+# Details
+$ kaso identity get --id 5
+╭────────────────┬──────────────────────────────────────────────────────────────────────────────────────────────────────────────╮
+│ Field          │ Value                                                                                                        │
+├────────────────┼──────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
+│ Id             │ 5                                                                                                            │
+│ Name           │ mrmat                                                                                                        │
+│ Kind           │ SSH Public Key                                                                                               │
+│ GECOS          │                                                                                                              │
+│ Home Directory │                                                                                                              │
+│ Shell          │                                                                                                              │
+│ Password       │                                                                                                              │
+│ Public Key     │ ssh-rsa                                                                                                      │
+│                │ AAAAB some long string                                                                                       │
+╰────────────────┴──────────────────────────────────────────────────────────────────────────────────────────────────────────────╯
 ```
 
 There are still a lot of rough edges with Kaso Mashin at this time and that includes the bootstrapping mechanisms. You 
-will likely want to create a password-based identity as a fallback to test problems. **Note that this identity will
-have its unencrypted (!) password stored in the sqlite database** held in the Kaso Mashin directory 
-(by default at `~/var/kaso/kaso.sqlite3). Do not use your real password and do not expose the VMs at this time.
+will likely want to create a password-based identity as a fallback to test problems.
 
 ```shell
-$ kaso identity create -n debug -k password --password somethingsecret 
+$ kaso identity create -n debug --password somethingsecret 
 Created identity with id 2
 ```
 

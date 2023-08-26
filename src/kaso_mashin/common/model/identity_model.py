@@ -1,15 +1,17 @@
+import typing
 import enum
 
-from sqlalchemy import String, Enum
-from sqlalchemy.orm import Mapped, mapped_column
+from sqlalchemy import String, Integer, Enum
+from sqlalchemy.orm import Mapped, mapped_column, relationship
 import pydantic
 
 from kaso_mashin import Base
+from kaso_mashin.common.model.relation_tables import instance_to_identities
 
 
-class IdentityKind(str, enum.Enum):
-    PUBKEY = 'pubkey'
-    PASSWORD = 'password'
+class IdentityKind(enum.StrEnum):
+    PUBKEY = 'SSH Public Key'
+    PASSWORD = 'Password'
 
 
 class IdentityBaseSchema(pydantic.BaseModel):
@@ -70,7 +72,8 @@ class IdentityModel(Base):
     """
 
     __tablename__ = 'identities'
-    identity_id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
+    __table_args__ = {'sqlite_autoincrement': True}
+    identity_id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement='auto')
     name: Mapped[str] = mapped_column(String, unique=True)
     kind: Mapped[IdentityKind] = mapped_column(Enum(IdentityKind))
 
@@ -79,6 +82,9 @@ class IdentityModel(Base):
     passwd: Mapped[str] = mapped_column(String, nullable=True)
     shell: Mapped[str] = mapped_column(String, nullable=True)
     pubkey: Mapped[str] = mapped_column(String, nullable=True)
+
+    instances: Mapped[typing.List['InstanceModel']] = relationship(secondary=instance_to_identities,
+                                                                   back_populates='identities')
 
     @staticmethod
     def from_schema(schema: IdentityCreateSchema | IdentityModifySchema) -> 'IdentityModel':
