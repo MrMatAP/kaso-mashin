@@ -1,11 +1,11 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project version="4">
   <component name="DataSourceManagerImpl" format="xml" multifile-model="true">
-    <data-source source="LOCAL" name="kaso.sqlite3" uuid="5c6faaf0-a94c-4042-9902-56b006d7c4f6">
+    <data-source source="LOCAL" name="kaso (covenant)" uuid="a261b0a4-47e5-4068-b31a-c5ecdf8f6569">
       <driver-ref>sqlite.xerial</driver-ref>
       <synchronize>true</synchronize>
       <jdbc-driver>org.sqlite.JDBC</jdbc-driver>
-      <jdbc-url>jdbc:sqlite:/opt/dyn/kaso/kaso.sqlite3</jdbc-url>
+      <jdbc-url>jdbc:sqlite:$USER_HOME$/var/kaso/kaso.sqlite3</jdbc-url>
       <jdbc-additional-properties>
         <property name="com.intellij.clouds.kubernetes.db.enabled" value="false" />
       </jdbc-additional-properties>
