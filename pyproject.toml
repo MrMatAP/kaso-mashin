@@ -1,7 +1,7 @@
 [build-system]
 requires = [
-    'setuptools>=42.0.0',
-    'wheel >= 0.36.0'
+    'setuptools~=68.1.2',
+    'wheel~=0.36.0'
 ]
 build-backend = 'setuptools.build_meta'
 
@@ -9,7 +9,7 @@ build-backend = 'setuptools.build_meta'
 name = "kaso-mashin"
 description = "Building a mini-cloud as a playground"
 urls = { "Sources" = "https://github.com/MrMatAP/kaso-mashin" }
-keywords = ["experimental"]
+keywords = ["mac", "virtualization", "virtualisation", "arm64"]
 readme = "README.md"
 license = { text = "MIT" }
 authors = [
