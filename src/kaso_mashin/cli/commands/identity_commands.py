@@ -139,7 +139,7 @@ class IdentityCommands(AbstractCommands):
                                       homedir=args.homedir,
                                       shell=args.shell)
         if not args.pubkey and not args.passwd:
-            console.print(f'[red]ERROR[/red]: You must either provide the path to a public key or a password')
+            console.print('[red]ERROR[/red]: You must either provide the path to a public key or a password')
             return 1
         if args.pubkey:
             schema.kind = IdentityKind.PUBKEY

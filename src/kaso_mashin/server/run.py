@@ -31,7 +31,7 @@ def create_server(runtime: Runtime) -> fastapi.applications.FastAPI:
     @app.exception_handler(KasoMashinException)
     # pylint: disable=unused-argument
     async def kaso_mashin_exception_handler(request: fastapi.Request, exc: KasoMashinException):
-        logging.getLogger('kaso_mashin.server').error(f'({exc.status}) {exc.msg}')
+        logging.getLogger('kaso_mashin.server').error('(%s) %s', exc.status, exc.msg)
         return fastapi.responses.JSONResponse(status_code=exc.status,
                                               content=ExceptionSchema(status=exc.status, msg=exc.msg)
                                               .model_dump())
@@ -39,7 +39,7 @@ def create_server(runtime: Runtime) -> fastapi.applications.FastAPI:
     @app.exception_handler(sqlalchemy.exc.SQLAlchemyError)
     # pylint: disable=unused-argument
     async def sqlalchemy_exception_handler(request: fastapi.Request, exc: sqlalchemy.exc.SQLAlchemyError):
-        logging.getLogger('kaso_mashin.server').error(f'(500) Database exception {exc}')
+        logging.getLogger('kaso_mashin.server').error('(500) Database exception %s', str(exc))
         return fastapi.responses.JSONResponse(status_code=500,
                                               content=ExceptionSchema(status=500, msg=f'Database exception {exc}')
                                               .model_dump())
@@ -87,8 +87,8 @@ def main(args: typing.Optional[typing.List] = None) -> int:
     # TODO: We should move this into config
     runtime.late_init(server=True)
     try:
-        logger.info(f'Effective user {runtime.effective_user}')
-        logger.info(f'Owning user {runtime.owning_user}')
+        logger.info('Effective user %s', runtime.effective_user)
+        logger.info('Owning user %s', runtime.owning_user)
         app = create_server(runtime)
         uvicorn.run(app, host=config.default_server_host, port=config.default_server_port)
         return 0
