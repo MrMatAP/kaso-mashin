@@ -41,7 +41,7 @@ class Config:
         if not config_file.exists():
             self._logger.debug('No configuration file exists, using defaults')
             return
-        self._logger.debug(f'Loading config file at {config_file}')
+        self._logger.debug('Loading config file at %s', config_file)
         configurable = {field.name: field.type for field in dataclasses.fields(self)}
         try:
             with open(config_file, 'r', encoding='UTF-8') as c:
@@ -53,7 +53,7 @@ class Config:
                     setattr(self, key, pathlib.Path(value))
                 else:
                     setattr(self, key, value)
-                self._logger.debug(f'Config file overrides {key} to {value}')
+                self._logger.debug('Config file overrides %s to %s', key, value)
         except yaml.YAMLError as exc:
             raise KasoMashinException(status=400, msg='Invalid config file') from exc
 
@@ -69,10 +69,10 @@ class Config:
             value = configured.get(key)
             if value != getattr(self, key):
                 setattr(self, key, value)
-                self._logger.debug(f'CLI overrides {key} to {value}')
+                self._logger.debug('CLI overrides %s to %s', key, value)
 
     def save(self, config_file: pathlib.Path):
-        self._logger.debug(f'Saving configuration at {config_file}')
+        self._logger.debug('Saving configuration at %s', config_file)
         configured = {field.name: getattr(self, field.name) for field in dataclasses.fields(self)}
         try:
             with open(config_file, 'w+', encoding='UTF-8') as c:

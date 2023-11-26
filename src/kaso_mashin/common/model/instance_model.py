@@ -58,7 +58,9 @@ class InstanceCreateSchema(pydantic.BaseModel):
     image_id: int = pydantic.Field(description='Image ID to use as the backing OS disk', examples=[1])
     network_id: int = pydantic.Field(description='Network ID to connect the instance to', examples=[1])
     os_disk_size: str = pydantic.Field(description='The OS disk size in GB', default='5G', examples=['5G'])
-    identities: list = pydantic.Field(description='The identities on that instance', default_factory=list, examples=['1'])
+    identities: list = pydantic.Field(description='The identities on that instance',
+                                      default_factory=list,
+                                      examples=['1'])
 
 
 class InstanceModifySchema(pydantic.BaseModel):

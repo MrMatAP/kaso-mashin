@@ -43,7 +43,7 @@ class IdentityController(AbstractController):
             return model
         except sqlalchemy.exc.SQLAlchemyError as sae:
             self.db.session.rollback()
-            raise KasoMashinException(status=500, msg=f'Database exception: {sae}')
+            raise KasoMashinException(status=500, msg=f'Database exception: {sae}') from sae
 
     def modify(self, identity_id: int, update: IdentityModel) -> IdentityModel:
         try:
@@ -69,7 +69,7 @@ class IdentityController(AbstractController):
             return current
         except sqlalchemy.exc.SQLAlchemyError as sae:
             self.db.session.rollback()
-            raise KasoMashinException(status=500, msg=f'Database exception: {sae}')
+            raise KasoMashinException(status=500, msg=f'Database exception: {sae}') from sae
 
     def remove(self, identity_id: int):
         try:
@@ -87,4 +87,4 @@ class IdentityController(AbstractController):
             return False
         except sqlalchemy.exc.SQLAlchemyError as sae:
             self.db.session.rollback()
-            raise KasoMashinException(status=500, msg=f'Database exception: {sae}')
+            raise KasoMashinException(status=500, msg=f'Database exception: {sae}') from sae

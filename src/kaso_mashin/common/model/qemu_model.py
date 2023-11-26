@@ -63,14 +63,16 @@ class QEmuModel:
         self._cmd = self._generate_cmd()
         self._process: subprocess.Popen | None = None
         self._logger = logging.getLogger(f'{self.__class__.__module__}.{self.__class__.__name__}')
-        self._logger.info(f'Initialised for {model.name}')
+        self._logger.info('Initialised for %s', model.name)
 
     def _generate_cmd(self) -> str:
-        cmd = (f'{self.emulator} -name {self.model.name} -machine virt -cpu host -accel hvf -smp {self.model.vcpu} -m {self.model.ram} '
+        cmd = (f'{self.emulator} -name {self.model.name} -machine virt -cpu host -accel hvf '
+               f'-smp {self.model.vcpu} -m {self.model.ram} '
                f'-bios /opt/homebrew/share/qemu/edk2-aarch64-code.fd '
                '-device virtio-rng-pci -device nec-usb-xhci,id=usb-bus -device usb-kbd,bus=usb-bus.0 '
                f'-drive if=virtio,file={self.model.os_disk_path},format=qcow2,cache=writethrough '
-               f'-smbios type=3,manufacturer=MrMat,version=0,serial=instance_{self.model.instance_id},asset={self.model.name},sku=MrMat '
+               f'-smbios type=3,manufacturer=MrMat,version=0,serial=instance_{self.model.instance_id},'
+               f'asset={self.model.name},sku=MrMat '
                f'-chardev socket,id=char0,server=on,wait=off,path={self.model.console_path} '
                f'-qmp unix:{self.model.qmp_path},server=on,wait=off ')
         match self.model.display:
@@ -120,7 +122,8 @@ class QEmuModel:
     def generate_script(self):
         with open(self.model.vm_script_path, mode='w', encoding='UTF-8') as v:
             v.write(f'#!/bin/bash\n# '
-                    f'This script can be used to manually start the instance it is located in\n\n{self._generate_cmd()}')
+                    f'This script can be used to manually start the instance it is located in'
+                    f'\n\n{self._generate_cmd()}')
         self.model.vm_script_path.chmod(0o755)
 
     def _wait_for_bridge(self) -> bool | None:
@@ -137,13 +140,14 @@ class QEmuModel:
         return self.model.network.host_ip4 in addr2if
 
     def start(self):
+        # pylint: disable=consider-using-with
         self.process = subprocess.Popen(args=shlex.split(self._generate_cmd()), encoding='UTF-8')
         self._logger.info('Started QEmu process')
         # TODO: Cloud-init will only ever phone home once per instance, unless we make it a runcmd
         # Wait for the bridge to come up
         attempt = 0
         while attempt < 15 and not self._wait_for_bridge():
-            self._logger.info(f'Waiting for bridge to come up ({attempt}/15)')
+            self._logger.info('Waiting for bridge to come up (%s/15)', attempt)
             attempt += 1
             time.sleep(1)
         if attempt == 9:
@@ -151,10 +155,11 @@ class QEmuModel:
         self._logger.info('Bridge has come up')
 
         def _instance_phoned_home(actual_ip: str):
-            self._logger.info(f'Instance has phoned home. Actual IP: ${actual_ip}')
+            self._logger.info('Instance has phoned home. Actual IP: %s', actual_ip)
 
-        self._logger.info(f'Starting phone home server on host {self.model.network.host_ip4}')
-        httpd = PhoneHomeServer(server_address=(str(self.model.network.host_ip4), self.model.network.host_phone_home_port),
+        self._logger.info('Starting phone home server on host %s', self.model.network.host_ip4)
+        httpd = PhoneHomeServer(server_address=(str(self.model.network.host_ip4),
+                                                self.model.network.host_phone_home_port),
                                 callback=_instance_phoned_home,
                                 RequestHandlerClass=PhoneHomeHandler)
         httpd.timeout = 60
