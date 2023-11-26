@@ -3,7 +3,7 @@
   <component name="Black">
     <option name="executionMode" value="BINARY" />
     <option name="pathToExecutable" value="$USER_HOME$/.local/bin/black" />
-    <option name="sdkUUID" value="ba9851b2-9fb5-4c0c-ba9d-e78a506d00d4" />
+    <option name="sdkName" value="Python 3.11 (kaso-mashin)" />
   </component>
   <component name="ProjectRootManager" version="2" project-jdk-name="Python 3.11 (kaso-mashin)" project-jdk-type="Python SDK" />
   <component name="VagrantProjectSettings">
