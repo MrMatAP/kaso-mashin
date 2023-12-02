@@ -1,10 +1,15 @@
+<script setup lang="ts">
+
+</script>
+
 <template>
   <v-container class="fill-height">
     <v-responsive class="align-center text-center fill-height">
-      <p>Main Content goes here</p>
+      <p>Identities Grid</p>
     </v-responsive>
   </v-container>
 </template>
 
-<script lang="ts" setup>
-</script>
+<style scoped>
+
+</style>

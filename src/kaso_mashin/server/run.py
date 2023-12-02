@@ -1,10 +1,12 @@
 import sys
+import os
 import typing
 import logging
 import pathlib
 import argparse
 
 import fastapi
+import fastapi.staticfiles
 import uvicorn
 import sqlalchemy.exc
 
@@ -21,12 +23,22 @@ def create_server(runtime: Runtime) -> fastapi.applications.FastAPI:
                           summary='APIs for the Kaso Mashin controllers',
                           description='Provides APIs for the Kaso Mashin controllers',
                           version=__version__)
+
     app.include_router(ConfigAPI(runtime).router, prefix='/api/config')
     app.include_router(TaskAPI(runtime).router, prefix='/api/tasks')
     app.include_router(IdentityAPI(runtime).router, prefix='/api/identities')
     app.include_router(NetworkAPI(runtime).router, prefix='/api/networks')
     app.include_router(ImageAPI(runtime).router, prefix='/api/images')
     app.include_router(InstanceAPI(runtime).router, prefix='/api/instances')
+    app.mount(path='/',
+              app=fastapi.staticfiles.StaticFiles(directory=pathlib.Path(os.path.dirname(__file__), 'static')),
+              name='static')
+
+    @app.middleware('common-headers')
+    async def common_headers(request: fastapi.Request, call_next):
+        response: fastapi.Response = await call_next(request)
+        response.headers['X-Version'] = __version__
+        return response
 
     @app.exception_handler(KasoMashinException)
     # pylint: disable=unused-argument

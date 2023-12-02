@@ -18,3 +18,7 @@ const app = createApp(App)
 registerPlugins(app)
 
 app.mount('#app')
+
+import { useNetworksStore } from "@/store/networks";
+const networks = useNetworksStore()
+networks.init()

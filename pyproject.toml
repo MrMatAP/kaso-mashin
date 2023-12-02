@@ -48,7 +48,7 @@ include = ["kaso_mashin*"]
 namespaces = true
 
 [tool.setuptools.package-data]
-"*" = [".mo", "*.yml", "*.md", "inventory", "*.j2"]
+"*" = [".mo", "*.yml", "*.md", "inventory", "*.j2", "*.html", "*.ico", "*.css", "*.js", "*.svg", "*.woff", "*.eot", "*.ttf"]
 
 [project.scripts]
 kaso = "kaso_mashin.cli.run:main"
