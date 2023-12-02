@@ -1,7 +1,7 @@
 [build-system]
 requires = [
     'setuptools==69.0.2',
-    'wheel==0.41.3'
+    'wheel==0.42.0'
 ]
 build-backend = 'setuptools.build_meta'
 
@@ -27,11 +27,11 @@ requires-python = ">=3.10"
 dependencies = [
     "rich==13.7.0",         # MIT
     "requests==2.31.0",     # Apache 2.0
-    "pyyaml==6.0",          # MIT
+    "pyyaml==6.0.1",          # MIT
     "netifaces==0.11.0",    # MIT
     "sqlalchemy==2.0.23",   # MIT
     "fastapi==0.104.1",     # MIT
-    "uvicorn==0.23.2",      # BSD 3-Clause
+    "uvicorn==0.24.0.post1",      # BSD 3-Clause
     "httpx==0.24.1",        # BSD 3-Clause
     "aiofiles==23.2.1",     # Apache 2.0
     "qemu.qmp==0.0.3",      # ?
