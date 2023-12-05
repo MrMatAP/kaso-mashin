@@ -27,7 +27,7 @@ export const useNetworksStore = defineStore('networks', {
   //     return (id) => state.networks.find((net) => net.network_id === id)
   // },
   actions: {
-    async init() {
+    async refresh() {
       this.networks = await networks.get()
     }
   }
