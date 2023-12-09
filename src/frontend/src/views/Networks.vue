@@ -1,29 +1,20 @@
 <script setup lang="ts">
+import { onMounted } from 'vue'
 import {useNetworksStore} from "@/store/networks";
 import NetworkCard from '@/components/NetworkCard.vue'
 
-const store = useNetworksStore()
-const networks = store.networks
+const networksStore = useNetworksStore()
+
+onMounted(() => {
+  networksStore.refresh()
+})
 </script>
 
 <template>
-  <v-form>
-      <v-container>
-          <v-row>
-              <v-col cols="2" md="4">
-                  <v-text-field label="Name" required></v-text-field>
-                  <v-select label="Kind" :items="['Bridged', 'Host', 'Shared']"/>
-              </v-col>
-          </v-row>
-          <v-row>
-
-          </v-row>
-      </v-container>
-  </v-form>
   <v-container class="fill-height">
     <v-responsive class="fill-height">
       <v-row>
-        <v-col v-for="net in networks">
+        <v-col v-for="net in networksStore.networks">
           <NetworkCard :net="net"/>
         </v-col>
       </v-row>
