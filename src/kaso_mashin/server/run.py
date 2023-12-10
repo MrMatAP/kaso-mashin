@@ -41,16 +41,16 @@ def create_server(runtime: Runtime) -> fastapi.applications.FastAPI:
         return response
 
     @app.exception_handler(KasoMashinException)
-    # pylint: disable=unused-argument
     async def kaso_mashin_exception_handler(request: fastapi.Request, exc: KasoMashinException):
+        del request  # pylint: disable=unused-argument
         logging.getLogger('kaso_mashin.server').error('(%s) %s', exc.status, exc.msg)
         return fastapi.responses.JSONResponse(status_code=exc.status,
                                               content=ExceptionSchema(status=exc.status, msg=exc.msg)
                                               .model_dump())
 
     @app.exception_handler(sqlalchemy.exc.SQLAlchemyError)
-    # pylint: disable=unused-argument
     async def sqlalchemy_exception_handler(request: fastapi.Request, exc: sqlalchemy.exc.SQLAlchemyError):
+        del request  # pylint: disable=unused-argument
         logging.getLogger('kaso_mashin.server').error('(500) Database exception %s', str(exc))
         return fastapi.responses.JSONResponse(status_code=500,
                                               content=ExceptionSchema(status=500, msg=f'Database exception {exc}')
