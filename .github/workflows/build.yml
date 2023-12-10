@@ -69,7 +69,7 @@ jobs:
       run: |
         cd ${GITHUB_WORKSPACE}/src/frontend
         npm install
-        npm package
+        npm run package
 
         pip install --user -r dev-requirements.txt
         pylint --rcfile ${GITHUB_WORKSPACE}/.pylintrc ${GITHUB_WORKSPACE}/src/kaso_mashin --exit-zero
