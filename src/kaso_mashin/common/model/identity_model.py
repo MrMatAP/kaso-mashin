@@ -10,8 +10,8 @@ from kaso_mashin.common.model.relation_tables import instance_to_identities
 
 
 class IdentityKind(enum.StrEnum):
-    PUBKEY = 'SSH Public Key'
-    PASSWORD = 'Password'
+    PUBKEY = 'pubkey'
+    PASSWORD = 'password'
 
 
 class IdentityBaseSchema(pydantic.BaseModel):

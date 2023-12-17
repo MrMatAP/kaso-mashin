@@ -1,3 +1,7 @@
+# Mat's customisations
+
+src/kaso_mashin/server/static/**/*
+
 # Created by https://www.toptal.com/developers/gitignore/api/jetbrains,python
 # Edit at https://www.toptal.com/developers/gitignore?templates=jetbrains,python
 
@@ -127,7 +131,6 @@ lib/
 lib64/
 parts/
 sdist/
-var/
 wheels/
 pip-wheel-metadata/
 share/python-wheels/
