@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import {onMounted, ref, Ref} from 'vue'
+import {onMounted, ref} from 'vue'
 import {Identity, useIdentitiesStore} from '@/store/identities'
 import ExplanationNote from "@/components/ExplanationNote.vue";
 import IdentityDialog from "@/components/IdentityDialog.vue";

@@ -63,6 +63,14 @@ class ImageModifySchema(pydantic.BaseModel):
                                     examples=[10000])
 
 
+class PredefinedImageSchema(pydantic.BaseModel):
+    """
+    Output schema for predefined images
+    """
+    name: str = pydantic.Field(description='Name of the predefined image')
+    url: str = pydantic.Field(description='URL where the predefined image can be downloaded from')
+
+
 class ImageModel(Base):
     """
     Representation of an image in the database
