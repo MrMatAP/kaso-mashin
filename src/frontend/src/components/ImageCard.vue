@@ -16,7 +16,9 @@ let expand = ref()
     <v-expand-transition>
       <div v-if="expand">
         <v-list class="bg-transparent" density="compact">
-          <v-list-item title="MAC"><template v-slot:append>{{ instance.mac }}</template></v-list-item>
+          <v-list-item :title="image.min_cpu" subtitle="Minimum CPU"/>
+          <v-list-item :title="image.min_ram" subtitle="Minimum RAM"/>
+          <v-list-item :title="image.min_space" subtitle="Minimum Space"/>
         </v-list>
       </div>
     </v-expand-transition>
