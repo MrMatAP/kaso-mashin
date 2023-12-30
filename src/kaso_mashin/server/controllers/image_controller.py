@@ -49,7 +49,7 @@ class ImageController(AbstractController):
             image = self.db.session.scalar(sqlalchemy.sql.select(ImageModel).where(ImageModel.name == name))
         return image or None
 
-    async def create(self, name: str, url: str, task: TaskSchema) -> ImageModel:
+    async def create(self, name: str, url: str, min_cpu: int, min_ram: int, min_space: int, task: TaskSchema) -> ImageModel:
         image_path = self.config.path.joinpath(f'images/{name}.qcow2')
         if image_path.exists():
             raise KasoMashinException(status=400,
@@ -60,13 +60,13 @@ class ImageController(AbstractController):
         size = int(resp.headers.get('content-length'))
         current = 0
         client = httpx.AsyncClient(follow_redirects=True, timeout=60)
-        async with client.stream('GET', url) as resp, aiofiles.open(image_path, 'wb') as i:
+        async with client.stream(method='GET', url=url) as resp, aiofiles.open(image_path, 'wb') as i:
             async for chunk in resp.aiter_bytes():
                 await i.write(chunk)
                 current += 8192
                 task.progress(percent_complete=int(current / size * 100), msg='Downloading')
         shutil.chown(image_path, user=self._runtime.owning_user)
-        model = ImageModel(name=name, path=image_path)
+        model = ImageModel(name=name, path=image_path, min_cpu=min_cpu, min_ram=min_ram, min_space=min_space)
         self.db.session.add(model)
         self.db.session.commit()
         task.success(f'Downloaded to image with id {model.image_id}')

@@ -14,9 +14,7 @@ onMounted(() => {
   <v-container class="fill-height">
     <v-responsive class="fill-height">
       <v-row>
-        <v-col v-for="net in networksStore.networks">
-          <NetworkCard :net="net"/>
-        </v-col>
+        <NetworkCard v-for="net in networksStore.networks" :key="net.network_id" :net="net"/>
       </v-row>
     </v-responsive>
   </v-container>
