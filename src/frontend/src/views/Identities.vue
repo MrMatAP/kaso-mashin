@@ -98,10 +98,10 @@ onMounted( () => {
           </v-btn>
         </v-toolbar>
       </template>
-      <template v-slot:item.kind="{ value }">
+      <template v-slot:[`item.kind`]="{value}">
         {{ Identity.displayKind(value) }}
       </template>
-      <template v-slot:item.actions="{ item }">
+      <template v-slot:[`item.actions`]="{ item }">
         <v-btn density="compact" :rounded="true" variant="plain">
           <v-icon size="small">mdi-pencil</v-icon>
           <identity-dialog :kind="DialogKind.modify" :input="item" @accept="modifyIdentity"/>

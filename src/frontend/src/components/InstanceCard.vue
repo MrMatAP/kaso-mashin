@@ -16,7 +16,10 @@ let expand = ref()
     <v-expand-transition>
       <div v-if="expand">
         <v-list class="bg-transparent" density="compact">
-          <v-list-item title="MAC"><template v-slot:append>{{ instance.mac }}</template></v-list-item>
+          <v-list-item>
+            <template v-slot:title>{{instance.mac}}</template>
+            <template v-slot:subtitle>MAC</template>
+          </v-list-item>
         </v-list>
       </div>
     </v-expand-transition>

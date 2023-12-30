@@ -1,6 +1,7 @@
 <script setup lang="ts">
 
 import {useImagesStore} from "@/store/images";
+import ImageCard from "@/components/ImageCard.vue";
 
 const imagesStore = useImagesStore()
 </script>
@@ -9,9 +10,7 @@ const imagesStore = useImagesStore()
   <v-container class="fill-height">
     <v-responsive class="fill-height">
       <v-row>
-        <v-col v-for="instance in instanceStore.instances">
-          <InstanceCard :instance="instance"/>
-        </v-col>
+        <ImageCard v-for="image in imagesStore.images" :key="image.image_id" :image="image"/>
       </v-row>
     </v-responsive>
   </v-container>

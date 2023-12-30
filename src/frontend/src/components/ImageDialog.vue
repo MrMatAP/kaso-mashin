@@ -19,6 +19,7 @@ const title = computed( () => {
     case DialogKind.create: return 'Create Image'
     case DialogKind.modify: return 'Modify Image'
     case DialogKind.remove: return 'Remove Image'
+    default: return 'OK'
   }
 })
 const acceptLabel = computed( () => {
@@ -26,6 +27,7 @@ const acceptLabel = computed( () => {
     case DialogKind.create: return 'Save'
     case DialogKind.modify: return 'Modify'
     case DialogKind.remove: return 'Remove'
+    default: return 'OK'
   }
 })
 

@@ -89,7 +89,7 @@ onMounted( () => {
           </v-btn>
         </v-toolbar>
       </template>
-      <template v-slot:item.actions="{item}">
+      <template v-slot:[`item.actions`]="{item}">
         <v-btn density="compact" :rounded="true" variant="plain">
           <v-icon size="small">mdi-pencil</v-icon>
           <image-dialog :kind="DialogKind.modify" :input="item" :predefined="imagesStore.predefined_images" @accept="modifyImage"/>

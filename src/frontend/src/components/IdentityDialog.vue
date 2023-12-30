@@ -18,6 +18,7 @@ const title = computed( () => {
     case DialogKind.create: return 'Create Identity'
     case DialogKind.modify: return 'Modify Identity'
     case DialogKind.remove: return 'Remove Identity'
+    default: return 'OK'
   }
 })
 const acceptLabel = computed( () => {
@@ -25,6 +26,7 @@ const acceptLabel = computed( () => {
     case DialogKind.create: return 'Save'
     case DialogKind.modify: return 'Modify'
     case DialogKind.remove: return 'Remove'
+    default: return 'OK'
   }
 })
 const legalIdentityKinds = computed(() => [
