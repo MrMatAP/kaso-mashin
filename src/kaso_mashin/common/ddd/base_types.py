@@ -1,5 +1,7 @@
 import abc
 import typing
+import dataclasses
+import enum
 
 import sqlalchemy.orm
 
@@ -25,10 +27,15 @@ class EntityModel:
 T = typing.TypeVar('T', bound=EntityModel, covariant=True)
 UniqueIdentifier = typing.TypeVar('UniqueIdentifier', str, sqlalchemy.UUID(as_uuid=True))
 
+class BinaryScale(enum.StrEnum):
+    KB = 'Kilobytes'
+    MB = 'Megabytes'
+    GB = 'Gigabytes'
+    TB = 'Terabytes'
 
+@dataclasses.dataclass
 class Entity(abc.ABC):
     pass
-
 
 class ValueObject(abc.ABC):
     pass
@@ -43,16 +50,36 @@ class Repository(typing.Generic[T]):
     def __init__(self, model: typing.Type[T], session: sqlalchemy.orm.Session) -> None:
         self._model = model
         self._session = session
+        self._identity_map: typing.Dict[UniqueIdentifier, T] = {}
 
-    def get_by_id(self, uid: UniqueIdentifier) -> T:
-        return self._session.get(self._model, str(uid))
+    def get_by_id(self, uid: UniqueIdentifier) -> T | None:
+        """
+        Get an entity by its unique identifier. Entities are cached in an identity map to minimise (potentially costly)
+        lookups into the datastore.
+        Args:
+            uid: The unique identifier of the entity
+
+        Returns:
+
+        """
+        if uid in self._identity_map:
+            return self._identity_map[uid]
+        self._identity_map[uid] = self._session.get(self._model, str(uid))
+        return self._identity_map[uid]
 
     def list(self) -> typing.Iterable[T]:
-        return self._session.query(self._model).all()
+        """
+        List all known entities
+        Returns:
+            An iterable containing all known entities
+        """
+        self._identity_map.update({e.id:e for e in self._session.query(self._model).all()})
+        return self._identity_map.values()
 
     def create(self, entity: T) -> T:
         self._session.add(entity)
         self._session.commit()
+        self._identity_map[entity.id] = entity
         return entity
 
     def modify(self, update: T) -> T:
@@ -60,12 +87,11 @@ class Repository(typing.Generic[T]):
         current.merge(update)
         self._session.add(current)
         self._session.commit()
+        self._identity_map[current.id] = current
         return current
 
     def remove(self, uid: UniqueIdentifier) -> None:
         current = self._session.get(self._model, str(uid))
         self._session.delete(current)
         self._session.commit()
-
-
-
+        del self._identity_map[uid]
