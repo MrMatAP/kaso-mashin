@@ -6,6 +6,8 @@ import collections
 import shutil
 import fastapi
 import fastapi.testclient
+import sqlalchemy
+import sqlalchemy.orm
 
 from kaso_mashin.common.config import Config
 from kaso_mashin.server.run import create_server
@@ -13,6 +15,8 @@ from kaso_mashin.server.db import DB
 from kaso_mashin.server.runtime import Runtime
 from kaso_mashin.common.model import (
     IdentityKind, IdentityModel)
+
+from kaso_mashin.common.ddd import Base as DDDBase
 
 KasoTestContext = collections.namedtuple('KasoTestContext', 'runtime client')
 KasoIdentity = collections.namedtuple('KasoIdentity',
@@ -105,3 +109,13 @@ def test_kaso_context_seeded(test_kaso_context_empty) -> KasoTestContext:
     test_kaso_context_empty.runtime.db.session.commit()
     logging.getLogger().info(f'Yielding seeded Kaso Mashin context')
     yield test_kaso_context_empty
+
+
+@pytest.fixture(scope='module')
+def ddd_session() -> sqlalchemy.orm.Session:
+    db = pathlib.Path(__file__).parent.parent.joinpath('build/ddd.sqlite')
+    engine = sqlalchemy.create_engine('sqlite:///{}'.format(db), echo=False)
+    DDDBase.metadata.create_all(engine)
+    session = sqlalchemy.orm.Session(engine)
+    yield session
+    session.close()
