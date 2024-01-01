@@ -113,7 +113,8 @@ def test_kaso_context_seeded(test_kaso_context_empty) -> KasoTestContext:
 
 @pytest.fixture(scope='module')
 def ddd_session() -> sqlalchemy.orm.Session:
-    db = pathlib.Path(__file__).parent.parent.joinpath('build/ddd.sqlite')
+    db = pathlib.Path(__file__).parent.joinpath('build/ddd.sqlite')
+    db.parent.mkdir(parents=True, exist_ok=True)
     engine = sqlalchemy.create_engine('sqlite:///{}'.format(db), echo=False)
     DDDBase.metadata.create_all(engine)
     session = sqlalchemy.orm.Session(engine)
