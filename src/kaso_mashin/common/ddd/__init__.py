@@ -5,4 +5,4 @@ from .base_types import (
     ValueObject,
     AggregateRoot, Repository)
 from .models import InstanceModel, ImageModel
-from .aggregates import ImageEntity
+from .aggregates import InstanceEntity, ImageEntity

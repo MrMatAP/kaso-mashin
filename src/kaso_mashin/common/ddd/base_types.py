@@ -14,8 +14,16 @@ class Base(sqlalchemy.orm.DeclarativeBase):  # pylint: disable=too-few-public-me
 
 
 class EntityModel:
-    id: sqlalchemy.orm.Mapped[str] = sqlalchemy.orm.mapped_column(sqlalchemy.String(32),
-                                                                  primary_key=True)
+    id: sqlalchemy.orm.Mapped[str] = sqlalchemy.orm.mapped_column(sqlalchemy.String(32), primary_key=True)
+
+    @staticmethod
+    @abc.abstractmethod
+    def from_aggregateroot(entity):
+        raise NotImplementedError()
+
+    @abc.abstractmethod
+    def as_entity(self):
+        raise NotImplementedError()
 
     def merge(self, other: 'EntityModel'):
         for key, value in self.__dict__.items():
@@ -27,15 +35,18 @@ class EntityModel:
 T = typing.TypeVar('T', bound=EntityModel, covariant=True)
 UniqueIdentifier = typing.TypeVar('UniqueIdentifier', str, sqlalchemy.UUID(as_uuid=True))
 
+
 class BinaryScale(enum.StrEnum):
     KB = 'Kilobytes'
     MB = 'Megabytes'
     GB = 'Gigabytes'
     TB = 'Terabytes'
 
+
 @dataclasses.dataclass
 class Entity(abc.ABC):
     pass
+
 
 class ValueObject(abc.ABC):
     pass
@@ -54,10 +65,10 @@ class Repository(typing.Generic[T]):
 
     def get_by_id(self, uid: UniqueIdentifier) -> T | None:
         """
-        Get an entity by its unique identifier. Entities are cached in an identity map to minimise (potentially costly)
+        Return a model instance by its unique identifier. Models are cached in an identity map to minimise (potentially costly)
         lookups into the datastore.
         Args:
-            uid: The unique identifier of the entity
+            uid: The unique identifier of the model instance
 
         Returns:
 
@@ -69,20 +80,36 @@ class Repository(typing.Generic[T]):
 
     def list(self) -> typing.Iterable[T]:
         """
-        List all known entities
+        List all currently known model instances
         Returns:
-            An iterable containing all known entities
+            An iterable containing all known model instances
         """
-        self._identity_map.update({e.id:e for e in self._session.query(self._model).all()})
+        self._identity_map.update({e.id: e for e in self._session.query(self._model).all()})
         return self._identity_map.values()
 
-    def create(self, entity: T) -> T:
-        self._session.add(entity)
+    def create(self, instance: T) -> T:
+        """
+        Create a new model instance
+        Args:
+            instance: The model instance to create
+
+        Returns:
+            The persisted model instance
+        """
+        self._session.add(instance)
         self._session.commit()
-        self._identity_map[entity.id] = entity
-        return entity
+        self._identity_map[instance.id] = instance
+        return instance
 
     def modify(self, update: T) -> T:
+        """
+        Update an existing model instance
+        Args:
+            update: The updated model instance
+
+        Returns:
+            The updated model instance
+        """
         current: T = self._session.get(self._model, update.id)
         current.merge(update)
         self._session.add(current)
@@ -91,6 +118,11 @@ class Repository(typing.Generic[T]):
         return current
 
     def remove(self, uid: UniqueIdentifier) -> None:
+        """
+        Remove an existing model instance
+        Args:
+            uid: The unique identifier of the model instance to be removed
+        """
         current = self._session.get(self._model, str(uid))
         self._session.delete(current)
         self._session.commit()
