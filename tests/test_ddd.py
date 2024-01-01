@@ -21,8 +21,8 @@ def test_image_entity(ddd_session):
     try:
         repo.create(ImageModel.from_aggregateroot(image))
         model = repo.get_by_id(image.id)
-        loaded_image = model.as_entity()
-        assert loaded_image == image
+        loaded = model.as_entity()
+        assert loaded == image
     finally:
         repo.remove(image.id)
         assert repo.get_by_id(image.id) is None

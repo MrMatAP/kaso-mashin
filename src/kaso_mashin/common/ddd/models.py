@@ -21,11 +21,11 @@ class InstanceModel(EntityModel, Base):
                              ram=entity.ram.value,
                              ram_scale=entity.ram.scale)
 
-    def as_entity(self):
-        return InstanceModel(id=self.id,
-                             name=self.name,
-                             vcpu=self.vcpu,
-                             ram=SizedValue(value=self.ram, scale=self.ram_scale))
+    def as_entity(self) -> InstanceEntity:
+        return InstanceEntity(id=self.id,
+                              name=self.name,
+                              vcpu=self.vcpu,
+                              ram=SizedValue(value=self.ram, scale=self.ram_scale))
 
 
 class ImageModel(EntityModel, Base):
@@ -54,4 +54,3 @@ class ImageModel(EntityModel, Base):
                            min_vcpu=self.min_vcpu,
                            min_ram=SizedValue(value=self.min_ram, scale=self.min_ram_scale),
                            min_disk=SizedValue(value=self.min_disk, scale=self.min_disk_scale))
-
