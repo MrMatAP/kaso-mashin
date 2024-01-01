@@ -4,7 +4,7 @@ import uuid
 from .base_types import UniqueIdentifier, BinaryScale, AggregateRoot, ValueObject
 
 
-@dataclasses.dataclass
+@dataclasses.dataclass(frozen=True)
 class SizedValue(ValueObject):
     value: int = dataclasses.field(default=0)
     scale: BinaryScale = dataclasses.field(default=BinaryScale.GB)
