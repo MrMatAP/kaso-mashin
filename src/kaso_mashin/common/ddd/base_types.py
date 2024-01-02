@@ -32,7 +32,7 @@ class EntityModel:
             setattr(self, key, getattr(other, key))
 
 
-T = typing.TypeVar('T', bound=EntityModel, covariant=True)
+T = typing.TypeVar('T', bound=EntityModel)
 UniqueIdentifier = typing.TypeVar('UniqueIdentifier', str, sqlalchemy.UUID(as_uuid=True))
 
 
