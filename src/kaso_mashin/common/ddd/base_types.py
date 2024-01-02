@@ -64,6 +64,8 @@ class Repository(typing.Generic[T]):
     unfortunate that we have to specify the model twice in the constructor but due to type erasure, the type of
     T is no longer known at runtime. This is easily solved for those methods that accept a typed parameter (e.g.
     a DiskModel instance) but not for those cases where we simply accept a unique identifier.
+
+    It is recommented to create a typedef EntityRepository = Repository[Entity] to avoid a runtime performance hit
     """
 
     def __init__(self, model: typing.Type[T], session: sqlalchemy.orm.Session) -> None:

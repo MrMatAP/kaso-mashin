@@ -1,9 +1,8 @@
 import pathlib
 from kaso_mashin.common.ddd import (
-    Repository, SizedValue, BinaryScale,
-    ImageModel, ImageEntity,
+    Repository, SizedValue, ImageModel, ImageEntity,
     InstanceModel, InstanceEntity,
-    DiskModel, DiskEntity )
+    DiskModel, DiskEntity, BinaryScale)
 
 
 def test_instance_entity(ddd_session):

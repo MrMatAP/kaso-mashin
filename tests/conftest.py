@@ -17,6 +17,7 @@ from kaso_mashin.common.model import (
     IdentityKind, IdentityModel)
 
 from kaso_mashin.common.ddd import Base as DDDBase
+from kaso_mashin.common.applied import Base as AppliedBase
 
 KasoTestContext = collections.namedtuple('KasoTestContext', 'runtime client')
 KasoIdentity = collections.namedtuple('KasoIdentity',
@@ -117,6 +118,17 @@ def ddd_session() -> sqlalchemy.orm.Session:
     db.parent.mkdir(parents=True, exist_ok=True)
     engine = sqlalchemy.create_engine('sqlite:///{}'.format(db), echo=False)
     DDDBase.metadata.create_all(engine)
+    session = sqlalchemy.orm.Session(engine)
+    yield session
+    session.close()
+
+
+@pytest.fixture(scope='module')
+def applied_session() -> sqlalchemy.orm.Session:
+    db = pathlib.Path(__file__).parent.joinpath('build/applied.sqlite')
+    db.parent.mkdir(parents=True, exist_ok=True)
+    engine = sqlalchemy.create_engine('sqlite:///{}'.format(db), echo=False)
+    AppliedBase.metadata.create_all(engine)
     session = sqlalchemy.orm.Session(engine)
     yield session
     session.close()
