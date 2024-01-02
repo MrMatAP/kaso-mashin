@@ -1,6 +1,5 @@
 import abc
 import typing
-import dataclasses
 import enum
 
 import sqlalchemy.orm
