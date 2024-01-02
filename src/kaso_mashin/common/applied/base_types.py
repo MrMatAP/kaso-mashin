@@ -9,10 +9,12 @@ from sqlalchemy.orm import DeclarativeBase, Session, Mapped, mapped_column
 
 
 class BinaryScale(enum.StrEnum):
-    KB = 'Kilobytes'
-    MB = 'Megabytes'
-    GB = 'Gigabytes'
-    TB = 'Terabytes'
+    k = 'Kilobytes'
+    M = 'Megabytes'
+    G = 'Gigabytes'
+    T = 'Terabytes'
+    P = 'Petabytes'
+    E = 'Exabytes'
 
 
 class Base(DeclarativeBase):  # pylint: disable=too-few-public-methods
@@ -184,4 +186,21 @@ class BinarySizedValue(ValueObject):
     A sized binary value object
     """
     value: int = dataclasses.field(default=0)
-    scale: BinaryScale = dataclasses.field(default=BinaryScale.GB)
+    scale: BinaryScale = dataclasses.field(default=BinaryScale.G)
+
+    def __str__(self):
+        return f'{self.value}{self.scale.name}'
+
+
+class KMException(Exception):
+
+    def __init__(self, code: int, msg: str) -> None:
+        super().__init__()
+        self._code = code
+        self._msg = msg
+
+    def __str__(self) -> str:
+        return f'[{self._code}] {self._msg}'
+
+    def __repr__(self) -> str:
+        return f'{self.__class__.__name__}(code={self._code}, msg={self._msg})'

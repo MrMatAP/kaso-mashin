@@ -1,4 +1,3 @@
-import typing
 import uuid
 import dataclasses
 import pathlib
@@ -22,8 +21,8 @@ class ImageEntity(AggregateRoot):
     path: pathlib.Path
     id: UniqueIdentifier = dataclasses.field(default_factory=lambda: str(uuid.uuid4()))
     min_vcpu: int = dataclasses.field(default=0)
-    min_ram: BinarySizedValue = dataclasses.field(default_factory=lambda: BinarySizedValue(0, BinaryScale.GB))
-    min_disk: BinarySizedValue = dataclasses.field(default_factory=lambda: BinarySizedValue(0, BinaryScale.GB))
+    min_ram: BinarySizedValue = dataclasses.field(default_factory=lambda: BinarySizedValue(0, BinaryScale.G))
+    min_disk: BinarySizedValue = dataclasses.field(default_factory=lambda: BinarySizedValue(0, BinaryScale.G))
 
 
 class ImageModel(AggregateRootModel, Base):
@@ -35,9 +34,9 @@ class ImageModel(AggregateRootModel, Base):
     path: Mapped[str] = mapped_column(String())
     min_vcpu: Mapped[int] = mapped_column(Integer, default=0)
     min_ram: Mapped[int] = mapped_column(Integer, default=0)
-    min_ram_scale: Mapped[str] = mapped_column(Enum(BinaryScale), default=BinaryScale.GB)
+    min_ram_scale: Mapped[str] = mapped_column(Enum(BinaryScale), default=BinaryScale.G)
     min_disk: Mapped[int] = mapped_column(Integer, default=0)
-    min_disk_scale: Mapped[str] = mapped_column(Enum(BinaryScale), default=BinaryScale.GB)
+    min_disk_scale: Mapped[str] = mapped_column(Enum(BinaryScale), default=BinaryScale.G)
 
 
 class ImageRepository(Repository[ImageEntity, ImageModel]):
