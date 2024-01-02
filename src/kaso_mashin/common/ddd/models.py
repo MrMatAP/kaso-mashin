@@ -1,8 +1,9 @@
+import pathlib
 from sqlalchemy import String, Integer, Enum
 from sqlalchemy.orm import Mapped, mapped_column
 
 from .base_types import Base, EntityModel, BinaryScale
-from .aggregates import InstanceEntity, ImageEntity, SizedValue
+from .aggregates import InstanceEntity, ImageEntity, DiskEntity, SizedValue
 
 
 class InstanceModel(EntityModel, Base):
@@ -12,6 +13,7 @@ class InstanceModel(EntityModel, Base):
     vcpu: Mapped[int] = mapped_column(Integer)
     ram: Mapped[int] = mapped_column(Integer)
     ram_scale: Mapped[str] = mapped_column(Enum(BinaryScale))
+    # os_disk_id: Mapped[str] = mapped_column(String(32))
 
     @staticmethod
     def from_aggregateroot(entity: InstanceEntity) -> 'InstanceModel':
@@ -54,3 +56,26 @@ class ImageModel(EntityModel, Base):
                            min_vcpu=self.min_vcpu,
                            min_ram=SizedValue(value=self.min_ram, scale=self.min_ram_scale),
                            min_disk=SizedValue(value=self.min_disk, scale=self.min_disk_scale))
+
+
+class DiskModel(EntityModel, Base):
+    __tablename__ = 'ddd_disks'
+
+    name: Mapped[str] = mapped_column(String(64))
+    path: Mapped[str] = mapped_column(String())
+    size: Mapped[int] = mapped_column(Integer, default=0)
+    size_scale: Mapped[str] = mapped_column(Enum(BinaryScale), default=BinaryScale.GB)
+
+    @staticmethod
+    def from_aggregateroot(entity: DiskEntity) -> 'DiskModel':
+        return DiskModel(id=entity.id,
+                         name=entity.name,
+                         path=str(entity.path),
+                         size=entity.size.value,
+                         size_scale=entity.size.scale)
+
+    def as_entity(self) -> DiskEntity:
+        return DiskEntity(id=self.id,
+                          name=self.name,
+                          path=pathlib.Path(self.path),
+                          size=SizedValue(value=self.size, scale=self.size_scale))

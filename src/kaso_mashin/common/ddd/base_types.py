@@ -43,7 +43,6 @@ class BinaryScale(enum.StrEnum):
     TB = 'Terabytes'
 
 
-@dataclasses.dataclass
 class Entity(abc.ABC):
     pass
 
@@ -52,11 +51,21 @@ class ValueObject(abc.ABC):
     pass
 
 
-class AggregateRoot(Entity):
+class Aggregate(Entity):
+    pass
+
+
+class AggregateRoot(Aggregate):
     pass
 
 
 class Repository(typing.Generic[T]):
+    """
+    A generic repository operating on type T and instantiated as Repository[DiskModel](DiskModel, session). It is
+    unfortunate that we have to specify the model twice in the constructor but due to type erasure, the type of
+    T is no longer known at runtime. This is easily solved for those methods that accept a typed parameter (e.g.
+    a DiskModel instance) but not for those cases where we simply accept a unique identifier.
+    """
 
     def __init__(self, model: typing.Type[T], session: sqlalchemy.orm.Session) -> None:
         self._model = model
@@ -68,7 +77,7 @@ class Repository(typing.Generic[T]):
         Return a model instance by its unique identifier. Models are cached in an identity map to minimise (potentially costly)
         lookups into the datastore.
         Args:
-            uid: The unique identifier of the model instance
+            uid: The unique identifier of the model instance.
 
         Returns:
 
@@ -82,7 +91,7 @@ class Repository(typing.Generic[T]):
         """
         List all currently known model instances
         Returns:
-            An iterable containing all known model instances
+            An iterable containing all known model instances.
         """
         self._identity_map.update({e.id: e for e in self._session.query(self._model).all()})
         return self._identity_map.values()
@@ -110,7 +119,7 @@ class Repository(typing.Generic[T]):
         Returns:
             The updated model instance
         """
-        current: T = self._session.get(self._model, update.id)
+        current: T = self._session.get(type(update), update.id)
         current.merge(update)
         self._session.add(current)
         self._session.commit()
