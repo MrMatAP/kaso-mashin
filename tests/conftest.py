@@ -75,7 +75,7 @@ seed = {
 @pytest.fixture(scope='class')
 def test_kaso_context_empty() -> KasoTestContext:
     """
-    Fixture producing an empty Kaso test context with an api client and direct DB access
+    Fixture producing an empty Kaso test context with an api client and direct DB access.
     """
     temp_dir = pathlib.Path(tempfile.mkdtemp(prefix='kaso-test'))
     config_file = temp_dir.joinpath('.kaso')
