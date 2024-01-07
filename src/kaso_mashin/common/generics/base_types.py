@@ -8,8 +8,8 @@ import typing
 import uuid
 
 from sqlalchemy import UUID, String, select
+from sqlalchemy.orm import DeclarativeBase, sessionmaker, Session, Mapped, mapped_column
 from sqlalchemy.ext.asyncio import async_sessionmaker, AsyncSession
-from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, sessionmaker
 
 
 class KasoMashinException(Exception):
@@ -27,6 +27,10 @@ class KasoMashinException(Exception):
 
 
 class EntityNotFoundException(KasoMashinException):
+    pass
+
+
+class EntityInvariantException(KasoMashinException):
     pass
 
 
@@ -68,22 +72,33 @@ T_ValueObject = typing.TypeVar('T_ValueObject', bound=ValueObject)
 
 class AsyncAggregateRoot(typing.Generic[T_Entity, T_Model]):
 
-    def __init__(self, repository: 'AsyncRepository[T_Model]') -> None:
-        self._repository = repository
+    def __init__(self, model: typing.Type[T_Model], session_maker: sessionmaker[Session]) -> None:
+        self._repository = AsyncRepository[T_Model](model=model, session_maker=session_maker)
 
     async def get(self, uid: UniqueIdentifier) -> T_Entity:
         model = await self._repository.get_by_id(str(uid))
-        return self.deserialise(model)
+        entity = self.deserialise(model)
+        if not self.validate(entity):
+            raise EntityInvariantException(code=500, msg='Entity fails validation')
+        return entity
 
     async def list(self) -> typing.List[T_Entity]:
         models = await self._repository.list()
-        return [self.deserialise(model) for model in models]
+        entities = [self.deserialise(model) for model in models]
+        bad_entities = [e for e in entities if not self.validate(e)]
+        if len(bad_entities) > 0:
+            raise EntityInvariantException(code=500, msg='Entity fails validation')
+        return entities
 
     async def create(self, entity: T_Entity) -> T_Entity:
+        if not self.validate(entity):
+            raise EntityInvariantException(code=500, msg='Entity fails validation')
         model = await self._repository.create(self.serialise(entity))
         return self.deserialise(model)
 
     async def modify(self, entity: T_Entity) -> T_Entity:
+        if not self.validate(entity):
+            raise EntityInvariantException(code=500, msg='Entity fails validation')
         model = await self._repository.modify(self.serialise(entity))
         return self.deserialise(model)
 
@@ -108,22 +123,33 @@ T_AsyncAggregateRoot = typing.TypeVar('T_AsyncAggregateRoot', bound=AsyncAggrega
 
 class AggregateRoot(typing.Generic[T_Entity, T_Model]):
 
-    def __init__(self, repository: 'Repository[T_Model]') -> None:
-        self._repository = repository
+    def __init__(self, model: typing.Type[T_Model], session_maker: sessionmaker[Session]) -> None:
+        self._repository = Repository[T_Model](model=model, session_maker=session_maker)
 
     def get(self, uid: UniqueIdentifier) -> T_Entity:
         model = self._repository.get_by_id(str(uid))
-        return self.deserialise(model)
+        entity = self.deserialise(model)
+        if not self.validate(entity):
+            raise EntityInvariantException(code=500, msg='Entity fails validation')
+        return entity
 
     def list(self) -> typing.List[T_Entity]:
         models = self._repository.list()
-        return [self.deserialise(model) for model in models]
+        entities = [self.deserialise(model) for model in models]
+        bad_entities = [e for e in entities if not self.validate(e)]
+        if len(bad_entities) > 0:
+            raise EntityInvariantException(code=500, msg='Entity fails validation')
+        return entities
 
     def create(self, entity: T_Entity) -> T_Entity:
+        if not self.validate(entity):
+            raise EntityInvariantException(code=500, msg='Entity fails validation')
         model = self._repository.create(self.serialise(entity))
         return self.deserialise(model)
 
     def modify(self, entity: T_Entity) -> T_Entity:
+        if not self.validate(entity):
+            raise EntityInvariantException(code=500, msg='Entity fails validation')
         model = self._repository.modify(self.serialise(entity))
         return self.deserialise(model)
 
@@ -170,9 +196,9 @@ class BinarySizedValue(ValueObject):
 class AsyncRepository(typing.Generic[T_Model]):
 
     def __init__(self,
-                 model_clazz: typing.Type[T_Model],
-                 session_maker: async_sessionmaker[AsyncSession]):
-        self._model_clazz = model_clazz
+                 model: typing.Type[T_Model],
+                 session_maker: async_sessionmaker[AsyncSession]) -> None:
+        self._model_clazz = model
         self._session_maker = session_maker
         self._identity_map: typing.Dict[str, T_Model] = {}
 
@@ -229,9 +255,9 @@ class AsyncRepository(typing.Generic[T_Model]):
 class Repository(typing.Generic[T_Model]):
 
     def __init__(self,
-                 model_clazz: typing.Type[T_Model],
+                 model: typing.Type[T_Model],
                  session_maker: sessionmaker):
-        self._model_clazz = model_clazz
+        self._model_clazz = model
         self._session_maker = session_maker
         self._identity_map: typing.Dict[str, T_Model] = {}
 

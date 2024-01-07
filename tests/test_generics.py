@@ -1,13 +1,12 @@
 import pytest
 import pathlib
 
-from kaso_mashin.common.generics.base_types import BinaryScale, BinarySizedValue, AsyncRepository, Repository
+from kaso_mashin.common.generics.base_types import BinaryScale, BinarySizedValue
 from kaso_mashin.common.generics.disks import DiskEntity, DiskModel, DiskAggregateRoot, AsyncDiskAggregateRoot
 
 
 def test_disks(generics_session_maker):
-    repo = Repository[DiskModel](model_clazz=DiskModel, session_maker=generics_session_maker)
-    aggregate_root = DiskAggregateRoot(repository=repo)
+    aggregate_root = DiskAggregateRoot(model=DiskModel, session_maker=generics_session_maker)
 
     assert aggregate_root.list() == []
     disk = DiskEntity(name='Test Disk',
@@ -31,8 +30,7 @@ def test_disks(generics_session_maker):
 
 @pytest.mark.asyncio(scope='module')
 async def test_async_disks(generics_async_session_maker):
-    repo = AsyncRepository[DiskModel](model_clazz=DiskModel, session_maker=generics_async_session_maker)
-    aggregate_root = AsyncDiskAggregateRoot(repository=repo)
+    aggregate_root = AsyncDiskAggregateRoot(model=DiskModel, session_maker=generics_async_session_maker)
     disk = DiskEntity(name='Test Disk',
                       path=pathlib.Path(__file__).parent / 'build' / 'test.qcow2',
                       size=BinarySizedValue(1, BinaryScale.G))
