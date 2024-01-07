@@ -1,4 +1,5 @@
 import pytest
+import pytest_asyncio
 import logging
 import pathlib
 import tempfile
@@ -8,6 +9,7 @@ import fastapi
 import fastapi.testclient
 import sqlalchemy
 import sqlalchemy.orm
+import sqlalchemy.ext.asyncio
 
 from kaso_mashin.common.config import Config
 from kaso_mashin.server.run import create_server
@@ -16,8 +18,7 @@ from kaso_mashin.server.runtime import Runtime
 from kaso_mashin.common.model import (
     IdentityKind, IdentityModel)
 
-from kaso_mashin.common.ddd import Base as DDDBase
-from kaso_mashin.common.applied import Base as AppliedBase
+from kaso_mashin.common.generics.base_types import ORMBase
 
 KasoTestContext = collections.namedtuple('KasoTestContext', 'runtime client')
 KasoIdentity = collections.namedtuple('KasoIdentity',
@@ -112,23 +113,29 @@ def test_kaso_context_seeded(test_kaso_context_empty) -> KasoTestContext:
     yield test_kaso_context_empty
 
 
-@pytest.fixture(scope='module')
-def ddd_session() -> sqlalchemy.orm.Session:
+@pytest.fixture(scope='session')
+def generics_db() -> pathlib.Path:
     db = pathlib.Path(__file__).parent.joinpath('build/ddd.sqlite')
     db.parent.mkdir(parents=True, exist_ok=True)
-    engine = sqlalchemy.create_engine('sqlite:///{}'.format(db), echo=False)
-    DDDBase.metadata.create_all(engine)
-    session = sqlalchemy.orm.Session(engine)
-    yield session
-    session.close()
+    return db
 
 
 @pytest.fixture(scope='module')
-def applied_session() -> sqlalchemy.orm.Session:
-    db = pathlib.Path(__file__).parent.joinpath('build/applied.sqlite')
-    db.parent.mkdir(parents=True, exist_ok=True)
-    engine = sqlalchemy.create_engine('sqlite:///{}'.format(db), echo=False)
-    AppliedBase.metadata.create_all(engine)
-    session = sqlalchemy.orm.Session(engine)
-    yield session
-    session.close()
+def generics_session_maker(generics_db) -> sqlalchemy.orm.sessionmaker[sqlalchemy.orm.Session]:
+    engine = sqlalchemy.create_engine(f'sqlite:///{generics_db}', echo=False)
+    session_maker = sqlalchemy.orm.sessionmaker(engine, expire_on_commit=False)
+    with engine.begin() as conn:
+        ORMBase.metadata.create_all(conn)
+    yield session_maker
+    engine.dispose()
+
+
+@pytest.mark.asyncio
+@pytest_asyncio.fixture(scope='module')
+async def generics_async_session_maker(generics_db) -> sqlalchemy.ext.asyncio.async_sessionmaker[sqlalchemy.ext.asyncio.AsyncSession]:
+    engine = sqlalchemy.ext.asyncio.create_async_engine(f'sqlite+aiosqlite:///{generics_db}', echo=False)
+    async_session = sqlalchemy.ext.asyncio.async_sessionmaker(engine, expire_on_commit=False)
+    async with engine.begin() as conn:
+        await conn.run_sync(ORMBase.metadata.create_all)
+    yield async_session
+    await engine.dispose()

@@ -19,7 +19,7 @@ class IP4Address(sqlalchemy.types.TypeDecorator):
     def process_bind_param(self, value: typing.Optional[_T], dialect: Dialect) -> typing.Any:
         return str(value) if value else None
 
-    def process_result_value(self, value: typing.Optional[str], dialect: Dialect) -> ipaddress.IPv4Address | None:
+    def process_result_value(self, value: typing.Optional[str], dialect: Dialect) -> ipaddress.IPv4Address | ipaddress.IPv6Address | None:
         return ipaddress.ip_address(value) if value else None
 
 
