@@ -45,8 +45,8 @@ class ImageEntity(AggregateRoot[ImageModel]):
     """
     Domain model for an image
     """
-    name: str
-    path: pathlib.Path
+    name: str = dataclasses.field(default=None)
+    path: pathlib.Path = dataclasses.field(default=None)
     min_vcpu: int = dataclasses.field(default=0)
     min_ram: BinarySizedValue = dataclasses.field(default_factory=lambda: BinarySizedValue(0, BinaryScale.G))
     min_disk: BinarySizedValue = dataclasses.field(default_factory=lambda: BinarySizedValue(0, BinaryScale.G))

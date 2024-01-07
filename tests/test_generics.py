@@ -1,5 +1,4 @@
 import pytest
-import uuid
 import pathlib
 
 from kaso_mashin.common.generics.base_types import BinaryScale, BinarySizedValue
@@ -12,9 +11,7 @@ def test_disks(generics_session_maker):
     repo = Repository[DiskEntity](aggregate_root_clazz=DiskEntity,
                                   model_clazz=DiskModel,
                                   session_maker=generics_session_maker)
-    # TODO: We need to find a way to default the UUID
-    disk = DiskEntity(id=uuid.uuid4(),
-                      name='Test Disk',
+    disk = DiskEntity(name='Test Disk',
                       path=pathlib.Path(__file__).parent / 'build' / 'test.qcow2',
                       size=BinarySizedValue(1, BinaryScale.G))
     try:
@@ -38,9 +35,7 @@ async def test_async_disks(generics_async_session_maker):
     repo = AsyncRepository[DiskEntity](aggregate_root_clazz=DiskEntity,
                                        model_clazz=DiskModel,
                                        session_maker=generics_async_session_maker)
-    # TODO: We need to find a way to default the UUID
-    disk = DiskEntity(id=uuid.uuid4(),
-                      name='Test Disk',
+    disk = DiskEntity(name='Test Disk',
                       path=pathlib.Path(__file__).parent / 'build' / 'test.qcow2',
                       size=BinarySizedValue(1, BinaryScale.G))
     try:

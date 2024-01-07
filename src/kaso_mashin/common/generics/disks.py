@@ -12,7 +12,7 @@ from .base_types import (
     ORMBase,
     UniqueIdentifier,
     BinaryScale, BinarySizedValue,
-    AggregateRoot, T_AggregateRootModel
+    AggregateRoot
 )
 from .images import ImageEntity
 
@@ -43,8 +43,8 @@ class DiskEntity(AggregateRoot[DiskModel]):
     """
     Domain model entity for a disk
     """
-    name: str
-    path: pathlib.Path
+    name: str = dataclasses.field(default=None)
+    path: pathlib.Path = dataclasses.field(default=None)
     size: BinarySizedValue = dataclasses.field(default_factory=lambda: BinarySizedValue(5, BinaryScale.G))
 
     def serialise(self) -> DiskModel:
@@ -66,8 +66,7 @@ class DiskEntity(AggregateRoot[DiskModel]):
         if path.exists():
             raise DiskException(code=400, msg=f'Disk at {path} already exists')
         path.parent.mkdir(parents=True, exist_ok=True)
-        # TODO: We should find a way to default the id
-        disk = DiskEntity(id=uuid.uuid4(), name=name, path=path, size=size)
+        disk = DiskEntity(name=name, path=path, size=size)
         try:
             subprocess.run(['/opt/homebrew/bin/qemu-img',
                             'create',
@@ -84,8 +83,7 @@ class DiskEntity(AggregateRoot[DiskModel]):
         if path.exists():
             raise DiskException(code=400, msg=f'Disk at {path} already exists')
         path.parent.mkdir(parents=True, exist_ok=True)
-        # TODO: We should find a way to default the id
-        disk = DiskEntity(id=uuid.uuid4(), name=name, path=path, size=size)
+        disk = DiskEntity(name=name, path=path, size=size)
         try:
             subprocess.run(['/opt/homebrew/bin/qemu-img',
                             'create',

@@ -49,7 +49,7 @@ class Entity(abc.ABC):
     """
     A domain entity
     """
-    id: UniqueIdentifier
+    id: UniqueIdentifier = dataclasses.field(default_factory=lambda: uuid.uuid4())
 
 
 T_Entity = typing.TypeVar("T_Entity", bound=Entity)
