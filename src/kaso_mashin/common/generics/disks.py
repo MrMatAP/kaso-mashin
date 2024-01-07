@@ -1,19 +1,14 @@
 import dataclasses
-import pathlib
 import os
+import pathlib
 import subprocess
 
 from sqlalchemy import String, Integer, Enum
 from sqlalchemy.orm import Mapped, mapped_column
 
-from .base_types import (
-    KasoMashinException,
-    ORMBase,
-    UniqueIdentifier,
-    BinaryScale, BinarySizedValue,
-    AggregateRoot
-)
-from .images import ImageEntity
+from kaso_mashin.common.generics.base_types import Entity, BinarySizedValue, BinaryScale, KasoMashinException, ORMBase, \
+    AggregateRoot, T_Entity, UniqueIdentifier, AsyncAggregateRoot
+from kaso_mashin.common.generics.images import ImageEntity
 
 
 class DiskException(KasoMashinException):
@@ -30,7 +25,7 @@ class DiskModel(ORMBase):
     size: Mapped[int] = mapped_column(Integer, default=0)
     size_scale: Mapped[str] = mapped_column(Enum(BinaryScale), default=BinaryScale.G)
 
-    def update(self, other: 'DiskModel'):
+    def merge(self, other: 'DiskModel'):
         self.name = other.name
         self.path = other.path
         self.size = other.size
@@ -38,27 +33,13 @@ class DiskModel(ORMBase):
 
 
 @dataclasses.dataclass
-class DiskEntity(AggregateRoot[DiskModel]):
+class DiskEntity(Entity[DiskModel]):
     """
     Domain model entity for a disk
     """
     name: str = dataclasses.field(default=None)
     path: pathlib.Path = dataclasses.field(default=None)
     size: BinarySizedValue = dataclasses.field(default_factory=lambda: BinarySizedValue(5, BinaryScale.G))
-
-    def serialise(self) -> DiskModel:
-        return DiskModel(id=str(self.id),
-                         name=self.name,
-                         path=str(self.path),
-                         size=self.size.value,
-                         size_scale=self.size.scale)
-
-    @staticmethod
-    def deserialise(model: DiskModel) -> 'DiskEntity':
-        return DiskEntity(id=UniqueIdentifier(model.id),
-                          name=model.name,
-                          path=pathlib.Path(model.path),
-                          size=BinarySizedValue(value=model.size, scale=BinaryScale(model.size_scale)))
 
     @staticmethod
     def create(name: str, path: pathlib.Path, size: BinarySizedValue) -> 'DiskEntity':
@@ -112,3 +93,41 @@ class DiskEntity(AggregateRoot[DiskModel]):
         if not self.path.exists():
             return
         os.unlink(self.path)
+
+
+class DiskAggregateRoot(AggregateRoot[DiskEntity, DiskModel]):
+
+    def validate(self, entity: T_Entity) -> bool:
+        return True
+
+    def serialise(self, entity: DiskEntity) -> DiskModel:
+        return DiskModel(id=str(entity.id),
+                         name=entity.name,
+                         path=str(entity.path),
+                         size=entity.size.value,
+                         size_scale=entity.size.scale)
+
+    def deserialise(self, model: DiskModel) -> DiskEntity:
+        return DiskEntity(id=UniqueIdentifier(model.id),
+                          name=model.name,
+                          path=pathlib.Path(model.path),
+                          size=BinarySizedValue(model.size, BinaryScale(model.size_scale)))
+
+
+class AsyncDiskAggregateRoot(AsyncAggregateRoot[DiskEntity, DiskModel]):
+
+    def validate(self, entity: T_Entity) -> bool:
+        return True
+
+    def serialise(self, entity: DiskEntity) -> DiskModel:
+        return DiskModel(id=str(entity.id),
+                         name=entity.name,
+                         path=str(entity.path),
+                         size=entity.size.value,
+                         size_scale=entity.size.scale)
+
+    def deserialise(self, model: DiskModel) -> DiskEntity:
+        return DiskEntity(id=UniqueIdentifier(model.id),
+                          name=model.name,
+                          path=pathlib.Path(model.path),
+                          size=BinarySizedValue(model.size, BinaryScale(model.size_scale)))

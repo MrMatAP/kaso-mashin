@@ -4,13 +4,8 @@ import pathlib
 from sqlalchemy import String, Integer, Enum
 from sqlalchemy.orm import Mapped, mapped_column
 
-from .base_types import (
-    KasoMashinException,
-    ORMBase,
-    UniqueIdentifier,
-    BinaryScale, BinarySizedValue,
-    AggregateRoot, T_AggregateRootModel
-)
+from kaso_mashin.common.generics.base_types import Entity, BinarySizedValue, BinaryScale, KasoMashinException, ORMBase, \
+    AggregateRoot, T_Entity, UniqueIdentifier
 
 
 class ImageException(KasoMashinException):
@@ -30,7 +25,7 @@ class ImageModel(ORMBase):
     min_disk: Mapped[int] = mapped_column(Integer, default=0)
     min_disk_scale: Mapped[str] = mapped_column(Enum(BinaryScale), default=BinaryScale.G)
 
-    def update(self, other: 'ImageModel'):
+    def merge(self, other: 'ImageModel'):
         self.name = other.name
         self.path = other.path
         self.min_vcpu = other.min_vcpu
@@ -41,7 +36,7 @@ class ImageModel(ORMBase):
 
 
 @dataclasses.dataclass
-class ImageEntity(AggregateRoot[ImageModel]):
+class ImageEntity(Entity[ImageModel]):
     """
     Domain model for an image
     """
@@ -51,18 +46,23 @@ class ImageEntity(AggregateRoot[ImageModel]):
     min_ram: BinarySizedValue = dataclasses.field(default_factory=lambda: BinarySizedValue(0, BinaryScale.G))
     min_disk: BinarySizedValue = dataclasses.field(default_factory=lambda: BinarySizedValue(0, BinaryScale.G))
 
-    def serialise(self) -> ImageModel:
-        return ImageModel(id=str(self.id),
-                          name=self.name,
-                          path=str(self.path),
-                          min_vcpu=self.min_vcpu,
-                          min_ram=self.min_ram.value,
-                          min_ram_scale=self.min_ram.scale,
-                          min_disk=self.min_disk.value,
-                          min_disk_scale=self.min_disk.scale)
 
-    @staticmethod
-    def deserialise(model: ImageModel) -> 'ImageEntity':
+class ImageAggregateRoot(AggregateRoot[ImageEntity, ImageModel]):
+
+    def validate(self, entity: T_Entity) -> bool:
+        return True
+
+    def serialise(self, entity: ImageEntity) -> ImageModel:
+        return ImageModel(id=str(entity.id),
+                          name=entity.name,
+                          path=str(entity.path),
+                          min_vcpu=entity.min_vcpu,
+                          min_ram=entity.min_ram.value,
+                          min_ram_scale=entity.min_ram.scale,
+                          min_disk=entity.min_disk.value,
+                          min_disk_scale=entity.min_disk.scale)
+
+    def deserialise(self, model: ImageModel) -> ImageEntity:
         return ImageEntity(id=UniqueIdentifier(model.id),
                            name=model.name,
                            path=pathlib.Path(model.path),

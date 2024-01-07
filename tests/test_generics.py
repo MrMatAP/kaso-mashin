@@ -1,56 +1,54 @@
 import pytest
 import pathlib
 
-from kaso_mashin.common.generics.base_types import BinaryScale, BinarySizedValue
-from kaso_mashin.common.generics.repository import Repository
-from kaso_mashin.common.generics.async_repository import AsyncRepository
-from kaso_mashin.common.generics.disks import DiskEntity, DiskModel
+from kaso_mashin.common.generics.base_types import BinaryScale, BinarySizedValue, AsyncRepository, Repository
+from kaso_mashin.common.generics.disks import DiskEntity, DiskModel, DiskAggregateRoot, AsyncDiskAggregateRoot
 
 
 def test_disks(generics_session_maker):
-    repo = Repository[DiskEntity](aggregate_root_clazz=DiskEntity,
-                                  model_clazz=DiskModel,
-                                  session_maker=generics_session_maker)
+    repo = Repository[DiskModel](model_clazz=DiskModel, session_maker=generics_session_maker)
+    aggregate_root = DiskAggregateRoot(repository=repo)
+
+    assert aggregate_root.list() == []
     disk = DiskEntity(name='Test Disk',
                       path=pathlib.Path(__file__).parent / 'build' / 'test.qcow2',
                       size=BinarySizedValue(1, BinaryScale.G))
     try:
-        repo.create(disk)
-        loaded = repo.get_by_id(disk.id)
+        aggregate_root.create(disk)
+        loaded = aggregate_root.get(disk.id)
         assert disk == loaded
         disk.size = BinarySizedValue(2, scale=BinaryScale.G)
-        updated = repo.modify(disk)
+        updated = aggregate_root.modify(disk)
         assert disk == updated
-        listed = repo.list()
+        listed = aggregate_root.list()
         assert len(listed) == 1
         assert disk == listed[0]
     finally:
-        repo.remove(disk.id)
-        assert len(repo.list()) == 0
+        aggregate_root.remove(disk.id)
+        assert len(aggregate_root.list()) == 0
         assert not disk.path.exists()
 
 
 @pytest.mark.asyncio(scope='module')
 async def test_async_disks(generics_async_session_maker):
-    repo = AsyncRepository[DiskEntity](aggregate_root_clazz=DiskEntity,
-                                       model_clazz=DiskModel,
-                                       session_maker=generics_async_session_maker)
+    repo = AsyncRepository[DiskModel](model_clazz=DiskModel, session_maker=generics_async_session_maker)
+    aggregate_root = AsyncDiskAggregateRoot(repository=repo)
     disk = DiskEntity(name='Test Disk',
                       path=pathlib.Path(__file__).parent / 'build' / 'test.qcow2',
                       size=BinarySizedValue(1, BinaryScale.G))
     try:
-        await repo.create(disk)
-        loaded = await repo.get_by_id(disk.id)
+        await aggregate_root.create(disk)
+        loaded = await aggregate_root.get(disk.id)
         assert disk == loaded
         disk.size = BinarySizedValue(2, scale=BinaryScale.G)
-        updated = await repo.modify(disk)
+        updated = await aggregate_root.modify(disk)
         assert disk == updated
-        listed = await repo.list()
+        listed = await aggregate_root.list()
         assert len(listed) == 1
         assert disk == listed[0]
     finally:
-        await repo.remove(disk.id)
-        assert len(await repo.list()) == 0
+        await aggregate_root.remove(disk.id)
+        assert len(await aggregate_root.list()) == 0
         assert not disk.path.exists()
 
 # def test_applied_disks_from_image(applied_session):
