@@ -23,12 +23,13 @@ classifiers = [
     "License :: OSI Approved :: MIT",
     "Programming Language :: Python :: 3.11"
 ]
-requires-python = ">=3.12"
+requires-python = ">=3.11"
 dependencies = [
     "rich==13.7.0",                     # MIT
     "requests==2.31.0",                 # Apache 2.0
     "pyyaml==6.0.1",                    # MIT
     "netifaces==0.11.0",                # MIT
+    "aiosqlite==0.19.0",                # MIT
     "sqlalchemy[asyncio]==2.0.23",      # MIT
     "websockets==12.0",                 # BSD 3-Clause
     "fastapi==0.105.0",                 # MIT
@@ -55,3 +56,15 @@ namespaces = true
 [project.scripts]
 kaso = "kaso_mashin.cli.run:main"
 kaso-server = "kaso_mashin.server.run:main"
+
+# If you are debugging your tests using PyCharm then comment out the coverage options
+# in addopts
+[tool.pytest.ini_options]
+minversion = "6.0"
+#addopts = "--cov=kaso_mashin --cov-report=term --cov-report=xml:build/coverage.xml --junit-xml=build/junit.xml"
+testpaths = ["tests"]
+junit_family = "xunit2"
+log_cli = 1
+log_cli_level = "INFO"
+log_cli_format = "%(asctime)s [%(levelname)8s] %(message)s (%(filename)s:%(lineno)s)"
+log_cli_date_format="%Y-%m-%d %H:%M:%S"
