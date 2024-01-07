@@ -66,12 +66,12 @@ class ValueObject(abc.ABC):
 class AggregateRoot(Entity, typing.Generic[T_AggregateRootModel]):
 
     @abc.abstractmethod
-    def serialise(self):
+    def serialise(self) -> T_AggregateRootModel:
         pass
 
     @staticmethod
     @abc.abstractmethod
-    def deserialise(model: 'T_AggregateRootModel'):
+    def deserialise(model: T_AggregateRootModel):
         pass
 
 
