@@ -9,11 +9,10 @@ def test_disks(generics_session_maker):
     aggregate_root = DiskAggregateRoot(model=DiskModel, session_maker=generics_session_maker)
 
     assert aggregate_root.list() == []
-    disk = DiskEntity(name='Test Disk',
-                      path=pathlib.Path(__file__).parent / 'build' / 'test.qcow2',
-                      size=BinarySizedValue(1, BinaryScale.G))
     try:
-        aggregate_root.create(disk)
+        disk = aggregate_root.create(DiskEntity(name='Test Disk',
+                                                path=pathlib.Path(__file__).parent / 'build' / 'test.qcow2',
+                                                size=BinarySizedValue(1, BinaryScale.G)))
         loaded = aggregate_root.get(disk.id)
         assert disk == loaded
         disk.size = BinarySizedValue(2, scale=BinaryScale.G)
@@ -31,11 +30,10 @@ def test_disks(generics_session_maker):
 @pytest.mark.asyncio(scope='module')
 async def test_async_disks(generics_async_session_maker):
     aggregate_root = AsyncDiskAggregateRoot(model=DiskModel, session_maker=generics_async_session_maker)
-    disk = DiskEntity(name='Test Disk',
-                      path=pathlib.Path(__file__).parent / 'build' / 'test.qcow2',
-                      size=BinarySizedValue(1, BinaryScale.G))
     try:
-        await aggregate_root.create(disk)
+        disk = await aggregate_root.create(DiskEntity(name='Test Disk',
+                                                      path=pathlib.Path(__file__).parent / 'build' / 'test.qcow2',
+                                                      size=BinarySizedValue(1, BinaryScale.G)))
         loaded = await aggregate_root.get(disk.id)
         assert disk == loaded
         disk.size = BinarySizedValue(2, scale=BinaryScale.G)

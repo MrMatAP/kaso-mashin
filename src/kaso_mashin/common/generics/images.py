@@ -63,7 +63,8 @@ class ImageAggregateRoot(AggregateRoot[ImageEntity, ImageModel]):
                           min_disk_scale=entity.min_disk.scale)
 
     def deserialise(self, model: ImageModel) -> ImageEntity:
-        return ImageEntity(id=UniqueIdentifier(model.id),
+        return ImageEntity(owner=self,
+                           id=UniqueIdentifier(model.id),
                            name=model.name,
                            path=pathlib.Path(model.path),
                            min_vcpu=model.min_vcpu,

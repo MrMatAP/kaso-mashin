@@ -54,7 +54,9 @@ class Entity(typing.Generic[T_Model]):
     """
     A domain entity
     """
+    # TODO: Owner should be either T_AggregateRoot or T_AsyncAggregateRoot
     id: UniqueIdentifier = dataclasses.field(default_factory=lambda: uuid.uuid4())
+    owner: typing.Optional[typing.Any] = dataclasses.field(default=None)
 
 
 T_Entity = typing.TypeVar("T_Entity", bound=Entity)
@@ -72,7 +74,7 @@ T_ValueObject = typing.TypeVar('T_ValueObject', bound=ValueObject)
 
 class AsyncAggregateRoot(typing.Generic[T_Entity, T_Model]):
 
-    def __init__(self, model: typing.Type[T_Model], session_maker: sessionmaker[Session]) -> None:
+    def __init__(self, model: typing.Type[T_Model], session_maker: async_sessionmaker[AsyncSession]) -> None:
         self._repository = AsyncRepository[T_Model](model=model, session_maker=session_maker)
 
     async def get(self, uid: UniqueIdentifier) -> T_Entity:

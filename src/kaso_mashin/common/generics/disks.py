@@ -41,6 +41,7 @@ class DiskEntity(Entity[DiskModel]):
     path: pathlib.Path = dataclasses.field(default=None)
     size: BinarySizedValue = dataclasses.field(default_factory=lambda: BinarySizedValue(5, BinaryScale.G))
 
+    # TODO: This should create the disk and persist it in one 'transaction'
     @staticmethod
     def create(name: str, path: pathlib.Path, size: BinarySizedValue) -> 'DiskEntity':
         if path.exists():
@@ -108,7 +109,8 @@ class DiskAggregateRoot(AggregateRoot[DiskEntity, DiskModel]):
                          size_scale=entity.size.scale)
 
     def deserialise(self, model: DiskModel) -> DiskEntity:
-        return DiskEntity(id=UniqueIdentifier(model.id),
+        return DiskEntity(owner=self,
+                          id=UniqueIdentifier(model.id),
                           name=model.name,
                           path=pathlib.Path(model.path),
                           size=BinarySizedValue(model.size, BinaryScale(model.size_scale)))
@@ -127,7 +129,8 @@ class AsyncDiskAggregateRoot(AsyncAggregateRoot[DiskEntity, DiskModel]):
                          size_scale=entity.size.scale)
 
     def deserialise(self, model: DiskModel) -> DiskEntity:
-        return DiskEntity(id=UniqueIdentifier(model.id),
+        return DiskEntity(owner=self,
+                          id=UniqueIdentifier(model.id),
                           name=model.name,
                           path=pathlib.Path(model.path),
                           size=BinarySizedValue(model.size, BinaryScale(model.size_scale)))
