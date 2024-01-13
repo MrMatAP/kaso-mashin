@@ -8,7 +8,7 @@ import typing
 import uuid
 
 from sqlalchemy import UUID, String, select
-from sqlalchemy.orm import DeclarativeBase, sessionmaker, Session, Mapped, mapped_column
+from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
 from sqlalchemy.ext.asyncio import async_sessionmaker, AsyncSession
 
 
@@ -76,102 +76,66 @@ class AsyncAggregateRoot(typing.Generic[T_Entity, T_Model]):
 
     def __init__(self, model: typing.Type[T_Model], session_maker: async_sessionmaker[AsyncSession]) -> None:
         self._repository = AsyncRepository[T_Model](model=model, session_maker=session_maker)
+        self._identity_map: typing.Dict[UniqueIdentifier, T_Entity] = {}
 
     async def get(self, uid: UniqueIdentifier) -> T_Entity:
         model = await self._repository.get_by_id(str(uid))
-        entity = self.deserialise(model)
-        if not self.validate(entity):
-            raise EntityInvariantException(code=500, msg='Entity fails validation')
-        return entity
+        entity = await self.from_model(model)
+        if not await self.validate(entity):
+            raise EntityInvariantException(code=500, msg='Restored entity fails validation')
+        entity.owner = self
+        self._identity_map[entity.id] = entity
+        return self._identity_map[entity.id]
 
     async def list(self) -> typing.List[T_Entity]:
         models = await self._repository.list()
-        entities = [self.deserialise(model) for model in models]
-        bad_entities = [e for e in entities if not self.validate(e)]
-        if len(bad_entities) > 0:
-            raise EntityInvariantException(code=500, msg='Entity fails validation')
-        return entities
+        entities = [await self.from_model(model) for model in models]
+        for entity in entities:
+            if not await self.validate(entity):
+                raise EntityInvariantException(code=500, msg='Entity fails validation')
+            entity.owner = self
+        self._identity_map.update({e.id: e for e in entities})
+        return list(self._identity_map.values())
 
     async def create(self, entity: T_Entity) -> T_Entity:
         if not self.validate(entity):
             raise EntityInvariantException(code=500, msg='Entity fails validation')
-        model = await self._repository.create(self.serialise(entity))
-        return self.deserialise(model)
+        model = await self._repository.create(await self.to_model(entity))
+        self._identity_map[entity.id] = await self.from_model(model)
+        self._identity_map[entity.id].owner = self
+        return self._identity_map[entity.id]
 
+    # TODO: Modify may make sense to be moved into the entity
     async def modify(self, entity: T_Entity) -> T_Entity:
+        if entity.id not in self._identity_map:
+            raise EntityInvariantException(code=400, msg='Entity was not created by its aggregate root')
         if not self.validate(entity):
-            raise EntityInvariantException(code=500, msg='Entity fails validation')
-        model = await self._repository.modify(self.serialise(entity))
-        return self.deserialise(model)
+            raise EntityInvariantException(code=400, msg='Entity fails validation')
+        model = await self._repository.modify(await self.to_model(entity))
+        self._identity_map[entity.id] = await self.from_model(model)
+        self._identity_map[entity.id].owner = self
+        return self._identity_map[entity.id]
 
+    # TODO: Modify may make sense to be moved into the entity
     async def remove(self, uid: UniqueIdentifier):
-        return await self._repository.remove(str(uid))
+        if uid not in self._identity_map:
+            raise EntityInvariantException(code=400, msg='Entity was not created by its aggregate root')
+        await self._repository.remove(str(uid))
+        del self._identity_map[uid]
+
+    async def validate(self, entity: T_Entity) -> bool:
+        return True
 
     @abc.abstractmethod
-    def validate(self, entity: T_Entity) -> bool:
+    async def to_model(self, entity: T_Entity) -> T_Model:
         pass
 
     @abc.abstractmethod
-    def serialise(self, entity: T_Entity) -> T_Model:
-        pass
-
-    @abc.abstractmethod
-    def deserialise(self, model: T_Model) -> T_Entity:
+    async def from_model(self, model: T_Model) -> T_Entity:
         pass
 
 
 T_AsyncAggregateRoot = typing.TypeVar('T_AsyncAggregateRoot', bound=AsyncAggregateRoot)
-
-
-class AggregateRoot(typing.Generic[T_Entity, T_Model]):
-
-    def __init__(self, model: typing.Type[T_Model], session_maker: sessionmaker[Session]) -> None:
-        self._repository = Repository[T_Model](model=model, session_maker=session_maker)
-
-    def get(self, uid: UniqueIdentifier) -> T_Entity:
-        model = self._repository.get_by_id(str(uid))
-        entity = self.deserialise(model)
-        if not self.validate(entity):
-            raise EntityInvariantException(code=500, msg='Entity fails validation')
-        return entity
-
-    def list(self) -> typing.List[T_Entity]:
-        models = self._repository.list()
-        entities = [self.deserialise(model) for model in models]
-        bad_entities = [e for e in entities if not self.validate(e)]
-        if len(bad_entities) > 0:
-            raise EntityInvariantException(code=500, msg='Entity fails validation')
-        return entities
-
-    def create(self, entity: T_Entity) -> T_Entity:
-        if not self.validate(entity):
-            raise EntityInvariantException(code=500, msg='Entity fails validation')
-        model = self._repository.create(self.serialise(entity))
-        return self.deserialise(model)
-
-    def modify(self, entity: T_Entity) -> T_Entity:
-        if not self.validate(entity):
-            raise EntityInvariantException(code=500, msg='Entity fails validation')
-        model = self._repository.modify(self.serialise(entity))
-        return self.deserialise(model)
-
-    def remove(self, uid: UniqueIdentifier):
-        return self._repository.remove(str(uid))
-
-    @abc.abstractmethod
-    def validate(self, entity: T_Entity) -> bool:
-        pass
-
-    @abc.abstractmethod
-    def serialise(self, entity: T_Entity) -> T_Model:
-        pass
-
-    @abc.abstractmethod
-    def deserialise(self, model: T_Model) -> T_Entity:
-        pass
-
-
-T_AggregateRoot = typing.TypeVar('T_AggregateRoot', bound=AggregateRoot)
 
 
 class BinaryScale(enum.StrEnum):
@@ -251,57 +215,4 @@ class AsyncRepository(typing.Generic[T_Model]):
             if model is not None:
                 await session.delete(model)
                 await session.commit()
-            del self._identity_map[uid]
-
-
-class Repository(typing.Generic[T_Model]):
-
-    def __init__(self,
-                 model: typing.Type[T_Model],
-                 session_maker: sessionmaker):
-        self._model_clazz = model
-        self._session_maker = session_maker
-        self._identity_map: typing.Dict[str, T_Model] = {}
-
-    def get_by_id(self, uid: str) -> T_Model:
-        if uid in self._identity_map:
-            return self._identity_map[uid]
-        with self._session_maker() as session:
-            model = session.get(self._model_clazz, str(uid))
-            if model is None:
-                raise EntityNotFoundException(code=400, msg='No such entity')
-            self._identity_map[uid] = model
-        return self._identity_map[uid]
-
-    def list(self) -> typing.List[T_Model]:
-        with self._session_maker() as session:
-            for model in session.scalars(select(self._model_clazz)).all():
-                self._identity_map[model.id] = model
-        # Note: list() is semantically better but mypy complains about an incompatible arg
-        return [i for i in self._identity_map.values()]
-
-    def create(self, model: T_Model) -> T_Model:
-        with self._session_maker() as session:
-            with session.begin():
-                session.add(model)
-            self._identity_map[model.id] = model
-        return model
-
-    def modify(self, update: T_Model) -> T_Model:
-        with self._session_maker() as session:
-            current = session.get(self._model_clazz, str(update.id))
-            if current is None:
-                raise EntityNotFoundException(code=400, msg='No such entity')
-            current.merge(update)
-            session.add(current)
-            session.commit()
-            self._identity_map[update.id] = update
-        return update
-
-    def remove(self, uid: str) -> None:
-        with self._session_maker() as session:
-            model = session.get(self._model_clazz, str(uid))
-            if model is not None:
-                session.delete(model)
-                session.commit()
             del self._identity_map[uid]

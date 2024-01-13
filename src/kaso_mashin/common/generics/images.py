@@ -4,8 +4,8 @@ import pathlib
 from sqlalchemy import String, Integer, Enum
 from sqlalchemy.orm import Mapped, mapped_column
 
-from kaso_mashin.common.generics.base_types import Entity, BinarySizedValue, BinaryScale, KasoMashinException, ORMBase, \
-    AggregateRoot, T_Entity, UniqueIdentifier
+from kaso_mashin.common.base_types import Entity, BinarySizedValue, BinaryScale, KasoMashinException, ORMBase, \
+    AsyncAggregateRoot, UniqueIdentifier
 
 
 class ImageException(KasoMashinException):
@@ -47,12 +47,9 @@ class ImageEntity(Entity[ImageModel]):
     min_disk: BinarySizedValue = dataclasses.field(default_factory=lambda: BinarySizedValue(0, BinaryScale.G))
 
 
-class ImageAggregateRoot(AggregateRoot[ImageEntity, ImageModel]):
+class AsyncImageAggregateRoot(AsyncAggregateRoot[ImageEntity, ImageModel]):
 
-    def validate(self, entity: T_Entity) -> bool:
-        return True
-
-    def serialise(self, entity: ImageEntity) -> ImageModel:
+    async def to_model(self, entity: ImageEntity) -> ImageModel:
         return ImageModel(id=str(entity.id),
                           name=entity.name,
                           path=str(entity.path),
@@ -62,7 +59,7 @@ class ImageAggregateRoot(AggregateRoot[ImageEntity, ImageModel]):
                           min_disk=entity.min_disk.value,
                           min_disk_scale=entity.min_disk.scale)
 
-    def deserialise(self, model: ImageModel) -> ImageEntity:
+    async def from_model(self, model: ImageModel) -> ImageEntity:
         return ImageEntity(owner=self,
                            id=UniqueIdentifier(model.id),
                            name=model.name,

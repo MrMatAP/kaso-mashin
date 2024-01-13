@@ -18,7 +18,7 @@ from kaso_mashin.server.runtime import Runtime
 from kaso_mashin.common.model import (
     IdentityKind, IdentityModel)
 
-from kaso_mashin.common.generics.base_types import ORMBase
+from kaso_mashin.common.base_types import ORMBase
 
 KasoTestContext = collections.namedtuple('KasoTestContext', 'runtime client')
 KasoIdentity = collections.namedtuple('KasoIdentity',

@@ -6,8 +6,8 @@ import subprocess
 from sqlalchemy import String, Integer, Enum
 from sqlalchemy.orm import Mapped, mapped_column
 
-from kaso_mashin.common.generics.base_types import Entity, BinarySizedValue, BinaryScale, KasoMashinException, ORMBase, \
-    AggregateRoot, T_Entity, UniqueIdentifier, AsyncAggregateRoot
+from kaso_mashin.common.base_types import Entity, BinarySizedValue, BinaryScale, KasoMashinException, ORMBase, \
+    T_Entity, UniqueIdentifier, AsyncAggregateRoot
 from kaso_mashin.common.generics.images import ImageEntity
 
 
@@ -96,39 +96,16 @@ class DiskEntity(Entity[DiskModel]):
         os.unlink(self.path)
 
 
-class DiskAggregateRoot(AggregateRoot[DiskEntity, DiskModel]):
-
-    def validate(self, entity: T_Entity) -> bool:
-        return True
-
-    def serialise(self, entity: DiskEntity) -> DiskModel:
-        return DiskModel(id=str(entity.id),
-                         name=entity.name,
-                         path=str(entity.path),
-                         size=entity.size.value,
-                         size_scale=entity.size.scale)
-
-    def deserialise(self, model: DiskModel) -> DiskEntity:
-        return DiskEntity(owner=self,
-                          id=UniqueIdentifier(model.id),
-                          name=model.name,
-                          path=pathlib.Path(model.path),
-                          size=BinarySizedValue(model.size, BinaryScale(model.size_scale)))
-
-
 class AsyncDiskAggregateRoot(AsyncAggregateRoot[DiskEntity, DiskModel]):
 
-    def validate(self, entity: T_Entity) -> bool:
-        return True
-
-    def serialise(self, entity: DiskEntity) -> DiskModel:
+    async def to_model(self, entity: DiskEntity) -> DiskModel:
         return DiskModel(id=str(entity.id),
                          name=entity.name,
                          path=str(entity.path),
                          size=entity.size.value,
                          size_scale=entity.size.scale)
 
-    def deserialise(self, model: DiskModel) -> DiskEntity:
+    async def from_model(self, model: DiskModel) -> DiskEntity:
         return DiskEntity(owner=self,
                           id=UniqueIdentifier(model.id),
                           name=model.name,
