@@ -3,6 +3,8 @@ import subprocess
 import pathlib
 import typing
 import uuid
+import httpx
+import aiofiles
 
 from sqlalchemy import String, Integer, Enum, ForeignKey
 from sqlalchemy.orm import Mapped, mapped_column, relationship
@@ -106,7 +108,7 @@ class ImageEntity(Entity):
     def os_disks(self) -> typing.List[OSDiskValueObject]:
         return self._os_disks
 
-    def __eq__(self, other: 'ImageEntity') -> bool:     # type: ignore[override]
+    def __eq__(self, other: 'ImageEntity') -> bool:  # type: ignore[override]
         return all([
             super().__eq__(other),
             self._name == other.name,
@@ -119,20 +121,32 @@ class ImageEntity(Entity):
     async def create(owner: 'AggregateRoot',
                      name: str,
                      path: pathlib.Path,
+                     url: str,
                      min_vcpu: int = 0,
                      min_ram: BinarySizedValue = BinarySizedValue(0, BinaryScale.G),
                      min_disk: BinarySizedValue = BinarySizedValue(0, BinaryScale.G)) -> 'ImageEntity':
         if path.exists():
             raise ImageException(code=400, msg=f'Image at {path} already exists')
         path.parent.mkdir(parents=True, exist_ok=True)
+        image = None
         try:
-            image = ImageEntity(owner=owner,
-                                name=name,
-                                path=path,
-                                min_vcpu=min_vcpu,
-                                min_ram=min_ram,
-                                min_disk=min_disk)
-            return await owner.create(image)
+            image = await owner.create(ImageEntity(owner=owner,
+                                                   name=name,
+                                                   path=path,
+                                                   min_vcpu=min_vcpu,
+                                                   min_ram=min_ram,
+                                                   min_disk=min_disk))
+
+            resp = httpx.head(url, follow_redirects=True, timeout=60)
+            image_size = int(resp.headers.get('Content-Length'))
+            current = 0
+            client = httpx.AsyncClient(follow_redirects=True, timeout=60)
+            async with client.stream(method='GET', url=url) as resp, aiofiles.open(path, mode='wb') as i:
+                async for chunk in resp.aiter_bytes(chunk_size=32768):
+                    await i.write(chunk)
+                    current += 32768
+                    print(f'{int(current / image_size * 100)} % complete')
+            return image
         finally:
             pass
 

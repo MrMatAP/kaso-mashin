@@ -36,7 +36,8 @@ async def test_async_images(generics_async_session_maker):
         image_aggregate_root = ImageAggregateRoot(model=ImageModel, session_maker=generics_async_session_maker)
         image = await ImageEntity.create(owner=image_aggregate_root,
                                          name='Test Image',
-                                         path=pathlib.Path(__file__).parent / 'build' / 'test-async-images.qcow2')
+                                         path=pathlib.Path(__file__).parent / 'build' / 'test-async-images.qcow2',
+                                         url='https://cloud-images.ubuntu.com/jammy/current/jammy-server-cloudimg-arm64.img')
         loaded = await image_aggregate_root.get(image.uid)
         assert image == loaded
         await image.set_min_vcpu(10)
