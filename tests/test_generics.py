@@ -2,64 +2,54 @@ import pytest
 import pathlib
 
 from kaso_mashin.common.base_types import BinaryScale, BinarySizedValue
-from kaso_mashin.common.generics.disks import DiskEntity, DiskModel, AsyncDiskAggregateRoot
+from kaso_mashin.common.generics.disks import DiskEntity, DiskModel, DiskAggregateRoot
+from kaso_mashin.common.generics.images import ImageEntity, ImageModel, ImageAggregateRoot
 
 
-@pytest.mark.asyncio(scope='module')
+@pytest.mark.asyncio
 async def test_async_disks(generics_async_session_maker):
-    aggregate_root = AsyncDiskAggregateRoot(model=DiskModel, session_maker=generics_async_session_maker)
-    disk = await aggregate_root.create(DiskEntity(name='Test Disk',
-                                                  path=pathlib.Path(__file__).parent / 'build' / 'test.qcow2',
-                                                  size=BinarySizedValue(1, BinaryScale.G)))
     try:
-        loaded = await aggregate_root.get(disk.id)
+        disk_aggregate_root = DiskAggregateRoot(model=DiskModel, session_maker=generics_async_session_maker)
+        disk = await DiskEntity.create(owner=disk_aggregate_root,
+                                       name='Test Disk',
+                                       path=pathlib.Path(__file__).parent / 'build' / 'test-async-disks.qcow2',
+                                       size=BinarySizedValue(1, BinaryScale.M))
+
+        loaded = await disk_aggregate_root.get(disk.uid)
         assert disk == loaded
-        disk.size = BinarySizedValue(2, scale=BinaryScale.G)
-        updated = await aggregate_root.modify(disk)
+        await disk.resize(BinarySizedValue(2, scale=BinaryScale.M))
+        updated = await disk_aggregate_root.get(disk.uid, force_reload=True)
+        assert disk.size == updated.size
         assert disk == updated
-        listed = await aggregate_root.list()
+        listed = await disk_aggregate_root.list()
         assert len(listed) == 1
         assert disk == listed[0]
     finally:
-        await aggregate_root.remove(disk.id)
-        assert len(await aggregate_root.list()) == 0
+        await disk.remove()
+        assert len(await disk_aggregate_root.list()) == 0
         assert not disk.path.exists()
 
-# def test_applied_disks_from_image(applied_session):
-#     repo = DiskRepository(DiskModel, applied_session)
-#     image = ImageEntity(name='jammy', path=pathlib.Path('/Users/imfeldma/var/kaso/images/jammy.qcow2'))
-#     disk = DiskEntity.create_from_image('Test Disk',
-#                                         path=pathlib.Path(__file__).parent / 'build' / 'test.qcow2',
-#                                         size=BinarySizedValue(1, BinaryScale.G),
-#                                         image=image)
-#     try:
-#         repo.create(disk)
-#         disk.resize(BinarySizedValue(2, BinaryScale.G))
-#         repo.modify(disk)
-#     finally:
-#         disk.remove()
-#         assert not disk.path.exists()
 
-#
-# def test_applied_images(applied_session):
-#     repo = ImageRepository(ImageModel, applied_session)
-#     image = ImageEntity(name='Test Image',
-#                         path=pathlib.Path(__file__),
-#                         min_vcpu=2,
-#                         min_ram=BinarySizedValue(2, BinaryScale.G),
-#                         min_disk=BinarySizedValue(1, BinaryScale.G))
-#     try:
-#         repo.create(image)
-#         loaded = repo.get_by_id(image.id)
-#         assert image == loaded
-#         image.min_vcpu = 99
-#         image.min_ram = BinarySizedValue(99, BinaryScale.T)
-#         image.min_disk = BinarySizedValue(99, BinaryScale.T)
-#         updated = repo.modify(image)
-#         assert image == updated
-#         listed = repo.list()
-#         assert len(listed) == 1
-#         assert image == listed[0]
-#     finally:
-#         repo.remove(image.id)
-#         assert repo.get_by_id(image.id) is None
+@pytest.mark.asyncio
+async def test_async_images(generics_async_session_maker):
+    try:
+        image_aggregate_root = ImageAggregateRoot(model=ImageModel, session_maker=generics_async_session_maker)
+        image = await ImageEntity.create(owner=image_aggregate_root,
+                                         name='Test Image',
+                                         path=pathlib.Path(__file__).parent / 'build' / 'test-async-images.qcow2')
+        loaded = await image_aggregate_root.get(image.uid)
+        assert image == loaded
+        await image.set_min_vcpu(10)
+        await image.set_min_ram(BinarySizedValue(2, BinaryScale.G))
+        await image.set_min_disk(BinarySizedValue(10, BinaryScale.G))
+        # await image.create_os_disk(path=pathlib.Path(__file__).parent / 'build' / 'os.qcow2',
+        #                            size=BinarySizedValue(10, BinaryScale.M))
+        updated = await image_aggregate_root.get(image.uid)
+        assert image == updated
+        listed = await image_aggregate_root.list()
+        assert len(listed) == 1
+        assert image == listed[0]
+    finally:
+        await image.remove()
+        assert len(await image_aggregate_root.list()) == 0
+        assert not image.path.exists()
