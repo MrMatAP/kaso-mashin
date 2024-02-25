@@ -11,6 +11,8 @@ from sqlalchemy import UUID, String, select
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
 from sqlalchemy.ext.asyncio import async_sessionmaker, AsyncSession
 
+from pydantic import BaseModel, ConfigDict, Field
+
 
 class KasoMashinException(Exception):
 
@@ -53,6 +55,17 @@ UniqueIdentifier = uuid.UUID
 T_Model = typing.TypeVar('T_Model', bound=ORMBase)
 
 
+class SchemaBase(BaseModel):
+    """
+    Schema base class for serialised entities
+    """
+    model_config = ConfigDict(from_attributes=True)
+    uid: UniqueIdentifier = Field(description='The unique identifier', examples=['b430727e-2491-4184-bb4f-c7d6d213e093'])
+
+
+T_Schema = typing.TypeVar('T_Schema', bound=SchemaBase)
+
+
 class ValueObject(abc.ABC):
     """
     A domain value object
@@ -63,31 +76,53 @@ class ValueObject(abc.ABC):
 T_ValueObject = typing.TypeVar('T_ValueObject', bound=ValueObject)
 
 
-class Entity(object):
+class Entity:
     """
-    A domain entity
+    A domain base entity
+
+    All domain entities have a unique identity and a corresponding aggregate root as their owner
     """
 
-    def __init__(self, owner: 'AggregateRoot', uid: UniqueIdentifier = uuid.uuid4()) -> None:
-        self._uid = uid
+    def __init__(self, owner: 'AggregateRoot') -> None:
+        self._uid = uuid.uuid4()
         self._owner = owner
 
     @property
     def uid(self) -> UniqueIdentifier:
         return self._uid
 
+    @property
+    def owner(self) -> 'AggregateRoot':
+        return self._owner
+
+    @abc.abstractmethod
+    def schema_get(self):
+        pass
+
+    @staticmethod
+    @abc.abstractmethod
+    async def schema_create(owner, schema):
+        pass
+
+    @abc.abstractmethod
+    async def schema_modify(self, schema) -> 'Entity':
+        pass
+
     def __eq__(self, other: object) -> bool:
         return all([
             isinstance(other, self.__class__),
-            self._uid == other._uid,            # type: ignore[attr-defined]
-            self._owner == other._owner         # type: ignore[attr-defined]
+            self._uid == other.uid,            # type: ignore[attr-defined]
+            self._owner == other.owner         # type: ignore[attr-defined]
         ])
+
+    def __repr__(self) -> str:
+        return f'<Entity(uid={self._uid})'
 
 
 T_Entity = typing.TypeVar("T_Entity", bound=Entity)
 
 
-class AggregateRoot(typing.Generic[T_Entity, T_Model]):
+class AggregateRoot(typing.Generic[T_Entity, T_Model, T_Schema]):
 
     def __init__(self, model: typing.Type[T_Model], session_maker: async_sessionmaker[AsyncSession]) -> None:
         self._repository = AsyncRepository[T_Model](model=model, session_maker=session_maker)
@@ -97,8 +132,8 @@ class AggregateRoot(typing.Generic[T_Entity, T_Model]):
         if not force_reload and uid in self._identity_map:
             return self._identity_map[uid]
         model = await self._repository.get_by_uid(str(uid))
-        entity = await self._from_model(model)
-        if not await self._validate(entity):
+        entity = self._from_model(model)
+        if not self.validate(entity):
             raise EntityInvariantException(code=500, msg='Restored entity fails validation')
         self._identity_map[entity.uid] = entity
         return self._identity_map[entity.uid]
@@ -107,9 +142,9 @@ class AggregateRoot(typing.Generic[T_Entity, T_Model]):
         if not force_reload:
             return list(self._identity_map.values())
         models = await self._repository.list()
-        entities = [await self._from_model(model) for model in models]
+        entities = [self._from_model(model) for model in models]
         for entity in entities:
-            if not await self._validate(entity):
+            if not self.validate(entity):
                 raise EntityInvariantException(code=400, msg='Entity fails validation')
         self._identity_map.update({e.uid: e for e in entities})
         return list(self._identity_map.values())
@@ -117,19 +152,19 @@ class AggregateRoot(typing.Generic[T_Entity, T_Model]):
     async def create(self, entity: T_Entity) -> T_Entity:
         if entity.uid in self._identity_map:
             raise EntityInvariantException(code=400, msg='Entity already exists')
-        if not self._validate(entity):
+        if not self.validate(entity):
             raise EntityInvariantException(code=400, msg='Entity fails validation')
-        model = await self._repository.create(await self._to_model(entity))
-        self._identity_map[entity.uid] = await self._from_model(model)
+        model = await self._repository.create(self._to_model(entity))
+        self._identity_map[entity.uid] = self._from_model(model)
         return self._identity_map[entity.uid]
 
     # Only methods in the entity should call this
     async def modify(self, entity: T_Entity):
         if entity.uid not in self._identity_map:
             raise EntityInvariantException(code=400, msg='Entity was not created by its aggregate root')
-        if not self._validate(entity):
+        if not self.validate(entity):
             raise EntityInvariantException(code=400, msg='Entity fails validation')
-        await self._repository.modify(await self._to_model(entity))
+        await self._repository.modify(self._to_model(entity))
 
     # An entity should only be removed using this method
     async def remove(self, uid: UniqueIdentifier):
@@ -138,15 +173,22 @@ class AggregateRoot(typing.Generic[T_Entity, T_Model]):
         await self._repository.remove(str(uid))
         del self._identity_map[uid]
 
-    async def _validate(self, entity: T_Entity) -> bool:
-        return True
+    def validate(self, entity: T_Entity) -> bool:
+        return all([
+            entity is not None,
+            isinstance(entity.uid, UniqueIdentifier)
+        ])
 
     @abc.abstractmethod
-    async def _to_model(self, entity: T_Entity) -> T_Model:
+    def _to_model(self, entity: T_Entity) -> T_Model:
         pass
 
     @abc.abstractmethod
-    async def _from_model(self, model: T_Model) -> T_Entity:
+    def _from_model(self, model: T_Model) -> T_Entity:
+        pass
+
+    @abc.abstractmethod
+    async def list_schema(self) -> typing.List[T_Schema]:
         pass
 
 
@@ -178,6 +220,14 @@ class BinarySizedValue(ValueObject):
 
     def __str__(self):
         return f'{self.value}{self.scale.name}'
+
+    def __repr__(self):
+        return f'<BinarySizedValue(value={self.value}, scale={self.scale.name})>'
+
+
+class BinarySizedValueSchema(SchemaBase):
+    value: int = Field(description="The value", examples=[2, 4, 8])
+    scale: BinaryScale = Field(description="The binary scale", examples=[BinaryScale.M, BinaryScale.G, BinaryScale.T])
 
 
 class AsyncRepository(typing.Generic[T_Model]):

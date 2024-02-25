@@ -132,7 +132,7 @@ def generics_session_maker(generics_db) -> sqlalchemy.orm.sessionmaker[sqlalchem
 
 @pytest.mark.asyncio
 @pytest_asyncio.fixture(scope='module')
-async def generics_async_session_maker(generics_db) -> sqlalchemy.ext.asyncio.async_sessionmaker[sqlalchemy.ext.asyncio.AsyncSession]:
+async def async_sessionmaker(generics_db) -> sqlalchemy.ext.asyncio.async_sessionmaker[sqlalchemy.ext.asyncio.AsyncSession]:
     engine = sqlalchemy.ext.asyncio.create_async_engine(f'sqlite+aiosqlite:///{generics_db}', echo=False)
     async_session = sqlalchemy.ext.asyncio.async_sessionmaker(engine, expire_on_commit=False)
     async with engine.begin() as conn:

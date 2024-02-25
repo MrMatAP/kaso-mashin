@@ -61,10 +61,19 @@ kaso-server = "kaso_mashin.server.run:main"
 # in addopts
 [tool.pytest.ini_options]
 minversion = "6.0"
-#addopts = "--cov=kaso_mashin --cov-report=term --cov-report=xml:build/coverage.xml --junit-xml=build/junit.xml"
+addopts = "--cov=kaso_mashin --cov-report=term --cov-report=xml:build/coverage.xml --junit-xml=build/junit.xml"
 testpaths = ["tests"]
 junit_family = "xunit2"
 log_cli = 1
 log_cli_level = "INFO"
 log_cli_format = "%(asctime)s [%(levelname)8s] %(message)s (%(filename)s:%(lineno)s)"
 log_cli_date_format="%Y-%m-%d %H:%M:%S"
+asyncio_mode = "auto"
+
+[tool.mypy]
+plugins = [ 'pydantic.mypy' ]
+
+[tool.pydantic-mypy]
+init_forbid_extra = true
+init_typed = true
+warn_required_dynamic_aliases = true

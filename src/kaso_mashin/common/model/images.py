@@ -9,9 +9,11 @@ import aiofiles
 from sqlalchemy import String, Integer, Enum, ForeignKey
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
+from pydantic import Field
+
 from kaso_mashin.common.base_types import (
     KasoMashinException,
-    ORMBase,
+    ORMBase, SchemaBase,
     Entity, AggregateRoot, ValueObject,
     BinarySizedValue,
     UniqueIdentifier, BinaryScale, DiskFormat)
@@ -59,6 +61,23 @@ class ImageModel(ORMBase):
         self.min_ram_scale = other.min_ram_scale
         self.min_disk = other.min_disk
         self.min_disk_scale = other.min_disk_scale
+
+
+class ImageSchema(SchemaBase):
+    """
+    A serialised image
+    """
+    name: str = Field(description='The image name',
+                      examples=['jammy'])
+    path: str = Field(description='Path to the image on the local disk',
+                      examples=['/Users/dude/var/kaso/images/ubuntu-jammy.qcow2'])
+    min_cpu: int = Field(description='Minimum number of vCPUs',
+                         default=0,
+                         examples=[2])
+    min_ram: BinarySizedValueSchema = Field(description='Minimum number of RAM (in MB)',
+                                            examples=[BinarySizedValueSchema(2, BinaryScale.G)])
+    min_space: BinarySizedValueSchema = Field(description='Minimum number of disk space (in MB)',
+                                              examples=[BinarySizedValueSchema(2, BinaryScale.G)])
 
 
 class ImageEntity(Entity):
