@@ -67,15 +67,28 @@ class KasoMashinException(Exception):
                  status: int = 500,
                  msg: str = 'An unknown exception occurred',
                  task=None):
-        self.status = status
-        self.msg = msg
+        super().__init__(msg)
+        self._status = status
+        self._msg = msg
         if task:
-            self.task = task
-            task.state = 'failed'
-            task.msg = msg
+            self._task = task
+            self._task.state = 'failed'
+            self._task.msg = msg
 
-    def __repr__(self):
-        return f'PlaygroundException(status={self.status}, msg="{self.msg}")'
+    @property
+    def status(self) -> int:
+        return self._status
 
-    def __str__(self):
-        return self.__repr__()
+    @property
+    def msg(self) -> str:
+        return self._msg
+
+    @property
+    def task(self):
+        return self._task
+
+    def __str__(self) -> str:
+        return f'[{self._status}] {self._msg}'
+
+    def __repr__(self) -> str:
+        return f'{self.__class__.__name__}(code={self._status}, msg={self._msg})'

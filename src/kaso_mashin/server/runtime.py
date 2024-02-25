@@ -13,6 +13,8 @@ from kaso_mashin.server.controllers import (
     NetworkController, PhoneHomeController, TaskController)
 from kaso_mashin.common.model import NetworkKind, NetworkModel
 
+from kaso_mashin.common.entities.disks import DiskAggregateRoot, DiskModel
+
 
 class Runtime:
     """

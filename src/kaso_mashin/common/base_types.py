@@ -13,19 +13,7 @@ from sqlalchemy.ext.asyncio import async_sessionmaker, AsyncSession
 
 from pydantic import BaseModel, ConfigDict, Field
 
-
-class KasoMashinException(Exception):
-
-    def __init__(self, code: int, msg: str) -> None:
-        super().__init__()
-        self._code = code
-        self._msg = msg
-
-    def __str__(self) -> str:
-        return f'[{self._code}] {self._msg}'
-
-    def __repr__(self) -> str:
-        return f'{self.__class__.__name__}(code={self._code}, msg={self._msg})'
+from kaso_mashin import KasoMashinException
 
 
 class EntityNotFoundException(KasoMashinException):
@@ -134,7 +122,7 @@ class AggregateRoot(typing.Generic[T_Entity, T_Model, T_Schema]):
         model = await self._repository.get_by_uid(str(uid))
         entity = self._from_model(model)
         if not self.validate(entity):
-            raise EntityInvariantException(code=500, msg='Restored entity fails validation')
+            raise EntityInvariantException(status=500, msg='Restored entity fails validation')
         self._identity_map[entity.uid] = entity
         return self._identity_map[entity.uid]
 
@@ -145,15 +133,15 @@ class AggregateRoot(typing.Generic[T_Entity, T_Model, T_Schema]):
         entities = [self._from_model(model) for model in models]
         for entity in entities:
             if not self.validate(entity):
-                raise EntityInvariantException(code=400, msg='Entity fails validation')
+                raise EntityInvariantException(status=400, msg='Entity fails validation')
         self._identity_map.update({e.uid: e for e in entities})
         return list(self._identity_map.values())
 
     async def create(self, entity: T_Entity) -> T_Entity:
         if entity.uid in self._identity_map:
-            raise EntityInvariantException(code=400, msg='Entity already exists')
+            raise EntityInvariantException(status=400, msg='Entity already exists')
         if not self.validate(entity):
-            raise EntityInvariantException(code=400, msg='Entity fails validation')
+            raise EntityInvariantException(status=400, msg='Entity fails validation')
         model = await self._repository.create(self._to_model(entity))
         self._identity_map[entity.uid] = self._from_model(model)
         return self._identity_map[entity.uid]
@@ -161,15 +149,15 @@ class AggregateRoot(typing.Generic[T_Entity, T_Model, T_Schema]):
     # Only methods in the entity should call this
     async def modify(self, entity: T_Entity):
         if entity.uid not in self._identity_map:
-            raise EntityInvariantException(code=400, msg='Entity was not created by its aggregate root')
+            raise EntityInvariantException(status=400, msg='Entity was not created by its aggregate root')
         if not self.validate(entity):
-            raise EntityInvariantException(code=400, msg='Entity fails validation')
+            raise EntityInvariantException(status=400, msg='Entity fails validation')
         await self._repository.modify(self._to_model(entity))
 
     # An entity should only be removed using this method
     async def remove(self, uid: UniqueIdentifier):
         if uid not in self._identity_map:
-            raise EntityInvariantException(code=400, msg='Entity was not created by its aggregate root')
+            raise EntityInvariantException(status=400, msg='Entity was not created by its aggregate root')
         await self._repository.remove(str(uid))
         del self._identity_map[uid]
 
@@ -224,6 +212,21 @@ class BinarySizedValue(ValueObject):
     def __repr__(self):
         return f'<BinarySizedValue(value={self.value}, scale={self.scale.name})>'
 
+    def __lt__(self, other: 'BinarySizedValue') -> bool:
+        if any([
+            self.scale == other.scale and self.value < other.value,
+            self.scale == BinaryScale.E and other.scale in [BinaryScale.P, BinaryScale.T, BinaryScale.G, BinaryScale.M, BinaryScale.k],
+            self.scale == BinaryScale.P and other.scale in [BinaryScale.T, BinaryScale.G, BinaryScale.M, BinaryScale.k],
+            self.scale == BinaryScale.T and other.scale in [BinaryScale.G, BinaryScale.M, BinaryScale.k],
+            self.scale == BinaryScale.G and other.scale in [BinaryScale.M, BinaryScale.k],
+            self.scale == BinaryScale.M and other.scale == BinaryScale.k
+        ]):
+            return True
+        return False
+
+    def __gt__(self, other: 'BinarySizedValue') -> bool:
+        return not self.__lt__(other)
+
 
 class BinarySizedValueSchema(SchemaBase):
     value: int = Field(description="The value", examples=[2, 4, 8])
@@ -245,7 +248,7 @@ class AsyncRepository(typing.Generic[T_Model]):
         async with self._session_maker() as session:
             model = await session.get(self._model_clazz, str(uid))
             if model is None:
-                raise EntityNotFoundException(code=400, msg='No such entity')
+                raise EntityNotFoundException(status=400, msg='No such entity')
             self._identity_map[uid] = model
             return self._identity_map[uid]
 
@@ -268,7 +271,7 @@ class AsyncRepository(typing.Generic[T_Model]):
         async with self._session_maker() as session:
             current = await session.get(self._model_clazz, str(update.uid))
             if current is None:
-                raise EntityNotFoundException(code=400, msg='No such entity')
+                raise EntityNotFoundException(status=400, msg='No such entity')
             current.merge(update)
             session.add(current)
             await session.commit()

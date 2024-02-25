@@ -15,7 +15,7 @@ from kaso_mashin.common.config import Config
 from kaso_mashin.common.model import ExceptionSchema
 from kaso_mashin.server.db import DB
 from kaso_mashin.server.runtime import Runtime
-from kaso_mashin.server.apis import ConfigAPI, TaskAPI, ImageAPI, IdentityAPI, NetworkAPI, InstanceAPI
+from kaso_mashin.server.apis import ConfigAPI, TaskAPI, ImageAPI, IdentityAPI, NetworkAPI, InstanceAPI, DiskAPI
 
 
 def create_server(runtime: Runtime) -> fastapi.applications.FastAPI:
@@ -30,6 +30,7 @@ def create_server(runtime: Runtime) -> fastapi.applications.FastAPI:
     app.include_router(NetworkAPI(runtime).router, prefix='/api/networks')
     app.include_router(ImageAPI(runtime).router, prefix='/api/images')
     app.include_router(InstanceAPI(runtime).router, prefix='/api/instances')
+    app.include_router(DiskAPI(runtime).router, prefix='/api/disks')
     app.mount(path='/',
               app=fastapi.staticfiles.StaticFiles(directory=pathlib.Path(os.path.dirname(__file__), 'static')),
               name='static')
@@ -43,9 +44,12 @@ def create_server(runtime: Runtime) -> fastapi.applications.FastAPI:
     @app.exception_handler(KasoMashinException)
     async def kaso_mashin_exception_handler(request: fastapi.Request, exc: KasoMashinException):
         del request  # pylint: disable=unused-argument
-        logging.getLogger('kaso_mashin.server').error('(%s) %s', exc.status, exc.msg)
+        logging.getLogger('kaso_mashin.server').error('(%s) %s',
+                                                      exc.status,
+                                                      f'{exc.__class__.__name__}: {exc.msg}')
         return fastapi.responses.JSONResponse(status_code=exc.status,
-                                              content=ExceptionSchema(status=exc.status, msg=exc.msg)
+                                              content=ExceptionSchema(status=exc.status,
+                                                                      msg=f'{exc.__class__.__name__}: {exc.msg}')
                                               .model_dump())
 
     @app.exception_handler(sqlalchemy.exc.SQLAlchemyError)

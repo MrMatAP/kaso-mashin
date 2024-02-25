@@ -7,11 +7,10 @@ from pydantic import Field, BaseModel
 from sqlalchemy import String, Integer, Enum
 from sqlalchemy.orm import Mapped, mapped_column
 
+from kaso_mashin import KasoMashinException
 from kaso_mashin.common.base_types import (
-    KasoMashinException,
     ORMBase, SchemaBase,
     Entity, AggregateRoot,
-    T_Schema,
     BinarySizedValue,
     UniqueIdentifier, BinaryScale, DiskFormat)
 
@@ -120,7 +119,7 @@ class DiskEntity(Entity):
                      size: BinarySizedValue = BinarySizedValue(2, BinaryScale.G),
                      disk_format: DiskFormat = DiskFormat.Raw) -> 'DiskEntity':
         if path.exists():
-            raise DiskException(code=400, msg=f'Disk at {path} already exists')
+            raise DiskException(status=400, msg=f'Disk at {path} already exists')
         path.parent.mkdir(parents=True, exist_ok=True)
         try:
             disk = DiskEntity(owner=owner,
@@ -137,36 +136,27 @@ class DiskEntity(Entity):
             return await owner.create(disk)
         except subprocess.CalledProcessError as e:
             path.unlink(missing_ok=True)
-            raise DiskException(code=500, msg=f'Failed to create disk: {e.output}') from e
-
-    @staticmethod
-    async def schema_create(owner: 'DiskAggregateRoot', schema: DiskCreateSchema) -> 'DiskEntity':
-        return await DiskEntity.create(owner=owner,
-                                       name=schema.name,
-                                       path=pathlib.Path(schema.path),
-                                       size=schema.size,
-                                       disk_format=schema.disk_format)
-
-    def schema_get(self) -> DiskGetSchema:
-        return DiskGetSchema.model_validate(self)
+            raise DiskException(status=500, msg=f'Failed to create disk: {e.output}') from e
+        except PermissionError as e:
+            raise DiskException(status=400, msg=f'You have no permission to create a disk at path {path}') from e
 
     async def schema_modify(self, schema: DiskModifySchema) -> 'DiskEntity':
         if schema.size != self.size:
             await self.resize(schema.size)
         return self
 
-    async def resize(self, value: BinarySizedValue):
+    async def resize(self, value: BinarySizedValue) -> 'DiskEntity':
         try:
-            subprocess.run(['/opt/homebrew/bin/qemu-img',
-                            'resize',
-                            '-f', str(self.disk_format),
-                            self.path,
-                            str(value)],
-                           check=True)
+            args = ['/opt/homebrew/bin/qemu-img', 'resize']
+            if self.size > value:
+                args.append('--shrink')
+            args += ['-f', str(self.disk_format), self._path, str(value)]
+            subprocess.run(args, check=True)
             self._size = value
             await self._owner.modify(self)
+            return self
         except subprocess.CalledProcessError as e:
-            raise DiskException(code=500, msg=f'Failed to resize disk: {e.output}') from e
+            raise DiskException(status=500, msg=f'Failed to resize disk: {e.output}') from e
 
     async def remove(self):
         self.path.unlink(missing_ok=True)

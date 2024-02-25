@@ -6,3 +6,4 @@ from .network_api import NetworkAPI
 from .image_api import ImageAPI
 from .instance_api import InstanceAPI
 
+from .disk_api import DiskAPI

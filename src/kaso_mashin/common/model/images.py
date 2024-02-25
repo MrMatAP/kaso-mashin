@@ -145,7 +145,7 @@ class ImageEntity(Entity):
                      min_ram: BinarySizedValue = BinarySizedValue(0, BinaryScale.G),
                      min_disk: BinarySizedValue = BinarySizedValue(0, BinaryScale.G)) -> 'ImageEntity':
         if path.exists():
-            raise ImageException(code=400, msg=f'Image at {path} already exists')
+            raise ImageException(status=400, msg=f'Image at {path} already exists')
         path.parent.mkdir(parents=True, exist_ok=True)
         image = None
         try:
@@ -171,7 +171,7 @@ class ImageEntity(Entity):
 
     async def create_os_disk(self, path: pathlib.Path, size: BinarySizedValue):
         if path.exists():
-            raise ImageException(code=400, msg=f'OS Disk at {path} already exists')
+            raise ImageException(status=400, msg=f'OS Disk at {path} already exists')
         path.parent.mkdir(parents=True, exist_ok=True)
         try:
             subprocess.run(['/opt/homebrew/bin/qemu-img',
@@ -187,7 +187,7 @@ class ImageEntity(Entity):
             return await self._owner.modify(self)
         except subprocess.CalledProcessError as e:
             path.unlink(missing_ok=True)
-            raise ImageException(code=500, msg=f'Failed to create OS disk from image: {e.output}') from e
+            raise ImageException(status=500, msg=f'Failed to create OS disk from image: {e.output}') from e
 
     async def remove(self):
         self.path.unlink(missing_ok=True)

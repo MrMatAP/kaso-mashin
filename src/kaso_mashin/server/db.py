@@ -2,9 +2,12 @@ import pathlib
 import shutil
 import sqlalchemy
 import sqlalchemy.orm
+import sqlalchemy.ext.asyncio
 
 from kaso_mashin import Base
 from kaso_mashin.common.config import Config
+
+from kaso_mashin.common.base_types import ORMBase
 
 
 class DB:
@@ -16,6 +19,7 @@ class DB:
         self._config = config
         self._engine = None
         self._session = None
+        self._async_sessionmaker = None
         self._path = pathlib.Path(f'{self._config.path}/kaso.sqlite3')
         self._owning_user = None
 
@@ -51,3 +55,12 @@ class DB:
             self._session = sqlalchemy.orm.Session(self.engine)
             shutil.chown(self.path, user=self.owning_user)
         return self._session
+
+    @property
+    async def async_sessionmaker(self) -> sqlalchemy.ext.asyncio.async_sessionmaker[sqlalchemy.ext.asyncio.AsyncSession]:
+        if not self._async_sessionmaker:
+            engine = sqlalchemy.ext.asyncio.create_async_engine(f'sqlite+aiosqlite:///{self.path}')
+            self._async_sessionmaker = sqlalchemy.ext.asyncio.async_sessionmaker(engine, expire_on_commit=False)
+            async with engine.begin() as conn:
+                await conn.run_sync(ORMBase.metadata.create_all)
+        return self._async_sessionmaker

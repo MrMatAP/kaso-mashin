@@ -34,28 +34,6 @@ async def test_async_disks(async_sessionmaker):
 
         schema_list = await disk_aggregate_root.list_schema()
         assert len(entities) == len(schema_list)
-
-        schema_get = disk.schema_get()
-        assert schema_get.uid == disk.uid
-        assert schema_get.name == disk.name
-        assert schema_get.path == disk.path
-        assert schema_get.size == disk.size
-        assert schema_get.disk_format == disk.disk_format
-
-        schema_create = DiskCreateSchema(name='Test Disk Schema',
-                                         path=pathlib.Path(__file__).parent / 'build' / f'test-disk-schema.qcow2',
-                                         size=BinarySizedValue(1, BinaryScale.M),
-                                         disk_format=DiskFormat.QCoW2)
-        schema_disk = await DiskEntity.schema_create(disk_aggregate_root, schema_create)
-        assert schema_disk.uid is not None
-        assert schema_disk.name == schema_create.name
-        assert schema_disk.path == schema_create.path
-        assert schema_disk.size == schema_create.size
-        assert schema_disk.disk_format == schema_create.disk_format
-
-        schema_modify = DiskModifySchema(size=BinarySizedValue(2, BinaryScale.M))
-        await schema_disk.schema_modify(schema_modify)
-        assert schema_disk.size == schema_modify.size
     finally:
         disks = await disk_aggregate_root.list(force_reload=True)
         for disk in disks:
