@@ -5,7 +5,8 @@
     <scripts>
       <script value="dev" />
     </scripts>
-    <node-interpreter value="project" />
+    <node-interpreter value="/opt/homebrew/Cellar/node@20/20.11.1/bin/node" />
+    <package-manager value="npm" />
     <envs />
     <method v="2" />
   </configuration>
