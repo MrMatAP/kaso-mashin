@@ -48,7 +48,6 @@ class SchemaBase(BaseModel):
     Schema base class for serialised entities
     """
     model_config = ConfigDict(from_attributes=True)
-    uid: UniqueIdentifier = Field(description='The unique identifier', examples=['b430727e-2491-4184-bb4f-c7d6d213e093'])
 
 
 T_Schema = typing.TypeVar('T_Schema', bound=SchemaBase)
@@ -83,19 +82,6 @@ class Entity:
     def owner(self) -> 'AggregateRoot':
         return self._owner
 
-    @abc.abstractmethod
-    def schema_get(self):
-        pass
-
-    @staticmethod
-    @abc.abstractmethod
-    async def schema_create(owner, schema):
-        pass
-
-    @abc.abstractmethod
-    async def schema_modify(self, schema) -> 'Entity':
-        pass
-
     def __eq__(self, other: object) -> bool:
         return all([
             isinstance(other, self.__class__),
@@ -110,9 +96,9 @@ class Entity:
 T_Entity = typing.TypeVar("T_Entity", bound=Entity)
 
 
-class AggregateRoot(typing.Generic[T_Entity, T_Model, T_Schema]):
+class AggregateRoot(typing.Generic[T_Entity, T_Model]):
 
-    def __init__(self, model: typing.Type[T_Model], session_maker: async_sessionmaker[AsyncSession]) -> None:
+    def __init__(self, model: typing.Type[T_Model], session_maker: async_sessionmaker[AsyncSession]):
         self._repository = AsyncRepository[T_Model](model=model, session_maker=session_maker)
         self._identity_map: typing.Dict[UniqueIdentifier, T_Entity] = {}
 
@@ -149,7 +135,7 @@ class AggregateRoot(typing.Generic[T_Entity, T_Model, T_Schema]):
     # Only methods in the entity should call this
     async def modify(self, entity: T_Entity):
         if entity.uid not in self._identity_map:
-            raise EntityInvariantException(status=400, msg='Entity was not created by its aggregate root')
+            raise EntityNotFoundException(status=400, msg='Entity was not created by this aggregate root')
         if not self.validate(entity):
             raise EntityInvariantException(status=400, msg='Entity fails validation')
         await self._repository.modify(self._to_model(entity))
@@ -157,7 +143,7 @@ class AggregateRoot(typing.Generic[T_Entity, T_Model, T_Schema]):
     # An entity should only be removed using this method
     async def remove(self, uid: UniqueIdentifier):
         if uid not in self._identity_map:
-            raise EntityInvariantException(status=400, msg='Entity was not created by its aggregate root')
+            raise EntityNotFoundException(status=400, msg='Entity was not created by this aggregate root')
         await self._repository.remove(str(uid))
         del self._identity_map[uid]
 
@@ -173,10 +159,6 @@ class AggregateRoot(typing.Generic[T_Entity, T_Model, T_Schema]):
 
     @abc.abstractmethod
     def _from_model(self, model: T_Model) -> T_Entity:
-        pass
-
-    @abc.abstractmethod
-    async def list_schema(self) -> typing.List[T_Schema]:
         pass
 
 

@@ -7,8 +7,10 @@ import fastapi
 from kaso_mashin.server.apis import AbstractAPI
 from kaso_mashin.server.runtime import Runtime
 from kaso_mashin.common.model import ExceptionSchema
-from kaso_mashin.common.entities.disks import DiskEntity, DiskModel, DiskAggregateRoot, DiskListSchema, \
-    DiskCreateSchema, DiskGetSchema, DiskModifySchema
+from kaso_mashin.common.entities import (
+    DiskAggregateRoot, DiskEntity, DiskModel,
+    DiskListSchema, DiskGetSchema, DiskCreateSchema, DiskModifySchema
+)
 
 
 class DiskAPI(AbstractAPI):
@@ -32,25 +34,28 @@ class DiskAPI(AbstractAPI):
                                    status_code=200,
                                    responses={200: {'model': typing.List[DiskListSchema]}},
                                    dependencies=[fastapi.Depends(self.disk_aggregate_root)])
-        self._router.add_api_route('/{uid}', self.get_disk, methods=['GET'],
+        self._router.add_api_route(path='/{uid}',
+                                   endpoint=self.get_disk,
+                                   methods=['GET'],
                                    summary='Get a disk',
-                                   description='Get full information about a disk specified by its unique ID.',
+                                   description='Get information about a disk specified by its unique ID',
                                    response_description='A disk',
                                    status_code=200,
                                    response_model=DiskGetSchema,
                                    dependencies=[fastapi.Depends(self.disk_aggregate_root)])
-        self._router.add_api_route('/', self.create_disk, methods=['POST'],
+        self._router.add_api_route(path='/',
+                                   endpoint=self.create_disk,
+                                   methods=['POST'],
                                    summary='Create a disk',
-                                   description='This will create a disk based on the provided input.',
+                                   description='Create a new disk',
                                    response_description='The created disk',
                                    status_code=201,
                                    response_model=DiskGetSchema,
                                    dependencies=[fastapi.Depends(self.disk_aggregate_root)])
         self._router.add_api_route('/{uid}', self.modify_disk, methods=['PUT'],
                                    summary='Modify a disk',
-                                   description='This will update the permissible fields of a disk based on the '
-                                               'provided input',
-                                   response_description='The updated identity',
+                                   description='This will update the permissible fields of a disk',
+                                   response_description='The updated disk',
                                    status_code=200,
                                    response_model=DiskGetSchema,
                                    dependencies=[fastapi.Depends(self.disk_aggregate_root)])

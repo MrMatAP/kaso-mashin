@@ -1,8 +1,7 @@
-import typing
 import pathlib
 import subprocess
 
-from pydantic import Field, BaseModel
+from pydantic import Field
 
 from sqlalchemy import String, Integer, Enum
 from sqlalchemy.orm import Mapped, mapped_column
@@ -39,10 +38,17 @@ class DiskModel(ORMBase):
 
 
 class DiskListSchema(SchemaBase):
+    """
+    Schema to list disks
+    """
+    uid: UniqueIdentifier = Field(description='The unique identifier', examples=['b430727e-2491-4184-bb4f-c7d6d213e093'])
     name: str = Field(description='The disk name', examples=['root', 'data-1', 'data-2'])
 
 
-class DiskGetSchema(SchemaBase):
+class DiskCreateSchema(SchemaBase):
+    """
+    Schema to create a disk
+    """
     name: str = Field(description='Disk name',
                       examples=['root', 'data-1', 'data-2'])
     path: pathlib.Path = Field(description='Path of the disk image on the local filesystem',
@@ -51,16 +57,17 @@ class DiskGetSchema(SchemaBase):
     disk_format: DiskFormat = Field(description='Disk image file format')
 
 
-class DiskCreateSchema(BaseModel):
-    name: str = Field(description='Disk name',
-                      examples=['root', 'data-1', 'data-2'])
-    path: pathlib.Path = Field(description='Path of the disk image on the local filesystem',
-                               examples=['/var/kaso/instances/root.qcow2'])
-    size: BinarySizedValue = Field(description='Disk size')
-    disk_format: DiskFormat = Field(description='Disk image file format')
+class DiskGetSchema(DiskCreateSchema):
+    """
+    Schema to get information about a specific disk
+    """
+    uid: UniqueIdentifier = Field(description='The unique identifier', examples=['b430727e-2491-4184-bb4f-c7d6d213e093'])
 
 
-class DiskModifySchema(BaseModel):
+class DiskModifySchema(SchemaBase):
+    """
+    Schema to modify an existing disk
+    """
     size: BinarySizedValue = Field(description='Disk size')
 
 
@@ -106,7 +113,8 @@ class DiskEntity(Entity):
             self._disk_format == other.disk_format])
 
     def __repr__(self) -> str:
-        return (f'<DiskEntity(uid={self.uid}, '
+        return (
+                f'<DiskEntity(uid={self.uid}, '
                 f'name={self.name}, '
                 f'path={self.path}, '
                 f'size={self.size}, '
@@ -140,11 +148,6 @@ class DiskEntity(Entity):
         except PermissionError as e:
             raise DiskException(status=400, msg=f'You have no permission to create a disk at path {path}') from e
 
-    async def schema_modify(self, schema: DiskModifySchema) -> 'DiskEntity':
-        if schema.size != self.size:
-            await self.resize(schema.size)
-        return self
-
     async def resize(self, value: BinarySizedValue) -> 'DiskEntity':
         try:
             args = ['/opt/homebrew/bin/qemu-img', 'resize']
@@ -163,7 +166,7 @@ class DiskEntity(Entity):
         await self._owner.remove(self.uid)
 
 
-class DiskAggregateRoot(AggregateRoot[DiskEntity, DiskModel, DiskListSchema]):
+class DiskAggregateRoot(AggregateRoot[DiskEntity, DiskModel]):
 
     def _validate(self, entity: DiskEntity) -> bool:
         return all([
@@ -179,7 +182,7 @@ class DiskAggregateRoot(AggregateRoot[DiskEntity, DiskModel, DiskListSchema]):
                          size_scale=entity.size.scale,
                          format=str(entity.disk_format))
 
-    def _from_model(self, model: DiskModel) -> 'DiskEntity':
+    def _from_model(self, model: DiskModel) -> DiskEntity:
         entity = DiskEntity(owner=self,
                             name=model.name,
                             path=pathlib.Path(model.path),
@@ -187,7 +190,3 @@ class DiskAggregateRoot(AggregateRoot[DiskEntity, DiskModel, DiskListSchema]):
                             disk_format=DiskFormat(model.format))
         entity._uid = UniqueIdentifier(model.uid)
         return entity
-
-    async def list_schema(self) -> typing.List[DiskListSchema]:
-        disks = await self.list(force_reload=True)
-        return [DiskListSchema.model_validate(disk) for disk in disks]
