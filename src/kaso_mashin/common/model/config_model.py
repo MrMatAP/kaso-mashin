@@ -9,7 +9,9 @@ Predefined_Images = {
     'ubuntu-lunar': 'https://cloud-images.ubuntu.com/lunar/current/lunar-server-cloudimg-arm64.img',
     'ubuntu-mantic': 'https://cloud-images.ubuntu.com/mantic/current/mantic-server-cloudimg-arm64.img',
     'freebsd-14': 'https://download.freebsd.org/ftp/snapshots/VM-IMAGES/14.0-CURRENT/amd64/Latest/'
-                  'FreeBSD-14.0-CURRENT-amd64.qcow2.xz'
+                  'FreeBSD-14.0-CURRENT-amd64.qcow2.xz',
+    'flatcar-arm64': 'https://stable.release.flatcar-linux.net/arm64-usr/current/flatcar_production_qemu_uefi_image.img',
+    'flatcar-amd64': 'https://stable.release.flatcar-linux.net/amd64-usr/current/flatcar_production_qemu_image.img'
 }
 
 

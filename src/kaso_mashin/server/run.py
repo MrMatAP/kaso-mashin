@@ -22,14 +22,15 @@ def create_server(runtime: Runtime) -> fastapi.applications.FastAPI:
     app = fastapi.FastAPI(title='Kaso Mashin API',
                           summary='APIs for the Kaso Mashin controllers',
                           description='Provides APIs for the Kaso Mashin controllers',
-                          version=__version__)
+                          version=__version__,
+                          lifespan=runtime.lifespan)
 
-    app.include_router(ConfigAPI(runtime).router, prefix='/api/config')
+    #app.include_router(ConfigAPI(runtime).router, prefix='/api/config')
     app.include_router(TaskAPI(runtime).router, prefix='/api/tasks')
-    app.include_router(IdentityAPI(runtime).router, prefix='/api/identities')
-    app.include_router(NetworkAPI(runtime).router, prefix='/api/networks')
+    #app.include_router(IdentityAPI(runtime).router, prefix='/api/identities')
+    #app.include_router(NetworkAPI(runtime).router, prefix='/api/networks')
     app.include_router(ImageAPI(runtime).router, prefix='/api/images')
-    app.include_router(InstanceAPI(runtime).router, prefix='/api/instances')
+    #app.include_router(InstanceAPI(runtime).router, prefix='/api/instances')
     app.include_router(DiskAPI(runtime).router, prefix='/api/disks')
     app.mount(path='/',
               app=fastapi.staticfiles.StaticFiles(directory=pathlib.Path(os.path.dirname(__file__), 'static')),

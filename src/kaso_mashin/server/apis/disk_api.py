@@ -8,7 +8,7 @@ from kaso_mashin.server.apis import AbstractAPI
 from kaso_mashin.server.runtime import Runtime
 from kaso_mashin.common.model import ExceptionSchema
 from kaso_mashin.common.entities import (
-    DiskAggregateRoot, DiskEntity, DiskModel,
+    DiskEntity,
     DiskListSchema, DiskGetSchema, DiskCreateSchema, DiskModifySchema
 )
 
@@ -32,8 +32,7 @@ class DiskAPI(AbstractAPI):
                                    description='List all currently known disks',
                                    response_description='The list of currently known disks',
                                    status_code=200,
-                                   responses={200: {'model': typing.List[DiskListSchema]}},
-                                   dependencies=[fastapi.Depends(self.disk_aggregate_root)])
+                                   responses={200: {'model': typing.List[DiskListSchema]}})
         self._router.add_api_route(path='/{uid}',
                                    endpoint=self.get_disk,
                                    methods=['GET'],
@@ -41,8 +40,7 @@ class DiskAPI(AbstractAPI):
                                    description='Get information about a disk specified by its unique ID',
                                    response_description='A disk',
                                    status_code=200,
-                                   response_model=DiskGetSchema,
-                                   dependencies=[fastapi.Depends(self.disk_aggregate_root)])
+                                   response_model=DiskGetSchema)
         self._router.add_api_route(path='/',
                                    endpoint=self.create_disk,
                                    methods=['POST'],
@@ -50,30 +48,21 @@ class DiskAPI(AbstractAPI):
                                    description='Create a new disk',
                                    response_description='The created disk',
                                    status_code=201,
-                                   response_model=DiskGetSchema,
-                                   dependencies=[fastapi.Depends(self.disk_aggregate_root)])
+                                   response_model=DiskGetSchema)
         self._router.add_api_route('/{uid}', self.modify_disk, methods=['PUT'],
                                    summary='Modify a disk',
                                    description='This will update the permissible fields of a disk',
                                    response_description='The updated disk',
                                    status_code=200,
-                                   response_model=DiskGetSchema,
-                                   dependencies=[fastapi.Depends(self.disk_aggregate_root)])
+                                   response_model=DiskGetSchema)
         self._router.add_api_route('/{uid}', self.remove_disk, methods=['DELETE'],
                                    summary='Remove a disk',
                                    description='Remove a disk. This will irrevocably and permanently delete the disk',
                                    response_description='There is no response content',
-                                   responses={204: {'model': None}, 410: {'model': None}},
-                                   dependencies=[fastapi.Depends(self.disk_aggregate_root)])
-
-    async def disk_aggregate_root(self) -> DiskAggregateRoot:
-        if self._disk_aggregate_root is None:
-            self._disk_aggregate_root = DiskAggregateRoot(model=DiskModel,
-                                                          session_maker=await self._runtime.db.async_sessionmaker)
-        return self._disk_aggregate_root
+                                   responses={204: {'model': None}, 410: {'model': None}})
 
     async def list_disks(self):
-        entities = await self._disk_aggregate_root.list(force_reload=True)
+        entities = await self._runtime.disk_aggregate_root.list(force_reload=True)
         return [DiskListSchema.model_validate(e) for e in entities]
 
     async def get_disk(self,
@@ -81,11 +70,11 @@ class DiskAPI(AbstractAPI):
                                                                      description='The unique disk Id',
                                                                      examples=[
                                                                          '4198471B-8C84-4636-87CD-9DF4E24CF43F'])]):
-        entity = await self._disk_aggregate_root.get(uid)
+        entity = await self._runtime.disk_aggregate_root.get(uid)
         return DiskGetSchema.model_validate(entity)
 
     async def create_disk(self, schema: DiskCreateSchema):
-        entity = await DiskEntity.create(owner=self._disk_aggregate_root,
+        entity = await DiskEntity.create(owner=self._runtime.disk_aggregate_root,
                                          name=schema.name,
                                          path=pathlib.Path(schema.path),
                                          size=schema.size,
@@ -97,7 +86,7 @@ class DiskAPI(AbstractAPI):
                                                                         description='The unique disk Id',
                                                                         examples=['4198471B-8C84-4636-87CD-9DF4E24CF43F'])],
                           schema: DiskModifySchema):
-        entity = await self._disk_aggregate_root.get(uid)
+        entity = await self._runtime.disk_aggregate_root.get(uid)
         if entity.size != schema.size:
             entity = await entity.resize(schema.size)
         return DiskGetSchema.model_validate(entity)
@@ -107,5 +96,5 @@ class DiskAPI(AbstractAPI):
                                                                         description='The unique disk Id',
                                                                         examples=[
                                                                             '4198471B-8C84-4636-87CD-9DF4E24CF43F'])]):
-        entity = await self._disk_aggregate_root.get(uid)
+        entity = await self._runtime.disk_aggregate_root.get(uid)
         await entity.remove()

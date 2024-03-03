@@ -16,11 +16,9 @@ class TaskState(str, enum.Enum):
     """
     An enumeration of task state
     """
-    NEW = 'new'
     RUNNING = 'running'
     DONE = 'done'
     FAILED = 'failed'
-    CANCELLED = 'cancelled'
 
 
 class TaskException(KasoMashinException):
@@ -43,6 +41,7 @@ class TaskListSchema(SchemaBase):
     Schema to list tasks
     """
     uid: UniqueIdentifier = Field(description='The unique identifier', examples=['b430727e-2491-4184-bb4f-c7d6d213e093'])
+    name: str = Field(description='Task name', example=['Downloading image'])
     state: TaskState = Field(description='The current state of the task', examples=[TaskState.RUNNING, TaskState.DONE])
 
 
@@ -50,7 +49,8 @@ class TaskGetSchema(TaskListSchema):
     """
     Schema to get information about a specific task
     """
-    pass
+    msg: str = Field(description='Task status message', examples=['Downloaded 10% of the image'])
+    percent_complete: int = Field(description='Task completion', examples=[12, 100])
 
 
 class TaskEntity(Entity):
@@ -63,7 +63,7 @@ class TaskEntity(Entity):
                  name: str):
         super().__init__(owner=owner)
         self._name = name
-        self._state = TaskState.NEW
+        self._state = TaskState.RUNNING
         self._msg = ''
         self._percent_complete = 0
         self._outcome: Entity | None = None
@@ -75,6 +75,10 @@ class TaskEntity(Entity):
     @property
     def state(self) -> TaskState:
         return self._state
+
+    @state.setter
+    def state(self, value: TaskState):
+        self._state = value
 
     @property
     def msg(self) -> str:
@@ -112,16 +116,23 @@ class TaskEntity(Entity):
         task = TaskEntity(owner=owner, name=name)
         return await owner.create(task)
 
-    async def start(self):
-        if self.state == TaskState.RUNNING:
-            raise TaskException(status=400, msg='Task is already running')
-        self._state = TaskState.RUNNING
+    async def progress(self, percent_complete: int, msg: str = None):
+        self._percent_complete = percent_complete
+        if msg is not None:
+            self._msg = msg
         await self.owner.modify(self)
 
-    async def cancel(self):
-        if self.state == TaskState.RUNNING:
-            self._state = TaskState.CANCELLED
-            await self.owner.modify(self)
+    async def done(self, msg: str, outcome: Entity = None):
+        self._percent_complete = 100
+        self._msg = msg
+        self._outcome = outcome
+        self._state = TaskState.DONE
+        await self.owner.modify(self)
+
+    async def fail(self, msg: str):
+        self._msg = msg
+        self._state = TaskState.FAILED
+        await self.owner.modify(self)
 
 
 class TaskAggregateRoot(AggregateRoot[TaskEntity, TaskModel]):

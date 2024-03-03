@@ -18,6 +18,7 @@ class Config:
     Configuration handling for kaso_mashin
     """
     path: pathlib.Path = dataclasses.field(default=pathlib.Path('~/var/kaso').expanduser())
+    image_path: pathlib.Path = dataclasses.field(default=pathlib.Path('~/var/kaso/images').expanduser())
     default_os_disk_size: str = dataclasses.field(default='5G')
     default_phone_home_port: int = dataclasses.field(default=10200)
     default_host_network_dhcp4_start: str = dataclasses.field(default='172.16.4.10')
