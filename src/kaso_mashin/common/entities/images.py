@@ -1,3 +1,4 @@
+import typing
 import pathlib
 import shutil
 
@@ -6,17 +7,18 @@ import httpx
 from pydantic import Field
 
 from sqlalchemy import String, Integer, Enum
-from sqlalchemy.orm import Mapped, mapped_column, relationship
+from sqlalchemy.orm import Mapped, mapped_column
 
 from kaso_mashin import KasoMashinException
 from kaso_mashin.common.base_types import (
     ORMBase, SchemaBase,
     Entity, AggregateRoot,
     BinarySizedValue, BinaryScale,
-    UniqueIdentifier, T_Model
+    UniqueIdentifier, T_Model,
+    EntityInvariantException
 )
 
-from kaso_mashin.common.entities import TaskState, TaskEntity
+from kaso_mashin.common.entities import TaskEntity
 
 DEFAULT_MIN_VCPU = 0
 DEFAULT_MIN_RAM = BinarySizedValue(0, BinaryScale.G)
@@ -43,7 +45,6 @@ class ImageModel(ORMBase):
     min_ram_scale: Mapped[str] = mapped_column(Enum(BinaryScale), default=BinaryScale.G)
     min_disk: Mapped[int] = mapped_column(Integer, default=0)
     min_disk_scale: Mapped[str] = mapped_column(Enum(BinaryScale), default=BinaryScale.G)
-    #os_disks: Mapped[typing.List[DiskModel]] = relationship()
 
     def merge(self, other: 'ImageModel'):
         self.name = other.name
@@ -89,6 +90,7 @@ class ImageGetSchema(ImageCreateSchema):
     """
     uid: UniqueIdentifier = Field(description='The unique identifier',
                                   examples=['b430727e-2491-4184-bb4f-c7d6d213e093'])
+    os_disks: typing.List['DiskGetSchema'] = Field(description='Disks created from this schema')
 
 
 class ImageModifySchema(SchemaBase):
@@ -118,7 +120,8 @@ class ImageEntity(Entity):
                  path: pathlib.Path,
                  min_vcpu: int = 0,
                  min_ram: BinarySizedValue = BinarySizedValue(0, BinaryScale.G),
-                 min_disk: BinarySizedValue = BinarySizedValue(0, BinaryScale.G)) -> None:
+                 min_disk: BinarySizedValue = BinarySizedValue(0, BinaryScale.G),
+                 os_disks: typing.List['DiskEntity'] | None = None) -> None:
         super().__init__(owner=owner)
         self._name = name
         self._url = url
@@ -126,6 +129,7 @@ class ImageEntity(Entity):
         self._min_vcpu = min_vcpu
         self._min_ram = min_ram
         self._min_disk = min_disk
+        self._os_disks = os_disks or []
 
     @property
     def name(self) -> str:
@@ -151,6 +155,10 @@ class ImageEntity(Entity):
     def min_disk(self) -> BinarySizedValue:
         return self._min_disk
 
+    @property
+    def os_disks(self) -> typing.List['DiskEntity']:
+        return self._os_disks
+
     def __eq__(self, other: 'ImageEntity') -> bool:
         return all([
             super().__eq__(other),
@@ -159,7 +167,8 @@ class ImageEntity(Entity):
             self._path == other.path,
             self._min_vcpu == other.min_vcpu,
             self._min_ram == other.min_ram,
-            self._min_disk == other.min_disk
+            self._min_disk == other.min_disk,
+            self._os_disks == other.os_disks
         ])
 
     def __repr__(self) -> str:
@@ -170,7 +179,8 @@ class ImageEntity(Entity):
             f'path={self.path}, '
             f'min_vcpu={self.min_vcpu}, '
             f'min_ram={self.min_ram}, '
-            f'min_disk={self.min_disk})>'
+            f'min_disk={self.min_disk},'
+            f'os_disks={self.os_disks})>'
         )
 
     @staticmethod
@@ -225,7 +235,8 @@ class ImageEntity(Entity):
         await self.owner.modify(self)
 
     async def remove(self):
-        # TODO: Check whether we have any disks associated with this image
+        if len(self._os_disks) > 0:
+            raise EntityInvariantException(status=400, msg=f'You cannot remove an image from which OS disks exists')
         self.path.unlink(missing_ok=True)
         await self._owner.remove(self.uid)
 
@@ -238,7 +249,7 @@ class ImageAggregateRoot(AggregateRoot[ImageEntity, ImageModel]):
             entity.path.exists()
         ])
 
-    def _to_model(self, entity: ImageEntity) -> ImageModel:
+    async def _to_model(self, entity: ImageEntity) -> ImageModel:
         return ImageModel(uid=str(entity.uid),
                           name=entity.name,
                           url=entity.url,
@@ -249,13 +260,17 @@ class ImageAggregateRoot(AggregateRoot[ImageEntity, ImageModel]):
                           min_disk=entity.min_disk.value,
                           min_disk_scale=entity.min_disk.scale)
 
-    def _from_model(self, model: T_Model) -> ImageEntity:
+    async def _from_model(self, model: T_Model) -> ImageEntity:
+        # TODO: This is infinitely recursing
+        #os_disks = await self._runtime.disk_aggregate_root.list_by_image_uid(model.uid)
+        os_disks = []
         entity = ImageEntity(owner=self,
                              name=model.name,
                              url=model.url,
                              path=pathlib.Path(model.path),
                              min_vcpu=model.min_vcpu,
                              min_ram=BinarySizedValue(model.min_ram, BinaryScale(model.min_ram_scale)),
-                             min_disk=BinarySizedValue(model.min_disk, BinaryScale(model.min_disk_scale)))
+                             min_disk=BinarySizedValue(model.min_disk, BinaryScale(model.min_disk_scale)),
+                             os_disks=os_disks)
         entity._uid = UniqueIdentifier(model.uid)
         return entity

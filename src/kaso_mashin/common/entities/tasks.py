@@ -173,9 +173,9 @@ class TaskAggregateRoot(AggregateRoot[TaskEntity, TaskModel]):
         ])
 
     # We do not currently persist tasks
-    def _to_model(self, entity: TaskEntity) -> T_Model:
+    async def _to_model(self, entity: TaskEntity) -> T_Model:
         pass
 
     # We do not currently persist tasks
-    def _from_model(self, model: T_Model) -> T_Entity:
+    async def _from_model(self, model: T_Model) -> T_Entity:
         pass

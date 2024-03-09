@@ -10,9 +10,9 @@ import netifaces
 from kaso_mashin.common.config import Config
 from kaso_mashin.server.db import DB
 # from kaso_mashin.server.controllers import (
-#     BootstrapController, OsDiskController, IdentityController, ImageController,
+#     BootstrapController, OsDiskController, IdentityController,
 #     InstanceController,
-#     NetworkController, PhoneHomeController, TaskController)
+#     NetworkController, PhoneHomeController)
 # from kaso_mashin.common.model import NetworkKind, NetworkModel
 
 from kaso_mashin.common.entities import (
@@ -91,11 +91,14 @@ class Runtime:
     @contextlib.asynccontextmanager
     async def lifespan(self, app: fastapi.FastAPI):
         self._task_aggregate_root = TaskAggregateRoot(model=TaskModel,
-                                                      session_maker=await self._db.async_sessionmaker)
+                                                      session_maker=await self._db.async_sessionmaker,
+                                                      runtime=self)
         self._disk_aggregate_root = DiskAggregateRoot(model=DiskModel,
-                                                      session_maker=await self._db.async_sessionmaker)
+                                                      session_maker=await self._db.async_sessionmaker,
+                                                      runtime=self)
         self._image_aggregate_root = ImageAggregateRoot(model=ImageModel,
-                                                        session_maker=await self._db.async_sessionmaker)
+                                                        session_maker=await self._db.async_sessionmaker,
+                                                        runtime=self)
         yield
 
     @property

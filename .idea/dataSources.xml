@@ -12,7 +12,7 @@
       <working-dir>$ProjectFileDir$</working-dir>
     </data-source>
     <data-source source="LOCAL" name="ddd" uuid="4b7a3b45-7f67-4046-959f-58b7168de7e7">
-      <driver-ref>sqlite.xerial</driver-ref>
+      <driver-ref>9809209c-8fa3-48dd-9547-04f02de15fa1</driver-ref>
       <synchronize>true</synchronize>
       <jdbc-driver>org.sqlite.JDBC</jdbc-driver>
       <jdbc-url>jdbc:sqlite:$PROJECT_DIR$/tests/build/ddd.sqlite</jdbc-url>

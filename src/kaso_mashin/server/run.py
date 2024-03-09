@@ -15,7 +15,8 @@ from kaso_mashin.common.config import Config
 from kaso_mashin.common.model import ExceptionSchema
 from kaso_mashin.server.db import DB
 from kaso_mashin.server.runtime import Runtime
-from kaso_mashin.server.apis import ConfigAPI, TaskAPI, ImageAPI, IdentityAPI, NetworkAPI, InstanceAPI, DiskAPI
+#from kaso_mashin.server.apis import ConfigAPI, TaskAPI, ImageAPI, IdentityAPI, NetworkAPI, InstanceAPI, DiskAPI
+from kaso_mashin.server.apis import TaskAPI, ImageAPI, DiskAPI
 
 
 def create_server(runtime: Runtime) -> fastapi.applications.FastAPI:

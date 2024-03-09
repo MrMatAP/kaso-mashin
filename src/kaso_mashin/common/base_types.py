@@ -98,7 +98,11 @@ T_Entity = typing.TypeVar("T_Entity", bound=Entity)
 
 class AggregateRoot(typing.Generic[T_Entity, T_Model]):
 
-    def __init__(self, model: typing.Type[T_Model], session_maker: async_sessionmaker[AsyncSession]):
+    def __init__(self,
+                 model: typing.Type[T_Model],
+                 session_maker: async_sessionmaker[AsyncSession],
+                 runtime: 'Runtime'):
+        self._runtime = runtime
         self._repository = AsyncRepository[T_Model](model=model, session_maker=session_maker)
         self._identity_map: typing.Dict[UniqueIdentifier, T_Entity] = {}
 
@@ -106,7 +110,7 @@ class AggregateRoot(typing.Generic[T_Entity, T_Model]):
         if not force_reload and uid in self._identity_map:
             return self._identity_map[uid]
         model = await self._repository.get_by_uid(str(uid))
-        entity = self._from_model(model)
+        entity = await self._from_model(model)
         if not self.validate(entity):
             raise EntityInvariantException(status=500, msg='Restored entity fails validation')
         self._identity_map[entity.uid] = entity
@@ -116,7 +120,7 @@ class AggregateRoot(typing.Generic[T_Entity, T_Model]):
         if not force_reload:
             return list(self._identity_map.values())
         models = await self._repository.list()
-        entities = [self._from_model(model) for model in models]
+        entities = [await self._from_model(model) for model in models]
         for entity in entities:
             if not self.validate(entity):
                 raise EntityInvariantException(status=400, msg='Entity fails validation')
@@ -128,8 +132,8 @@ class AggregateRoot(typing.Generic[T_Entity, T_Model]):
             raise EntityInvariantException(status=400, msg='Entity already exists')
         if not self.validate(entity):
             raise EntityInvariantException(status=400, msg='Entity fails validation')
-        model = await self._repository.create(self._to_model(entity))
-        self._identity_map[entity.uid] = self._from_model(model)
+        model = await self._repository.create(await self._to_model(entity))
+        self._identity_map[entity.uid] = await self._from_model(model)
         return self._identity_map[entity.uid]
 
     # Only methods in the entity should call this
@@ -138,7 +142,7 @@ class AggregateRoot(typing.Generic[T_Entity, T_Model]):
             raise EntityNotFoundException(status=400, msg='Entity was not created by this aggregate root')
         if not self.validate(entity):
             raise EntityInvariantException(status=400, msg='Entity fails validation')
-        await self._repository.modify(self._to_model(entity))
+        await self._repository.modify(await self._to_model(entity))
 
     # An entity should only be removed using this method
     async def remove(self, uid: UniqueIdentifier):
@@ -154,21 +158,15 @@ class AggregateRoot(typing.Generic[T_Entity, T_Model]):
         ])
 
     @abc.abstractmethod
-    def _to_model(self, entity: T_Entity) -> T_Model:
+    async def _to_model(self, entity: T_Entity) -> T_Model:
         pass
 
     @abc.abstractmethod
-    def _from_model(self, model: T_Model) -> T_Entity:
+    async def _from_model(self, model: T_Model) -> T_Entity:
         pass
 
 
 T_AggregateRoot = typing.TypeVar('T_AggregateRoot', bound=AggregateRoot)
-
-
-class DiskFormat(enum.StrEnum):
-    Raw = 'raw'
-    QCoW2 = 'qcow2'
-    VDI = 'vdi'
 
 
 class BinaryScale(enum.StrEnum):

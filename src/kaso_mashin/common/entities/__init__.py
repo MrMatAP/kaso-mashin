@@ -7,8 +7,8 @@ from .tasks import (
 from .disks import (
     DiskException,
     DiskAggregateRoot, DiskEntity, DiskModel,
-    DiskListSchema, DiskGetSchema, DiskCreateSchema, DiskModifySchema
-
+    DiskListSchema, DiskGetSchema, DiskCreateSchema, DiskModifySchema,
+    DiskFormat
 )
 from .images import (
     ImageException,

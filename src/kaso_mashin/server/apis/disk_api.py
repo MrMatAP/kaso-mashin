@@ -74,11 +74,15 @@ class DiskAPI(AbstractAPI):
         return DiskGetSchema.model_validate(entity)
 
     async def create_disk(self, schema: DiskCreateSchema):
+        image = None
+        if schema.image_uid is not None:
+            image = await self._runtime.image_aggregate_root.get(schema.image_uid)
         entity = await DiskEntity.create(owner=self._runtime.disk_aggregate_root,
                                          name=schema.name,
                                          path=pathlib.Path(schema.path),
                                          size=schema.size,
-                                         disk_format=schema.disk_format)
+                                         disk_format=schema.disk_format,
+                                         image=image)
         return DiskGetSchema.model_validate(entity)
 
     async def modify_disk(self,

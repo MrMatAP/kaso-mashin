@@ -8,7 +8,6 @@ from kaso_mashin import Base
 from kaso_mashin.common.custom_types import DbPath, SchemaPath
 from kaso_mashin.common.model.relation_tables import instance_to_identities
 from kaso_mashin.common.model.network_model import NetworkModel
-from kaso_mashin.common.model.image_model import ImageModel
 from kaso_mashin.common.model.identity_model import IdentityModel
 
 
@@ -100,7 +99,7 @@ class InstanceModel(Base):
     console_path: Mapped[str] = mapped_column(DbPath, nullable=True)
 
     network: Mapped[NetworkModel] = relationship(lazy=False)
-    image: Mapped[ImageModel] = relationship(lazy=False)
+    #image: Mapped[ImageModel] = relationship(lazy=False)
     identities: Mapped[typing.List['IdentityModel']] = relationship(secondary=instance_to_identities,
                                                                     back_populates='instances')
 

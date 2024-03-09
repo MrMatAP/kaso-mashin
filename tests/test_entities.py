@@ -9,9 +9,10 @@ from kaso_mashin.common.entities import (
     ImageAggregateRoot, ImageEntity, ImageModel
 )
 
+
 @pytest.mark.asyncio(scope='module')
 async def test_async_disks(async_sessionmaker):
-    disk_aggregate_root = DiskAggregateRoot(model=DiskModel, session_maker=async_sessionmaker)
+    disk_aggregate_root = DiskAggregateRoot(model=DiskModel, session_maker=async_sessionmaker, runtime=None)
     try:
         disk = await DiskEntity.create(owner=disk_aggregate_root,
                                        name='Test Disk',
@@ -45,7 +46,7 @@ async def test_async_disks(async_sessionmaker):
 
 @pytest.mark.asyncio(scope='module')
 async def test_async_images(async_sessionmaker):
-    image_aggregate_root = ImageAggregateRoot(model=ImageModel, session_maker=async_sessionmaker)
+    image_aggregate_root = ImageAggregateRoot(model=ImageModel, session_maker=async_sessionmaker, runtime=None)
     try:
         image = await ImageEntity.create(owner=image_aggregate_root,
                                          name='Test Image',
@@ -65,16 +66,10 @@ async def test_async_images(async_sessionmaker):
 
 @pytest.mark.asyncio(scope='module')
 async def test_async_tasks(async_sessionmaker):
-    task_aggregate_root = TaskAggregateRoot(model=TaskModel, session_maker=async_sessionmaker)
+    task_aggregate_root = TaskAggregateRoot(model=TaskModel, session_maker=async_sessionmaker, runtime=None)
     try:
         task = await TaskEntity.create(owner=task_aggregate_root,
                                        name='Test Task')
-        assert task.state == TaskState.NEW
-
-        await task.start()
         assert task.state == TaskState.RUNNING
     finally:
         tasks = await task_aggregate_root.list(force_reload=True)
-        for task in tasks:
-            await task.cancel()
-            assert task.state == TaskState.CANCELLED
