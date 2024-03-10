@@ -1,17 +1,17 @@
 from .tasks import (
     TaskException,
-    TaskAggregateRoot, TaskEntity, TaskModel,
+    TaskRepository, TaskEntity, TaskModel,
     TaskListSchema, TaskGetSchema,
     TaskState
 )
 from .disks import (
     DiskException,
-    DiskAggregateRoot, DiskEntity, DiskModel,
+    DiskRepository, DiskEntity, DiskModel,
     DiskListSchema, DiskGetSchema, DiskCreateSchema, DiskModifySchema,
     DiskFormat
 )
 from .images import (
     ImageException,
-    ImageAggregateRoot, ImageEntity, ImageModel,
+    ImageRepository, ImageEntity, ImageModel,
     ImageListSchema, ImageGetSchema, ImageCreateSchema, ImageModifySchema
 )

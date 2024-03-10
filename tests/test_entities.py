@@ -4,25 +4,26 @@ import pathlib
 from kaso_mashin.common.base_types import BinaryScale, BinarySizedValue
 
 from kaso_mashin.common.entities import (
-    TaskAggregateRoot, TaskEntity, TaskModel, TaskState,
-    DiskAggregateRoot, DiskEntity, DiskModel,
-    ImageAggregateRoot, ImageEntity, ImageModel
+    TaskRepository, TaskEntity, TaskModel, TaskState,
+    DiskRepository, DiskEntity, DiskModel,
+    ImageRepository, ImageEntity, ImageModel
 )
 
 
 @pytest.mark.asyncio(scope='module')
 async def test_async_disks(async_sessionmaker):
-    disk_aggregate_root = DiskAggregateRoot(model=DiskModel, session_maker=async_sessionmaker, runtime=None)
+    disk_aggregate_root = DiskRepository(session_maker=async_sessionmaker,
+                                         aggregate_root_class=DiskEntity,
+                                         model_class=DiskModel)
     try:
-        disk = await DiskEntity.create(owner=disk_aggregate_root,
-                                       name='Test Disk',
+        disk = await DiskEntity.create(name='Test Disk',
                                        path=pathlib.Path(__file__).parent / 'build' / 'test-disk-0.qcow2',
                                        size=BinarySizedValue(1, BinaryScale.M))
 
-        loaded = await disk_aggregate_root.get(disk.uid)
+        loaded = await disk_aggregate_root.get_by_uid(disk.uid)
         assert disk == loaded
         await disk.resize(BinarySizedValue(2, scale=BinaryScale.M))
-        updated = await disk_aggregate_root.get(disk.uid, force_reload=True)
+        updated = await disk_aggregate_root.get_by_uid(disk.uid)
         assert disk.size == updated.size
         assert disk == updated
         listed = await disk_aggregate_root.list()
@@ -30,14 +31,13 @@ async def test_async_disks(async_sessionmaker):
         assert disk == listed[0]
 
         for i in range(1, 10):
-            await DiskEntity.create(owner=disk_aggregate_root,
-                                    name=f'Test Disk {i}',
+            await DiskEntity.create(name=f'Test Disk {i}',
                                     path=pathlib.Path(__file__).parent / 'build' / f'test-disk-{i}.qcow2',
                                     size=BinarySizedValue(1, BinaryScale.M))
         entities = await disk_aggregate_root.list()
         assert len(entities) == 10
     finally:
-        disks = await disk_aggregate_root.list(force_reload=True)
+        disks = await disk_aggregate_root.list()
         for disk in disks:
             await disk.remove()
             assert not disk.path.exists()
@@ -46,18 +46,19 @@ async def test_async_disks(async_sessionmaker):
 
 @pytest.mark.asyncio(scope='module')
 async def test_async_images(async_sessionmaker):
-    image_aggregate_root = ImageAggregateRoot(model=ImageModel, session_maker=async_sessionmaker, runtime=None)
+    image_aggregate_root = ImageRepository(session_maker=async_sessionmaker,
+                                           aggregate_root_class=ImageEntity,
+                                           model_class=ImageModel)
     try:
-        image = await ImageEntity.create(owner=image_aggregate_root,
-                                         name='Test Image',
+        image = await ImageEntity.create(name='Test Image',
                                          path=pathlib.Path(__file__).parent / 'build' / 'test-image-0.qcow2')
-        loaded = await image_aggregate_root.get(image.uid)
+        loaded = await image_aggregate_root.get_by_uid(image.uid)
         assert image == loaded
 
         entities = await image_aggregate_root.list()
         assert len(entities) == 1
     finally:
-        images = await image_aggregate_root.list(force_reload=True)
+        images = await image_aggregate_root.list()
         for image in images:
             await image.remove()
             assert not image.path.exists()
@@ -66,10 +67,11 @@ async def test_async_images(async_sessionmaker):
 
 @pytest.mark.asyncio(scope='module')
 async def test_async_tasks(async_sessionmaker):
-    task_aggregate_root = TaskAggregateRoot(model=TaskModel, session_maker=async_sessionmaker, runtime=None)
+    task_aggregate_root = TaskRepository(session_maker=async_sessionmaker,
+                                         aggregate_root_class=TaskEntity,
+                                         model_class=TaskModel)
     try:
-        task = await TaskEntity.create(owner=task_aggregate_root,
-                                       name='Test Task')
+        task = await TaskEntity.create(name='Test Task')
         assert task.state == TaskState.RUNNING
     finally:
         tasks = await task_aggregate_root.list(force_reload=True)

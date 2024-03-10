@@ -7,7 +7,7 @@ import sqlalchemy.ext.asyncio
 from kaso_mashin import Base
 from kaso_mashin.common.config import Config
 
-from kaso_mashin.common.base_types import ORMBase
+from kaso_mashin.common.ddd_scaffold import EntityModel
 
 
 class DB:
@@ -62,5 +62,5 @@ class DB:
             engine = sqlalchemy.ext.asyncio.create_async_engine(f'sqlite+aiosqlite:///{self.path}')
             self._async_sessionmaker = sqlalchemy.ext.asyncio.async_sessionmaker(engine, expire_on_commit=False)
             async with engine.begin() as conn:
-                await conn.run_sync(ORMBase.metadata.create_all)
+                await conn.run_sync(EntityModel.metadata.create_all)
         return self._async_sessionmaker

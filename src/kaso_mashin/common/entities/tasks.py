@@ -2,13 +2,17 @@ import typing
 import enum
 
 from pydantic import Field
+from sqlalchemy.ext.asyncio import async_sessionmaker, AsyncSession
 
 from kaso_mashin import KasoMashinException
-from kaso_mashin.common.base_types import (
-    ORMBase, SchemaBase,
-    Entity, AggregateRoot,
+from kaso_mashin.common import (
     UniqueIdentifier,
-    EntityNotFoundException, EntityInvariantException, T_Model, T_Entity,
+    EntityNotFoundException, EntityInvariantException,
+    EntitySchema,
+    EntityModel, T_EntityModel,
+    Entity,
+    AggregateRoot, T_AggregateRoot,
+    AsyncRepository
 )
 
 
@@ -25,43 +29,21 @@ class TaskException(KasoMashinException):
     pass
 
 
-class TaskModel(ORMBase):
+class TaskModel(EntityModel):
     """
     Representation of a task entity in the database.
-    This is a dummy, since we do not persist tasks at this moment
+    This is a dummy, since we do not persist tasks
     """
     __tablename__ = 'tasks'
 
-    def merge(self, other: typing.Self):
-        pass
 
-
-class TaskListSchema(SchemaBase):
-    """
-    Schema to list tasks
-    """
-    uid: UniqueIdentifier = Field(description='The unique identifier', examples=['b430727e-2491-4184-bb4f-c7d6d213e093'])
-    name: str = Field(description='Task name', example=['Downloading image'])
-    state: TaskState = Field(description='The current state of the task', examples=[TaskState.RUNNING, TaskState.DONE])
-
-
-class TaskGetSchema(TaskListSchema):
-    """
-    Schema to get information about a specific task
-    """
-    msg: str = Field(description='Task status message', examples=['Downloaded 10% of the image'])
-    percent_complete: int = Field(description='Task completion', examples=[12, 100])
-
-
-class TaskEntity(Entity):
+class TaskEntity(Entity, AggregateRoot):
     """
     Domain model entity for a task
     """
 
-    def __init__(self,
-                 owner: 'TaskAggregateRoot',
-                 name: str):
-        super().__init__(owner=owner)
+    def __init__(self, name: str):
+        super().__init__()
         self._name = name
         self._state = TaskState.RUNNING
         self._msg = ''
@@ -92,6 +74,13 @@ class TaskEntity(Entity):
     def outcome(self) -> Entity | None:
         return self._outcome
 
+    @staticmethod
+    def from_model(model: TaskModel) -> 'TaskEntity':
+        pass
+
+    def to_model(self, model: TaskModel | None = None) -> TaskModel:
+        pass
+
     def __eq__(self, other: 'TaskEntity') -> bool:
         return all([
             super().__eq__(other),
@@ -112,70 +101,76 @@ class TaskEntity(Entity):
         )
 
     @staticmethod
-    async def create(owner: 'TaskAggregateRoot', name: str) -> 'TaskEntity':
-        task = TaskEntity(owner=owner, name=name)
-        return await owner.create(task)
+    async def create(name: str) -> 'TaskEntity':
+        task = TaskEntity(name=name)
+        return await TaskEntity.repository.create(task)
 
     async def progress(self, percent_complete: int, msg: str = None):
         self._percent_complete = percent_complete
         if msg is not None:
             self._msg = msg
-        await self.owner.modify(self)
+        await self.repository.modify(self)
 
     async def done(self, msg: str, outcome: Entity = None):
         self._percent_complete = 100
         self._msg = msg
         self._outcome = outcome
         self._state = TaskState.DONE
-        await self.owner.modify(self)
+        await self.repository.modify(self)
 
     async def fail(self, msg: str):
         self._msg = msg
         self._state = TaskState.FAILED
-        await self.owner.modify(self)
+        await self.repository.modify(self)
 
 
-class TaskAggregateRoot(AggregateRoot[TaskEntity, TaskModel]):
+class TaskRepository(AsyncRepository[TaskEntity, TaskModel]):
 
-    async def get(self, uid: UniqueIdentifier, force_reload: bool = False) -> T_Entity:
+    def __init__(self,
+                 session_maker: async_sessionmaker[AsyncSession],
+                 aggregate_root_class: typing.Type[T_AggregateRoot],
+                 model_class: typing.Type[T_EntityModel]):
+        super().__init__(session_maker, aggregate_root_class, model_class)
+        self._identity_map: typing.Dict[UniqueIdentifier, TaskEntity] = {}
+
+    async def get_by_uid(self, uid: UniqueIdentifier) -> TaskEntity:
         if uid not in self._identity_map:
             raise EntityNotFoundException(status=404, msg='No such entity')
         return self._identity_map[uid]
 
-    async def list(self, force_reload: bool = False) -> typing.List[T_Entity]:
+    async def list(self, force_reload: bool = False) -> typing.List[TaskEntity]:
         return list(self._identity_map.values())
 
     async def create(self, entity: TaskEntity) -> TaskEntity:
         if entity.uid in self._identity_map:
             raise EntityInvariantException(status=400, msg='Entity already exists')
-        if not self.validate(entity):
-            raise EntityInvariantException(status=400, msg='Entity fails validation')
         self._identity_map[entity.uid] = entity
         return self._identity_map[entity.uid]
 
-    # Only methods in the entity should call this
-    async def modify(self, entity: TaskEntity):
+    async def modify(self, entity: TaskEntity) -> TaskEntity:
         if entity.uid not in self._identity_map:
-            raise EntityNotFoundException(status=400, msg='Entity was not created by this aggregate root')
-        if not self.validate(entity):
-            raise EntityInvariantException(status=400, msg='Entity fails validation')
+            raise EntityNotFoundException(status=400, msg='No such entity')
         self._identity_map[entity.uid] = entity
+        return entity
 
     async def remove(self, uid: UniqueIdentifier):
         if uid not in self._identity_map:
-            raise EntityNotFoundException(status=400, msg='Entity was not created by this aggregate root')
+            raise EntityNotFoundException(status=400, msg='No such entity')
         del self._identity_map[uid]
 
-    def validate(self, entity: TaskEntity) -> bool:
-        return all([
-            entity is not None,
-            isinstance(entity.uid, UniqueIdentifier)
-        ])
 
-    # We do not currently persist tasks
-    async def _to_model(self, entity: TaskEntity) -> T_Model:
-        pass
+class TaskListSchema(EntitySchema):
+    """
+    Schema to list tasks
+    """
+    uid: UniqueIdentifier = Field(description='The unique identifier', examples=['b430727e-2491-4184-bb4f-c7d6d213e093'])
+    name: str = Field(description='Task name', example=['Downloading image'])
+    state: TaskState = Field(description='The current state of the task', examples=[TaskState.RUNNING, TaskState.DONE])
 
-    # We do not currently persist tasks
-    async def _from_model(self, model: T_Model) -> T_Entity:
-        pass
+
+class TaskGetSchema(TaskListSchema):
+    """
+    Schema to get information about a specific task
+    """
+    msg: str = Field(description='Task status message', examples=['Downloaded 10% of the image'])
+    percent_complete: int = Field(description='Task completion', examples=[12, 100])

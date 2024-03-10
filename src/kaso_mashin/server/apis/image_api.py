@@ -10,7 +10,7 @@ from kaso_mashin.common.model import (
     Predefined_Images,
     ImagePredefinedSchema
 )
-from kaso_mashin.common.base_types import EntityNotFoundException
+from kaso_mashin.common.ddd_scaffold import EntityNotFoundException
 from kaso_mashin.common.entities import (
     ImageEntity,
     ImageListSchema, ImageGetSchema, ImageCreateSchema, ImageModifySchema,
@@ -84,7 +84,7 @@ class ImageAPI(AbstractAPI):
                                    responses={204: {'model': None}, 410: {'model': None}})
 
     async def list_images(self):
-        entities = await self._runtime.image_aggregate_root.list(force_reload=True)
+        entities = await self._runtime.image_repository.list()
         return [ImageListSchema.model_validate(e) for e in entities]
 
     async def get_image(self,
@@ -92,16 +92,14 @@ class ImageAPI(AbstractAPI):
                                                                       description='The unique disk Id',
                                                                       examples=[
                                                                           '4198471B-8C84-4636-87CD-9DF4E24CF43F'])]):
-        entity = await self._runtime.image_aggregate_root.get(uid)
+        entity = await self._runtime.image_repository.get_by_uid(uid)
         return ImageGetSchema.model_validate(entity)
 
     async def create_image(self, schema: ImageCreateSchema, background_tasks: fastapi.BackgroundTasks):
-        task = await TaskEntity.create(owner=self._runtime.task_aggregate_root,
-                                       name=f'Download image {schema.name} from URL {schema.url}')
+        task = await TaskEntity.create(name=f'Download image {schema.name} from URL {schema.url}')
         now = datetime.datetime.now().strftime('%Y-%m-%d-%H%M')
         imagepath = self._runtime.config.image_path / f'{schema.name}-{now}.qcow2'
         background_tasks.add_task(ImageEntity.create,
-                                  owner=self._runtime.image_aggregate_root,
                                   task=task,
                                   user=self._runtime.owning_user,
                                   name=schema.name,
@@ -118,7 +116,7 @@ class ImageAPI(AbstractAPI):
                                                                          examples=[
                                                                              '4198471B-8C84-4636-87CD-9DF4E24CF43F'])],
                            update: ImageModifySchema):
-        entity = await self._runtime.image_aggregate_root.get(uid)
+        entity = await self._runtime.image_repository.get_by_uid(uid)
         await entity.modify(min_vcpu=update.min_vcpu, min_ram=update.min_ram, min_disk=update.min_disk)
         return ImageGetSchema.model_validate(entity)
 
@@ -129,7 +127,7 @@ class ImageAPI(AbstractAPI):
                                                                              '4198471B-8C84-4636-87CD-9DF4E24CF43F'])],
                            response: fastapi.Response):
         try:
-            entity = await self._runtime.image_aggregate_root.get(uid)
+            entity = await self._runtime.image_repository.get_by_uid(uid)
             await entity.remove
             response.status_code = 204
         except EntityNotFoundException:

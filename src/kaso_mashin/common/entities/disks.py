@@ -1,4 +1,3 @@
-import typing
 import enum
 import pathlib
 import subprocess
@@ -9,19 +8,18 @@ from sqlalchemy import String, Integer, Enum, UUID
 from sqlalchemy.orm import Mapped, mapped_column
 
 from kaso_mashin import KasoMashinException
-from kaso_mashin.common.base_types import (
-    ORMBase, SchemaBase,
-    Entity, AggregateRoot,
-    BinarySizedValue,
-    UniqueIdentifier, BinaryScale,
-    EntityNotFoundException
+from kaso_mashin.common import (
+    UniqueIdentifier,
+    EntityNotFoundException,
+    EntitySchema,
+    EntityModel,
+    Entity,
+    AggregateRoot,
+    AsyncRepository,
+    BinarySizedValue, BinaryScale
 )
 
 from .images import ImageEntity, ImageGetSchema
-
-
-class DiskException(KasoMashinException):
-    pass
 
 
 class DiskFormat(enum.StrEnum):
@@ -30,7 +28,14 @@ class DiskFormat(enum.StrEnum):
     VDI = 'vdi'
 
 
-class DiskModel(ORMBase):
+class DiskException(KasoMashinException):
+    """
+    Exception for disk-related issues
+    """
+    pass
+
+
+class DiskModel(EntityModel):
     """
     Representation of a disk entity in the database
     """
@@ -43,76 +48,19 @@ class DiskModel(ORMBase):
     image_uid: Mapped[str] = mapped_column(UUID(as_uuid=True).with_variant(String(32), 'sqlite'),
                                            nullable=True)
 
-    def merge(self, other: 'DiskModel'):
-        self.name = other.name
-        self.path = other.path
-        self.size = other.size
-        self.size_scale = other.size_scale
-        self.format = other.format
 
-
-class DiskListSchema(SchemaBase):
-    """
-    Schema to list disks
-    """
-    uid: UniqueIdentifier = Field(description='The unique identifier',
-                                  examples=['b430727e-2491-4184-bb4f-c7d6d213e093'])
-    name: str = Field(description='The disk name', examples=['root', 'data-1', 'data-2'])
-
-
-class DiskCreateSchema(SchemaBase):
-    """
-    Schema to create a disk
-    """
-    name: str = Field(description='Disk name',
-                      examples=['root', 'data-1', 'data-2'])
-    path: pathlib.Path = Field(description='Path of the disk image on the local filesystem',
-                               examples=['/var/kaso/instances/root.qcow2'])
-    size: BinarySizedValue = Field(description='Disk size',
-                                   examples=[BinarySizedValue(2, BinaryScale.G)])
-    disk_format: DiskFormat = Field(description='Disk image file format',
-                                    examples=[DiskFormat.QCoW2, DiskFormat.Raw])
-    image_uid: UniqueIdentifier = Field(description='The image uid on which this disk is based on',
-                                        default=None)
-
-
-class DiskGetSchema(SchemaBase):
-    """
-    Schema to get information about a specific disk
-    """
-    uid: UniqueIdentifier = Field(description='The unique identifier',
-                                  examples=['b430727e-2491-4184-bb4f-c7d6d213e093'])
-    path: pathlib.Path = Field(description='Path of the disk image on the local filesystem',
-                               examples=['/var/kaso/instances/root.qcow2'])
-    size: BinarySizedValue = Field(description='Disk size',
-                                   examples=[BinarySizedValue(2, BinaryScale.G)])
-    disk_format: DiskFormat = Field(description='Disk image file format',
-                                    examples=[DiskFormat.QCoW2, DiskFormat.Raw])
-    image: ImageGetSchema = Field(description='The image on which this disk is based on',
-                                  default=None)
-
-
-class DiskModifySchema(SchemaBase):
-    """
-    Schema to modify an existing disk
-    """
-    size: BinarySizedValue = Field(description='Disk size',
-                                   examples=[BinarySizedValue(2, BinaryScale.G)])
-
-
-class DiskEntity(Entity):
+class DiskEntity(Entity, AggregateRoot):
     """
     Domain model entity for a disk
     """
 
     def __init__(self,
-                 owner: 'DiskAggregateRoot',
                  name: str,
                  path: pathlib.Path,
                  size: BinarySizedValue = BinarySizedValue(2, BinaryScale.G),
                  disk_format: DiskFormat = DiskFormat.Raw,
                  image: ImageEntity | None = None) -> None:
-        super().__init__(owner=owner)
+        super().__init__()
         self._name = name
         self._path = path
         self._size = size
@@ -139,6 +87,32 @@ class DiskEntity(Entity):
     def image(self) -> ImageEntity:
         return self._image
 
+    @staticmethod
+    def from_model(model: DiskModel) -> 'DiskEntity':
+        entity = DiskEntity(name=model.name,
+                            path=pathlib.Path(model.path),
+                            size=BinarySizedValue(model.size, model.size_scale),
+                            disk_format=model.format)
+        entity._uid = UniqueIdentifier(model.uid)
+        return entity
+
+    def to_model(self, model: DiskModel | None = None) -> 'DiskModel':
+        if model is None:
+            return DiskModel(uid=str(self.uid),
+                             name=self.name,
+                             path=str(self.path),
+                             size=self.size.value,
+                             size_scale=self.size.scale,
+                             disk_format=self.disk_format)
+        else:
+            model.uid = str(self.uid)
+            model.name = self.name
+            model.path = str(self.path)
+            model.size = self.size.value
+            model.size_scale = self.size.scale
+            model.disk_format = self.disk_format
+            return model
+
     def __eq__(self, other: 'DiskEntity') -> bool:  # type: ignore[override]
         return all([
             super().__eq__(other),
@@ -159,8 +133,7 @@ class DiskEntity(Entity):
             f'image={self.image})>')
 
     @staticmethod
-    async def create(owner: 'DiskAggregateRoot',
-                     name: str,
+    async def create(name: str,
                      path: pathlib.Path,
                      size: BinarySizedValue = BinarySizedValue(2, BinaryScale.G),
                      disk_format: DiskFormat = DiskFormat.Raw,
@@ -178,13 +151,12 @@ class DiskEntity(Entity):
                 args.extend(['-F', str(disk_format), '-b', image.path, '-o', 'compat=v3'])
             args.extend([path, str(size)])
             subprocess.run(args, check=True)
-            disk = DiskEntity(owner=owner,
-                              name=name,
+            disk = DiskEntity(name=name,
                               path=path,
                               size=size,
                               disk_format=disk_format,
                               image=image)
-            return await owner.create(disk)
+            return await DiskEntity.repository.create(disk)
         except subprocess.CalledProcessError as e:
             path.unlink(missing_ok=True)
             raise DiskException(status=500, msg=f'Failed to create disk: {e.output}') from e
@@ -203,52 +175,64 @@ class DiskEntity(Entity):
             args += ['-f', str(self.disk_format), self._path, str(value)]
             subprocess.run(args, check=True)
             self._size = value
-            await self._owner.modify(self)
+            await DiskEntity.repository.modify(self)
             return self
         except subprocess.CalledProcessError as e:
             raise DiskException(status=500, msg=f'Failed to resize disk: {e.output}') from e
 
     async def remove(self):
         self.path.unlink(missing_ok=True)
-        await self._owner.remove(self.uid)
+        await DiskEntity.repository.remove(self.uid)
 
 
-class DiskAggregateRoot(AggregateRoot[DiskEntity, DiskModel]):
-
-    def _validate(self, entity: DiskEntity) -> bool:
-        return all([
-            super().validate(entity),
-            entity.path.exists()
-        ])
-
-    async def _to_model(self, entity: DiskEntity) -> DiskModel:
-        return DiskModel(uid=str(entity.uid),
-                         name=entity.name,
-                         path=str(entity.path),
-                         size=entity.size.value,
-                         size_scale=entity.size.scale,
-                         format=str(entity.disk_format),
-                         image_uid=str(entity.image.uid))
-
-    async def _from_model(self, model: DiskModel) -> DiskEntity:
-        image = None
-        if model.image_uid is not None:
-            image = await self._runtime.image_aggregate_root.get(UniqueIdentifier(str(model.image_uid)))
-        entity = DiskEntity(owner=self,
-                            name=model.name,
-                            path=pathlib.Path(model.path),
-                            size=BinarySizedValue(model.size, BinaryScale(model.size_scale)),
-                            disk_format=DiskFormat(model.format),
-                            image=image)
-        entity._uid = UniqueIdentifier(model.uid)
-        return entity
-
-    async def list_by_image_uid(self, image_uid: UniqueIdentifier) -> typing.List[DiskEntity]:
-        # Force a reload
-        disks = self._repository.list()
+class DiskRepository(AsyncRepository[DiskEntity, DiskModel]):
+    pass
 
 
-        # TODO: This is really inefficient and infinitely recursing
-        disks = await self._repository.list()
-        image_disks = list(filter(lambda d: d.image_uid == image_uid, disks))
-        return [await self._from_model(d) for d in image_disks]
+class DiskListSchema(EntitySchema):
+    """
+    Schema to list disks
+    """
+    uid: UniqueIdentifier = Field(description='The unique identifier',
+                                  examples=['b430727e-2491-4184-bb4f-c7d6d213e093'])
+    name: str = Field(description='The disk name', examples=['root', 'data-1', 'data-2'])
+
+
+class DiskCreateSchema(EntitySchema):
+    """
+    Schema to create a disk
+    """
+    name: str = Field(description='Disk name',
+                      examples=['root', 'data-1', 'data-2'])
+    path: pathlib.Path = Field(description='Path of the disk image on the local filesystem',
+                               examples=['/var/kaso/instances/root.qcow2'])
+    size: BinarySizedValue = Field(description='Disk size',
+                                   examples=[BinarySizedValue(2, BinaryScale.G)])
+    disk_format: DiskFormat = Field(description='Disk image file format',
+                                    examples=[DiskFormat.QCoW2, DiskFormat.Raw])
+    image_uid: UniqueIdentifier = Field(description='The image uid on which this disk is based on',
+                                        default=None)
+
+
+class DiskGetSchema(EntitySchema):
+    """
+    Schema to get information about a specific disk
+    """
+    uid: UniqueIdentifier = Field(description='The unique identifier',
+                                  examples=['b430727e-2491-4184-bb4f-c7d6d213e093'])
+    path: pathlib.Path = Field(description='Path of the disk image on the local filesystem',
+                               examples=['/var/kaso/instances/root.qcow2'])
+    size: BinarySizedValue = Field(description='Disk size',
+                                   examples=[BinarySizedValue(2, BinaryScale.G)])
+    disk_format: DiskFormat = Field(description='Disk image file format',
+                                    examples=[DiskFormat.QCoW2, DiskFormat.Raw])
+    image: ImageGetSchema = Field(description='The image on which this disk is based on',
+                                  default=None)
+
+
+class DiskModifySchema(EntitySchema):
+    """
+    Schema to modify an existing disk
+    """
+    size: BinarySizedValue = Field(description='Disk size',
+                                   examples=[BinarySizedValue(2, BinaryScale.G)])

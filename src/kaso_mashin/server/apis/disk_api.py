@@ -62,7 +62,7 @@ class DiskAPI(AbstractAPI):
                                    responses={204: {'model': None}, 410: {'model': None}})
 
     async def list_disks(self):
-        entities = await self._runtime.disk_aggregate_root.list(force_reload=True)
+        entities = await self._runtime.disk_repository.list()
         return [DiskListSchema.model_validate(e) for e in entities]
 
     async def get_disk(self,
@@ -70,15 +70,14 @@ class DiskAPI(AbstractAPI):
                                                                      description='The unique disk Id',
                                                                      examples=[
                                                                          '4198471B-8C84-4636-87CD-9DF4E24CF43F'])]):
-        entity = await self._runtime.disk_aggregate_root.get(uid)
+        entity = await self._runtime.disk_repository.get_by_uid(uid)
         return DiskGetSchema.model_validate(entity)
 
     async def create_disk(self, schema: DiskCreateSchema):
         image = None
         if schema.image_uid is not None:
-            image = await self._runtime.image_aggregate_root.get(schema.image_uid)
-        entity = await DiskEntity.create(owner=self._runtime.disk_aggregate_root,
-                                         name=schema.name,
+            image = await self._runtime.image_repository.get_by_uid(schema.image_uid)
+        entity = await DiskEntity.create(name=schema.name,
                                          path=pathlib.Path(schema.path),
                                          size=schema.size,
                                          disk_format=schema.disk_format,
@@ -90,7 +89,7 @@ class DiskAPI(AbstractAPI):
                                                                         description='The unique disk Id',
                                                                         examples=['4198471B-8C84-4636-87CD-9DF4E24CF43F'])],
                           schema: DiskModifySchema):
-        entity = await self._runtime.disk_aggregate_root.get(uid)
+        entity = await self._runtime.disk_repository.get_by_uid(uid)
         if entity.size != schema.size:
             entity = await entity.resize(schema.size)
         return DiskGetSchema.model_validate(entity)
@@ -100,5 +99,5 @@ class DiskAPI(AbstractAPI):
                                                                         description='The unique disk Id',
                                                                         examples=[
                                                                             '4198471B-8C84-4636-87CD-9DF4E24CF43F'])]):
-        entity = await self._runtime.disk_aggregate_root.get(uid)
+        entity = await self._runtime.disk_repository.get_by_uid(uid)
         await entity.remove()

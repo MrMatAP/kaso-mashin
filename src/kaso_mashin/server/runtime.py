@@ -16,9 +16,9 @@ from kaso_mashin.server.db import DB
 # from kaso_mashin.common.model import NetworkKind, NetworkModel
 
 from kaso_mashin.common.entities import (
-    TaskAggregateRoot, TaskModel,
-    DiskAggregateRoot, DiskModel,
-    ImageAggregateRoot, ImageModel
+    TaskRepository, TaskModel, TaskEntity,
+    DiskRepository, DiskModel, DiskEntity,
+    ImageRepository, ImageModel, ImageEntity
 )
 
 
@@ -40,9 +40,9 @@ class Runtime:
         # self._instance_controller = InstanceController(runtime=self)
         # self._network_controller = NetworkController(runtime=self)
         # self._phonehome_controller = PhoneHomeController(runtime=self)
-        self._task_aggregate_root = None
-        self._disk_aggregate_root = None
-        self._image_aggregate_root = None
+        self._task_repository = None
+        self._disk_repository = None
+        self._image_repository = None
 
     def late_init(self, server: bool = False):
         """
@@ -90,28 +90,29 @@ class Runtime:
 
     @contextlib.asynccontextmanager
     async def lifespan(self, app: fastapi.FastAPI):
-        self._task_aggregate_root = TaskAggregateRoot(model=TaskModel,
-                                                      session_maker=await self._db.async_sessionmaker,
-                                                      runtime=self)
-        self._disk_aggregate_root = DiskAggregateRoot(model=DiskModel,
-                                                      session_maker=await self._db.async_sessionmaker,
-                                                      runtime=self)
-        self._image_aggregate_root = ImageAggregateRoot(model=ImageModel,
-                                                        session_maker=await self._db.async_sessionmaker,
-                                                        runtime=self)
+        del app
+        self._task_repository = TaskRepository(session_maker=await self._db.async_sessionmaker,
+                                               aggregate_root_class=TaskEntity,
+                                               model_class=TaskModel)
+        self._disk_repository = DiskRepository(session_maker=await self._db.async_sessionmaker,
+                                               aggregate_root_class=DiskEntity,
+                                               model_class=DiskModel)
+        self._image_repository = ImageRepository(session_maker=await self._db.async_sessionmaker,
+                                                 aggregate_root_class=ImageEntity,
+                                                 model_class=ImageModel)
         yield
 
     @property
-    def task_aggregate_root(self) -> TaskAggregateRoot:
-        return self._task_aggregate_root
+    def task_repository(self) -> TaskRepository:
+        return self._task_repository
 
     @property
-    def disk_aggregate_root(self) -> DiskAggregateRoot:
-        return self._disk_aggregate_root
+    def disk_repository(self) -> DiskRepository:
+        return self._disk_repository
 
     @property
-    def image_aggregate_root(self) -> ImageAggregateRoot:
-        return self._image_aggregate_root
+    def image_repository(self) -> ImageRepository:
+        return self._image_repository
 
     @property
     def config(self) -> Config:

@@ -40,7 +40,7 @@ class TaskAPI(AbstractAPI):
                                    response_model=TaskGetSchema)
 
     async def list_tasks(self):
-        entities = await self._runtime.task_aggregate_root.list(force_reload=True)
+        entities = await self._runtime.task_repository.list(force_reload=True)
         return [TaskListSchema.model_validate(e) for e in entities]
 
     async def get_task(self,
@@ -48,5 +48,5 @@ class TaskAPI(AbstractAPI):
                                                                      description='A unique task UUID',
                                                                      examples=[
                                                                          '79563383-56f8-4d0e-a419-1b8fe5804219'])]):
-        entity = await self._runtime.task_aggregate_root.get(uid)
+        entity = await self._runtime.task_repository.get_by_uid(uid)
         return TaskGetSchema.model_validate(entity)

@@ -18,7 +18,7 @@ from kaso_mashin.server.runtime import Runtime
 from kaso_mashin.common.model import (
     IdentityKind, IdentityModel)
 
-from kaso_mashin.common.base_types import ORMBase
+from kaso_mashin.common.ddd_scaffold import EntityModel
 
 KasoTestContext = collections.namedtuple('KasoTestContext', 'runtime client')
 KasoIdentity = collections.namedtuple('KasoIdentity',
@@ -125,7 +125,7 @@ def generics_session_maker(generics_db) -> sqlalchemy.orm.sessionmaker[sqlalchem
     engine = sqlalchemy.create_engine(f'sqlite:///{generics_db}', echo=False)
     session_maker = sqlalchemy.orm.sessionmaker(engine, expire_on_commit=False)
     with engine.begin() as conn:
-        ORMBase.metadata.create_all(conn)
+        EntityModel.metadata.create_all(conn)
     yield session_maker
     engine.dispose()
 
@@ -136,6 +136,6 @@ async def async_sessionmaker(generics_db) -> sqlalchemy.ext.asyncio.async_sessio
     engine = sqlalchemy.ext.asyncio.create_async_engine(f'sqlite+aiosqlite:///{generics_db}', echo=False)
     async_session = sqlalchemy.ext.asyncio.async_sessionmaker(engine, expire_on_commit=False)
     async with engine.begin() as conn:
-        await conn.run_sync(ORMBase.metadata.create_all)
+        await conn.run_sync(EntityModel.metadata.create_all)
     yield async_session
     await engine.dispose()

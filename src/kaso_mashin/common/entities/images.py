@@ -1,4 +1,3 @@
-import typing
 import pathlib
 import shutil
 
@@ -10,12 +9,14 @@ from sqlalchemy import String, Integer, Enum
 from sqlalchemy.orm import Mapped, mapped_column
 
 from kaso_mashin import KasoMashinException
-from kaso_mashin.common.base_types import (
-    ORMBase, SchemaBase,
-    Entity, AggregateRoot,
-    BinarySizedValue, BinaryScale,
-    UniqueIdentifier, T_Model,
-    EntityInvariantException
+from kaso_mashin.common import (
+    UniqueIdentifier,
+    EntitySchema,
+    EntityModel,
+    Entity,
+    AggregateRoot,
+    AsyncRepository,
+    BinarySizedValue, BinaryScale
 )
 
 from kaso_mashin.common.entities import TaskEntity
@@ -32,7 +33,7 @@ class ImageException(KasoMashinException):
     pass
 
 
-class ImageModel(ORMBase):
+class ImageModel(EntityModel):
     """
     Representation of a image entity in the database
     """
@@ -46,90 +47,26 @@ class ImageModel(ORMBase):
     min_disk: Mapped[int] = mapped_column(Integer, default=0)
     min_disk_scale: Mapped[str] = mapped_column(Enum(BinaryScale), default=BinaryScale.G)
 
-    def merge(self, other: 'ImageModel'):
-        self.name = other.name
-        self.url = other.url
-        self.path = other.path
-        self.min_vcpu = other.min_vcpu
-        self.min_ram = other.min_ram
-        self.min_ram_scale = other.min_ram_scale
-        self.min_disk = other.min_disk
-        self.min_disk_scale = other.min_disk_scale
 
-
-class ImageListSchema(SchemaBase):
-    """
-    Schema to list images
-    """
-    uid: UniqueIdentifier = Field(description='The unique identifier',
-                                  examples=['b430727e-2491-4184-bb4f-c7d6d213e093'])
-    name: str = Field(description='The image name', examples=['ubuntu', 'flatpack', 'debian'])
-
-
-class ImageCreateSchema(SchemaBase):
-    """
-    Schema to create an image
-    """
-    name: str = Field(description='The image name', examples=['ubuntu', 'flatpack', 'debian'])
-    url: str = Field(description='URL from which the image is sourced',
-                     examples=['https://cloud-images.ubuntu.com/bionic/current/bionic-server-cloudimg-arm64.img'])
-    min_vcpu: int = Field(description='Optional minimum number of CPU vcores to run this image',
-                          default=DEFAULT_MIN_VCPU,
-                          examples=[DEFAULT_MIN_VCPU, 2, 4])
-    min_ram: BinarySizedValue = Field(description='Optional minimum RAM size to run this image',
-                                      default=DEFAULT_MIN_RAM,
-                                      examples=[DEFAULT_MIN_RAM, BinarySizedValue(2, BinaryScale.G)])
-    min_disk: BinarySizedValue = Field(description='Optional minimum disk size to run this image',
-                                       default=DEFAULT_MIN_DISK,
-                                       examples=[DEFAULT_MIN_DISK, BinarySizedValue(10, BinaryScale.G)])
-
-
-class ImageGetSchema(ImageCreateSchema):
-    """
-    Schema to get information about a specific image
-    """
-    uid: UniqueIdentifier = Field(description='The unique identifier',
-                                  examples=['b430727e-2491-4184-bb4f-c7d6d213e093'])
-    os_disks: typing.List['DiskGetSchema'] = Field(description='Disks created from this schema')
-
-
-class ImageModifySchema(SchemaBase):
-    """
-    Schema to modify an existing image
-    """
-    min_vcpu: int = Field(description='Optional minimum number of CPU vcores to run this image',
-                          default=DEFAULT_MIN_VCPU,
-                          examples=[DEFAULT_MIN_VCPU, 2, 4])
-    min_ram: BinarySizedValue = Field(description='Optional minimum RAM size to run this image',
-                                      default=DEFAULT_MIN_RAM,
-                                      examples=[DEFAULT_MIN_RAM, BinarySizedValue(2, BinaryScale.G)])
-    min_disk: BinarySizedValue = Field(description='Optional minimum disk size to run this image',
-                                       default=DEFAULT_MIN_DISK,
-                                       examples=[DEFAULT_MIN_DISK, BinarySizedValue(10, BinaryScale.G)])
-
-
-class ImageEntity(Entity):
+class ImageEntity(Entity, AggregateRoot):
     """
     Domain model entity for an image
     """
 
     def __init__(self,
-                 owner: 'ImageAggregateRoot',
                  name: str,
                  url: str,
                  path: pathlib.Path,
                  min_vcpu: int = 0,
                  min_ram: BinarySizedValue = BinarySizedValue(0, BinaryScale.G),
-                 min_disk: BinarySizedValue = BinarySizedValue(0, BinaryScale.G),
-                 os_disks: typing.List['DiskEntity'] | None = None) -> None:
-        super().__init__(owner=owner)
+                 min_disk: BinarySizedValue = BinarySizedValue(0, BinaryScale.G)):
+        super().__init__()
         self._name = name
         self._url = url
         self._path = path
         self._min_vcpu = min_vcpu
         self._min_ram = min_ram
         self._min_disk = min_disk
-        self._os_disks = os_disks or []
 
     @property
     def name(self) -> str:
@@ -155,10 +92,6 @@ class ImageEntity(Entity):
     def min_disk(self) -> BinarySizedValue:
         return self._min_disk
 
-    @property
-    def os_disks(self) -> typing.List['DiskEntity']:
-        return self._os_disks
-
     def __eq__(self, other: 'ImageEntity') -> bool:
         return all([
             super().__eq__(other),
@@ -167,8 +100,7 @@ class ImageEntity(Entity):
             self._path == other.path,
             self._min_vcpu == other.min_vcpu,
             self._min_ram == other.min_ram,
-            self._min_disk == other.min_disk,
-            self._os_disks == other.os_disks
+            self._min_disk == other.min_disk
         ])
 
     def __repr__(self) -> str:
@@ -179,13 +111,45 @@ class ImageEntity(Entity):
             f'path={self.path}, '
             f'min_vcpu={self.min_vcpu}, '
             f'min_ram={self.min_ram}, '
-            f'min_disk={self.min_disk},'
-            f'os_disks={self.os_disks})>'
+            f'min_disk={self.min_disk})>'
         )
 
     @staticmethod
-    async def create(owner: 'ImageAggregateRoot',
-                     task: TaskEntity,
+    def from_model(model: ImageModel) -> 'ImageEntity':
+        entity = ImageEntity(name=model.name,
+                             url=model.url,
+                             path=model.path,
+                             min_vcpu=model.min_vcpu,
+                             min_ram=BinarySizedValue(value=model.min_ram, scale=BinaryScale(model.min_ram_scale)),
+                             min_disk=BinarySizedValue(value=model.min_disk, scale=BinaryScale(model.min_disk_scale)))
+        entity._uid = UniqueIdentifier(model.uid)
+        return entity
+
+    def to_model(self, model: ImageModel | None = None) -> 'ImageModel':
+        if model is None:
+            return ImageModel(uid=str(self.uid),
+                              name=self.name,
+                              url=self.url,
+                              path=str(self.path),
+                              min_vcpu=self.min_vcpu,
+                              min_ram=self.min_ram.value,
+                              min_ram_scale=self.min_ram.scale,
+                              min_disk=self.min_disk.value,
+                              min_disk_scale=self.min_disk.scale)
+        else:
+            model.uid = str(self.uid)
+            model.name = self.name
+            model.url = self.url
+            model.path = str(self.path)
+            model.min_vcpu = self.min_vcpu
+            model.min_ram = self.min_ram.value
+            model.min_ram_scale = self.min_ram.scale
+            model.min_disk = self.min_disk.value
+            model.min_disk_scale = self.min_disk.scale
+            return model
+
+    @staticmethod
+    async def create(task: TaskEntity,
                      user: str,
                      name: str,
                      url: str,
@@ -208,14 +172,13 @@ class ImageEntity(Entity):
                     completed = int(current / size * 100)
                     await task.progress(percent_complete=completed, msg=f'Downloaded {completed}%')
             shutil.chown(path, user)
-            image = ImageEntity(owner=owner,
-                                name=name,
+            image = ImageEntity(name=name,
                                 url=url,
                                 path=path,
                                 min_vcpu=min_vcpu,
                                 min_ram=min_ram,
                                 min_disk=min_disk)
-            outcome = await owner.create(image)
+            outcome = await ImageEntity.repository.create(image)
             await task.done(msg='Successfully downloaded')
             return outcome
         except PermissionError as e:
@@ -232,45 +195,66 @@ class ImageEntity(Entity):
         self._min_vcpu = min_vcpu
         self._min_ram = min_ram
         self._min_disk = min_disk
-        await self.owner.modify(self)
+        await self.repository.modify(self)
 
     async def remove(self):
-        if len(self._os_disks) > 0:
-            raise EntityInvariantException(status=400, msg=f'You cannot remove an image from which OS disks exists')
+        # TODO: Check for OS disks created here
+        # if len(self._os_disks) > 0:
+        #     raise EntityInvariantException(status=400, msg=f'You cannot remove an image from which OS disks exists')
         self.path.unlink(missing_ok=True)
-        await self._owner.remove(self.uid)
+        await self.repository.remove(self.uid)
 
 
-class ImageAggregateRoot(AggregateRoot[ImageEntity, ImageModel]):
+class ImageRepository(AsyncRepository[ImageEntity, ImageModel]):
+    pass
 
-    def _validate(self, entity: ImageEntity) -> bool:
-        return all([
-            super().validate(entity),
-            entity.path.exists()
-        ])
 
-    async def _to_model(self, entity: ImageEntity) -> ImageModel:
-        return ImageModel(uid=str(entity.uid),
-                          name=entity.name,
-                          url=entity.url,
-                          path=str(entity.path),
-                          min_vcpu=entity.min_vcpu,
-                          min_ram=entity.min_ram.value,
-                          min_ram_scale=entity.min_ram.scale,
-                          min_disk=entity.min_disk.value,
-                          min_disk_scale=entity.min_disk.scale)
+class ImageListSchema(EntitySchema):
+    """
+    Schema to list images
+    """
+    uid: UniqueIdentifier = Field(description='The unique identifier',
+                                  examples=['b430727e-2491-4184-bb4f-c7d6d213e093'])
+    name: str = Field(description='The image name', examples=['ubuntu', 'flatpack', 'debian'])
 
-    async def _from_model(self, model: T_Model) -> ImageEntity:
-        # TODO: This is infinitely recursing
-        #os_disks = await self._runtime.disk_aggregate_root.list_by_image_uid(model.uid)
-        os_disks = []
-        entity = ImageEntity(owner=self,
-                             name=model.name,
-                             url=model.url,
-                             path=pathlib.Path(model.path),
-                             min_vcpu=model.min_vcpu,
-                             min_ram=BinarySizedValue(model.min_ram, BinaryScale(model.min_ram_scale)),
-                             min_disk=BinarySizedValue(model.min_disk, BinaryScale(model.min_disk_scale)),
-                             os_disks=os_disks)
-        entity._uid = UniqueIdentifier(model.uid)
-        return entity
+
+class ImageCreateSchema(EntitySchema):
+    """
+    Schema to create an image
+    """
+    name: str = Field(description='The image name', examples=['ubuntu', 'flatpack', 'debian'])
+    url: str = Field(description='URL from which the image is sourced',
+                     examples=['https://cloud-images.ubuntu.com/bionic/current/bionic-server-cloudimg-arm64.img'])
+    min_vcpu: int = Field(description='Optional minimum number of CPU vcores to run this image',
+                          default=DEFAULT_MIN_VCPU,
+                          examples=[DEFAULT_MIN_VCPU, 2, 4])
+    min_ram: BinarySizedValue = Field(description='Optional minimum RAM size to run this image',
+                                      default=DEFAULT_MIN_RAM,
+                                      examples=[DEFAULT_MIN_RAM, BinarySizedValue(2, BinaryScale.G)])
+    min_disk: BinarySizedValue = Field(description='Optional minimum disk size to run this image',
+                                       default=DEFAULT_MIN_DISK,
+                                       examples=[DEFAULT_MIN_DISK, BinarySizedValue(10, BinaryScale.G)])
+
+
+class ImageGetSchema(ImageCreateSchema):
+    """
+    Schema to get information about a specific image
+    """
+    uid: UniqueIdentifier = Field(description='The unique identifier',
+                                  examples=['b430727e-2491-4184-bb4f-c7d6d213e093'])
+    # os_disks: typing.List['DiskGetSchema'] = Field(description='Disks created from this schema')
+
+
+class ImageModifySchema(EntitySchema):
+    """
+    Schema to modify an existing image
+    """
+    min_vcpu: int = Field(description='Optional minimum number of CPU vcores to run this image',
+                          default=DEFAULT_MIN_VCPU,
+                          examples=[DEFAULT_MIN_VCPU, 2, 4])
+    min_ram: BinarySizedValue = Field(description='Optional minimum RAM size to run this image',
+                                      default=DEFAULT_MIN_RAM,
+                                      examples=[DEFAULT_MIN_RAM, BinarySizedValue(2, BinaryScale.G)])
+    min_disk: BinarySizedValue = Field(description='Optional minimum disk size to run this image',
+                                       default=DEFAULT_MIN_DISK,
+                                       examples=[DEFAULT_MIN_DISK, BinarySizedValue(10, BinaryScale.G)])
