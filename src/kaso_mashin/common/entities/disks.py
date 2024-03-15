@@ -44,7 +44,7 @@ class DiskModel(EntityModel):
     path: Mapped[str] = mapped_column(String())
     size: Mapped[int] = mapped_column(Integer, default=0)
     size_scale: Mapped[str] = mapped_column(Enum(BinaryScale), default=BinaryScale.G)
-    format: Mapped[str] = mapped_column(Enum(DiskFormat), default=DiskFormat.Raw)
+    disk_format: Mapped[str] = mapped_column(Enum(DiskFormat), default=DiskFormat.Raw)
     image_uid: Mapped[str] = mapped_column(UUID(as_uuid=True).with_variant(String(32), 'sqlite'),
                                            nullable=True)
 
@@ -92,7 +92,7 @@ class DiskEntity(Entity, AggregateRoot):
         entity = DiskEntity(name=model.name,
                             path=pathlib.Path(model.path),
                             size=BinarySizedValue(model.size, model.size_scale),
-                            disk_format=model.format)
+                            disk_format=model.disk_format)
         entity._uid = UniqueIdentifier(model.uid)
         return entity
 

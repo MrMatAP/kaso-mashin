@@ -46,12 +46,19 @@ async def test_async_disks(async_sessionmaker):
 
 @pytest.mark.asyncio(scope='module')
 async def test_async_images(async_sessionmaker):
+    task_aggregate_root = TaskRepository(session_maker=async_sessionmaker,
+                                         aggregate_root_class=TaskEntity,
+                                         model_class=TaskModel)
     image_aggregate_root = ImageRepository(session_maker=async_sessionmaker,
                                            aggregate_root_class=ImageEntity,
                                            model_class=ImageModel)
     try:
+        task = await TaskEntity.create(name='Test Task')
         image = await ImageEntity.create(name='Test Image',
-                                         path=pathlib.Path(__file__).parent / 'build' / 'test-image-0.qcow2')
+                                         url='https://stable.release.flatcar-linux.net/arm64-usr/current/flatcar_production_qemu_uefi_image.img',
+                                         path=pathlib.Path(__file__).parent / 'build' / 'test-image-0.qcow2',
+                                         task=task,
+                                         user='imfeldma')
         loaded = await image_aggregate_root.get_by_uid(image.uid)
         assert image == loaded
 

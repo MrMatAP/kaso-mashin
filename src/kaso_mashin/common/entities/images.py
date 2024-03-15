@@ -118,7 +118,7 @@ class ImageEntity(Entity, AggregateRoot):
     def from_model(model: ImageModel) -> 'ImageEntity':
         entity = ImageEntity(name=model.name,
                              url=model.url,
-                             path=model.path,
+                             path=pathlib.Path(model.path),
                              min_vcpu=model.min_vcpu,
                              min_ram=BinarySizedValue(value=model.min_ram, scale=BinaryScale(model.min_ram_scale)),
                              min_disk=BinarySizedValue(value=model.min_disk, scale=BinaryScale(model.min_disk_scale)))
