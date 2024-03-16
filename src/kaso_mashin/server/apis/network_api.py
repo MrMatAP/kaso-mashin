@@ -1,14 +1,20 @@
 import typing
+import uuid
+
 import fastapi
 
 from kaso_mashin.server.apis import AbstractAPI
 from kaso_mashin.server.runtime import Runtime
-from kaso_mashin.common.model import ExceptionSchema, NetworkModel, NetworkSchema, NetworkCreateSchema, NetworkModifySchema
+from kaso_mashin.common.model import ExceptionSchema
+from kaso_mashin.common.entities import (
+    NetworkEntity,
+    NetworkListSchema, NetworkGetSchema, NetworkCreateSchema, NetworkModifySchema
+)
 
 
 class NetworkAPI(AbstractAPI):
     """
-    The network API
+    The Network API
     """
 
     def __init__(self, runtime: Runtime):
@@ -18,77 +24,84 @@ class NetworkAPI(AbstractAPI):
             responses={
                 404: {'model': ExceptionSchema, 'description': 'Network not found'},
                 400: {'model': ExceptionSchema, 'description': 'Incorrect input'}})
-        self._router.add_api_route('/', self.list_networks, methods=['GET'],
+        self._router.add_api_route(path='/',
+                                   endpoint=self.list_networks,
+                                   methods=['GET'],
                                    summary='List networks',
-                                   description='List all known networks. You can optionally filter the list by the'
-                                               '"name" query parameter. If you do filter using the "name" query '
-                                               'parameter then the corresponding single network is returned.',
-                                   response_description='A list of networks, or a single network when filtered by name',
+                                   description='List all currently known networks',
+                                   response_description='The list of currently known networks',
                                    status_code=200,
                                    responses={
-                                       200: {'model': typing.Union[typing.List[NetworkSchema], NetworkSchema]}})
-        self._router.add_api_route('/{network_id}', self.get_network, methods=['GET'],
+                                       200: {'model': typing.List[NetworkListSchema]}})
+        self._router.add_api_route(path='/{uid}',
+                                   endpoint=self.get_network,
+                                   methods=['GET'],
                                    summary='Get a network',
                                    description='Get full information about a network specified by its unique ID.',
                                    response_description='A network',
                                    status_code=200,
-                                   response_model=NetworkSchema)
-        self._router.add_api_route('/', self.create_network, methods=['POST'],
+                                   response_model=NetworkGetSchema)
+        self._router.add_api_route(path='/',
+                                   endpoint=self.create_network,
+                                   methods=['POST'],
                                    summary='Create a network',
                                    description='Create a new network',
                                    response_description='The newly created network',
                                    status_code=201,
-                                   response_model=NetworkSchema)
-        self._router.add_api_route('/{network_id}', self.modify_network, methods=['PUT'],
+                                   response_model=NetworkGetSchema)
+        self._router.add_api_route(path='/{uid}',
+                                   endpoint=self.modify_network,
+                                   methods=['PUT'],
                                    summary='Modify a network',
                                    description='This will update the permissible fields of a network based on the '
                                                'provided input.',
                                    response_description='The updated network',
                                    status_code=200,
-                                   response_model=NetworkSchema)
-        self._router.add_api_route('/{network_id}', self.remove_network, methods=['DELETE'],
+                                   response_model=NetworkGetSchema)
+        self._router.add_api_route(path='/{uid}',
+                                   endpoint=self.remove_network,
+                                   methods=['DELETE'],
                                    summary='Remove a network',
                                    description='Remove the specified network. This will irrevocably and permanently '
                                                'delete the network.',
                                    response_description='There is no response content',
                                    responses={204: {'model': None}, 410: {'model': None}})
 
-    async def list_networks(self,
-                            name: typing.Annotated[str | None,
-                                                   fastapi.Query(title='Network name',
-                                                                 description='A unique network name',
-                                                                 examples=['mrmat-shared'])] = None):
-        if name:
-            return self.network_controller.get(name=name)
-        return self.network_controller.list()
+    async def list_networks(self):
+        entities = await self._runtime.network_repository.list()
+        return [NetworkListSchema.model_validate(e) for e in entities]
 
     async def get_network(self,
-                          network_id: typing.Annotated[int, fastapi.Path(title='Network ID',
-                                                                         description='A unique network ID',
-                                                                         examples=[1])]):
-        network = self.network_controller.get(network_id=network_id)
-        return network or fastapi.responses.JSONResponse(status_code=404,
-                                                         content=ExceptionSchema(
-                                                             status=404,
-                                                             msg='No such network could be found')
-                                                         .model_dump())
+                          uid: typing.Annotated[uuid.UUID, fastapi.Path(title='Network UUID',
+                                                                        description='The unique disk Id',
+                                                                        examples=[
+                                                                            '4198471B-8C84-4636-87CD-9DF4E24CF43F'])]):
+        entity = await self._runtime.network_repository.get_by_uid(uid)
+        return NetworkGetSchema.model_validate(entity)
 
     async def create_network(self, schema: NetworkCreateSchema):
-        model = self.network_controller.create(NetworkModel.from_schema(schema))
-        return model
+        entity = await NetworkEntity.create(name=schema.name,
+                                            kind=schema.kind,
+                                            cidr=schema.cidr,
+                                            gateway=schema.gateway)
+        return NetworkGetSchema.model_validate(entity)
 
     async def modify_network(self,
-                             network_id: typing.Annotated[int, fastapi.Path(title='Network ID',
-                                                                            description='The network ID to modify',
-                                                                            examples=[1])],
+                             uid: typing.Annotated[uuid.UUID, fastapi.Path(title='Network UUID',
+                                                                           description='The unique disk Id',
+                                                                           examples=[
+                                                                               '4198471B-8C84-4636-87CD-9DF4E24CF43F'])],
                              schema: NetworkModifySchema):
-        return self.network_controller.modify(network_id=network_id, update=NetworkModel.from_schema(schema))
+        entity = await self._runtime.network_repository.get_by_uid(uid)
+        await entity.modify(name=schema.name,
+                            cidr=schema.cidr,
+                            gateway=schema.gateway)
+        return NetworkGetSchema.model_validate(entity)
 
     async def remove_network(self,
-                             network_id: typing.Annotated[int, fastapi.Path(title='Network ID',
-                                                                            description='The network ID to remove',
-                                                                            examples=[1])],
-                             response: fastapi.Response):
-        gone = self.network_controller.remove(network_id)
-        response.status_code = 410 if gone else 204
-        return response
+                             uid: typing.Annotated[uuid.UUID, fastapi.Path(title='Network UUID',
+                                                                           description='The unique disk Id',
+                                                                           examples=[
+                                                                               '4198471B-8C84-4636-87CD-9DF4E24CF43F'])]):
+        entity = await self._runtime.network_repository.get_by_uid(uid)
+        await entity.remove()

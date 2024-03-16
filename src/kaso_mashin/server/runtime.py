@@ -9,16 +9,14 @@ import netifaces
 
 from kaso_mashin.common.config import Config
 from kaso_mashin.server.db import DB
-# from kaso_mashin.server.controllers import (
-#     BootstrapController, OsDiskController, IdentityController,
-#     InstanceController,
-#     NetworkController, PhoneHomeController)
-# from kaso_mashin.common.model import NetworkKind, NetworkModel
 
 from kaso_mashin.common.entities import (
     TaskRepository, TaskModel, TaskEntity,
     DiskRepository, DiskModel, DiskEntity,
-    ImageRepository, ImageModel, ImageEntity
+    ImageRepository, ImageModel, ImageEntity,
+    NetworkRepository, NetworkModel, NetworkEntity,
+    NetworkKind,
+    DEFAULT_SHARED_NETWORK_NAME, DEFAULT_BRIDGED_NETWORK_NAME, DEFAULT_HOST_NETWORK_NAME
 )
 
 
@@ -34,15 +32,10 @@ class Runtime:
         self._owning_user = os.environ.get('SUDO_USER', self._effective_user)
         self._db.owning_user = self._owning_user
         self._server_url = None
-        # self._bootstrap_controller = BootstrapController(runtime=self)
-        # self._os_disk_controller = OsDiskController(runtime=self)
-        # self._identity_controller = IdentityController(runtime=self)
-        # self._instance_controller = InstanceController(runtime=self)
-        # self._network_controller = NetworkController(runtime=self)
-        # self._phonehome_controller = PhoneHomeController(runtime=self)
         self._task_repository = None
         self._disk_repository = None
         self._image_repository = None
+        self._network_repository = None
 
     def late_init(self, server: bool = False):
         """
@@ -52,6 +45,27 @@ class Runtime:
         self._server_url = f'http://{self.config.default_server_host}:{self.config.default_server_port}'
         if not server:
             return
+
+    async def lifespan_networks(self):
+        host_network = await self.network_repository.get_by_name(DEFAULT_HOST_NETWORK_NAME)
+        if not host_network:
+            await NetworkEntity.create(name=DEFAULT_HOST_NETWORK_NAME,
+                                       kind=NetworkKind.VMNET_HOST,
+                                       cidr='10.1.0.0/24',
+                                       gateway='10.1.0.1')
+        shared_network = await self.network_repository.get_by_name(DEFAULT_SHARED_NETWORK_NAME)
+        if not shared_network:
+            await NetworkEntity.create(name=DEFAULT_SHARED_NETWORK_NAME,
+                                       kind=NetworkKind.VMNET_SHARED,
+                                       cidr='10.2.0.0/24',
+                                       gateway='10.2.0.1')
+        bridged_network = await self.network_repository.get_by_name(DEFAULT_BRIDGED_NETWORK_NAME)
+        if not bridged_network:
+            await NetworkEntity.create(name=DEFAULT_BRIDGED_NETWORK_NAME,
+                                       kind=NetworkKind.VMNET_BRIDGED,
+                                       cidr='10.3.0.0/24',
+                                       gateway='10.3.0.1')
+
         # # TODO: Network updates should only happen in server mode, NOT in client mode
         # if not self.network_controller.get(name=NetworkController.DEFAULT_BRIDGED_NETWORK_NAME):
         #     gateway = netifaces.gateways().get('default')
@@ -100,6 +114,10 @@ class Runtime:
         self._image_repository = ImageRepository(session_maker=await self._db.async_sessionmaker,
                                                  aggregate_root_class=ImageEntity,
                                                  model_class=ImageModel)
+        self._network_repository = NetworkRepository(session_maker=await self._db.async_sessionmaker,
+                                                     aggregate_root_class=NetworkEntity,
+                                                     model_class=NetworkModel)
+        await self.lifespan_networks()
         yield
 
     @property
@@ -113,6 +131,10 @@ class Runtime:
     @property
     def image_repository(self) -> ImageRepository:
         return self._image_repository
+
+    @property
+    def network_repository(self) -> NetworkRepository:
+        return self._network_repository
 
     @property
     def config(self) -> Config:

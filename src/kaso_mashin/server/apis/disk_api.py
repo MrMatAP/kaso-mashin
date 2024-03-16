@@ -20,7 +20,6 @@ class DiskAPI(AbstractAPI):
 
     def __init__(self, runtime: Runtime):
         super().__init__(runtime)
-        self._disk_aggregate_root = None
         self._router = fastapi.APIRouter(tags=['disks'],
                                          responses={
                                              404: {'model': ExceptionSchema, 'description': 'Disk not found'},

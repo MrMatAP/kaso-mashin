@@ -6,27 +6,28 @@ from kaso_mashin.common.base_types import BinaryScale, BinarySizedValue
 from kaso_mashin.common.entities import (
     TaskRepository, TaskEntity, TaskModel, TaskState,
     DiskRepository, DiskEntity, DiskModel,
-    ImageRepository, ImageEntity, ImageModel
+    ImageRepository, ImageEntity, ImageModel,
+    NetworkRepository, NetworkEntity, NetworkModel, NetworkKind
 )
 
 
 @pytest.mark.asyncio(scope='module')
 async def test_async_disks(async_sessionmaker):
-    disk_aggregate_root = DiskRepository(session_maker=async_sessionmaker,
-                                         aggregate_root_class=DiskEntity,
-                                         model_class=DiskModel)
+    disk_repository = DiskRepository(session_maker=async_sessionmaker,
+                                     aggregate_root_class=DiskEntity,
+                                     model_class=DiskModel)
     try:
         disk = await DiskEntity.create(name='Test Disk',
                                        path=pathlib.Path(__file__).parent / 'build' / 'test-disk-0.qcow2',
                                        size=BinarySizedValue(1, BinaryScale.M))
 
-        loaded = await disk_aggregate_root.get_by_uid(disk.uid)
+        loaded = await disk_repository.get_by_uid(disk.uid)
         assert disk == loaded
         await disk.resize(BinarySizedValue(2, scale=BinaryScale.M))
-        updated = await disk_aggregate_root.get_by_uid(disk.uid)
+        updated = await disk_repository.get_by_uid(disk.uid)
         assert disk.size == updated.size
         assert disk == updated
-        listed = await disk_aggregate_root.list()
+        listed = await disk_repository.list()
         assert len(listed) == 1
         assert disk == listed[0]
 
@@ -34,17 +35,37 @@ async def test_async_disks(async_sessionmaker):
             await DiskEntity.create(name=f'Test Disk {i}',
                                     path=pathlib.Path(__file__).parent / 'build' / f'test-disk-{i}.qcow2',
                                     size=BinarySizedValue(1, BinaryScale.M))
-        entities = await disk_aggregate_root.list()
+        entities = await disk_repository.list()
         assert len(entities) == 10
     finally:
-        disks = await disk_aggregate_root.list()
+        disks = await disk_repository.list()
         for disk in disks:
             await disk.remove()
             assert not disk.path.exists()
-        assert len(await disk_aggregate_root.list()) == 0
+        assert len(await disk_repository.list()) == 0
 
 
 @pytest.mark.asyncio(scope='module')
+async def test_async_networks(async_sessionmaker):
+    network_repository = NetworkRepository(session_maker=async_sessionmaker,
+                                           aggregate_root_class=NetworkEntity,
+                                           model_class=NetworkModel)
+    try:
+        network = await NetworkEntity.create(name='Test Network',
+                                             kind=NetworkKind.VMNET_HOST,
+                                             cidr='172.16.8.0/24',
+                                             gateway='172.16.8.1')
+        loaded = await network_repository.get_by_uid(network.uid)
+        assert network == loaded
+    finally:
+        networks = await network_repository.list()
+        for network in networks:
+            await network.remove()
+        assert len(await network_repository.list()) == 0
+
+
+@pytest.mark.asyncio(scope='module')
+@pytest.mark.skip(reason='Not doing the network download')
 async def test_async_images(async_sessionmaker):
     task_aggregate_root = TaskRepository(session_maker=async_sessionmaker,
                                          aggregate_root_class=TaskEntity,

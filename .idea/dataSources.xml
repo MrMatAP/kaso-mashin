@@ -26,5 +26,15 @@
         </library>
       </libraries>
     </data-source>
+    <data-source source="LOCAL" name="kaso (nostromo)" uuid="86e25f87-4762-4967-894b-b35e991ee847">
+      <driver-ref>9809209c-8fa3-48dd-9547-04f02de15fa1</driver-ref>
+      <synchronize>true</synchronize>
+      <jdbc-driver>org.sqlite.JDBC</jdbc-driver>
+      <jdbc-url>jdbc:sqlite:$USER_HOME$/var/kaso/kaso.sqlite3</jdbc-url>
+      <jdbc-additional-properties>
+        <property name="com.intellij.clouds.kubernetes.db.enabled" value="false" />
+      </jdbc-additional-properties>
+      <working-dir>$ProjectFileDir$</working-dir>
+    </data-source>
   </component>
 </project>

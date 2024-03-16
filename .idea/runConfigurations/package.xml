@@ -5,8 +5,15 @@
     <scripts>
       <script value="package" />
     </scripts>
-    <node-interpreter value="/opt/homebrew/Cellar/node@20/20.11.1/bin/node" />
+    <node-interpreter value="node" />
     <envs />
-    <method v="2" />
+    <method v="2">
+      <option name="NpmBeforeRunTask" enabled="true">
+        <package-json value="$PROJECT_DIR$/src/frontend/package.json" />
+        <command value="install" />
+        <node-interpreter value="project" />
+        <envs />
+      </option>
+    </method>
   </configuration>
 </component>
