@@ -113,7 +113,7 @@ class NetworkEntity(Entity, AggregateRoot):
         network._uid = UniqueIdentifier(model.uid)
         return network
 
-    async def to_model(self, model: NetworkModel | None = None) -> 'NetworkModel':
+    async def to_model(self, model: NetworkModel | None = None) -> NetworkModel:
         if model is None:
             return NetworkModel(uid=str(self.uid),
                                 name=self.name,
