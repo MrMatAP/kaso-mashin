@@ -15,8 +15,7 @@ from kaso_mashin.common.config import Config
 from kaso_mashin.common.model import ExceptionSchema
 from kaso_mashin.server.db import DB
 from kaso_mashin.server.runtime import Runtime
-#from kaso_mashin.server.apis import ConfigAPI, TaskAPI, ImageAPI, IdentityAPI, NetworkAPI, InstanceAPI, DiskAPI
-from kaso_mashin.server.apis import TaskAPI, ImageAPI, DiskAPI
+from kaso_mashin.server.apis import TaskAPI, ImageAPI, DiskAPI, NetworkAPI, InstanceAPI
 
 
 def create_server(runtime: Runtime) -> fastapi.applications.FastAPI:
@@ -29,10 +28,11 @@ def create_server(runtime: Runtime) -> fastapi.applications.FastAPI:
     #app.include_router(ConfigAPI(runtime).router, prefix='/api/config')
     app.include_router(TaskAPI(runtime).router, prefix='/api/tasks')
     #app.include_router(IdentityAPI(runtime).router, prefix='/api/identities')
-    #app.include_router(NetworkAPI(runtime).router, prefix='/api/networks')
+    app.include_router(NetworkAPI(runtime).router, prefix='/api/networks')
     app.include_router(ImageAPI(runtime).router, prefix='/api/images')
-    #app.include_router(InstanceAPI(runtime).router, prefix='/api/instances')
     app.include_router(DiskAPI(runtime).router, prefix='/api/disks')
+    app.include_router(InstanceAPI(runtime).router, prefix='/api/instances')
+
     app.mount(path='/',
               app=fastapi.staticfiles.StaticFiles(directory=pathlib.Path(os.path.dirname(__file__), 'static')),
               name='static')
@@ -102,8 +102,6 @@ def main(args: typing.Optional[typing.List] = None) -> int:
     logger.setLevel(logging.DEBUG if args.debug else logging.INFO)
     config.load(args.config)
     config.cli_override(args)
-    # TODO: We should move this into config
-    runtime.late_init(server=True)
     try:
         logger.info('Effective user %s', runtime.effective_user)
         logger.info('Owning user %s', runtime.owning_user)

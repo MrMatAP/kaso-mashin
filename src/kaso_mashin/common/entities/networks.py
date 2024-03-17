@@ -105,7 +105,7 @@ class NetworkEntity(Entity, AggregateRoot):
         )
 
     @staticmethod
-    def from_model(model: NetworkModel) -> 'NetworkEntity':
+    async def from_model(model: NetworkModel) -> 'NetworkEntity':
         network = NetworkEntity(name=model.name,
                                 kind=NetworkKind(model.kind),
                                 cidr=model.cidr,
@@ -113,7 +113,7 @@ class NetworkEntity(Entity, AggregateRoot):
         network._uid = UniqueIdentifier(model.uid)
         return network
 
-    def to_model(self, model: NetworkModel | None = None) -> 'NetworkModel':
+    async def to_model(self, model: NetworkModel | None = None) -> 'NetworkModel':
         if model is None:
             return NetworkModel(uid=str(self.uid),
                                 name=self.name,
@@ -161,7 +161,7 @@ class NetworkRepository(AsyncRepository[NetworkEntity, NetworkModel]):
                                          .where(self._model_class.name == name))
             if model is None:
                 return None
-            return self._aggregate_root_class.from_model(model)
+            return await self._aggregate_root_class.from_model(model)
 
 
 class NetworkListSchema(EntitySchema):

@@ -35,7 +35,7 @@ class ImageException(KasoMashinException):
 
 class ImageModel(EntityModel):
     """
-    Representation of a image entity in the database
+    Representation of an image entity in the database
     """
     __tablename__ = "images"
     name: Mapped[str] = mapped_column(String(64))
@@ -115,7 +115,7 @@ class ImageEntity(Entity, AggregateRoot):
         )
 
     @staticmethod
-    def from_model(model: ImageModel) -> 'ImageEntity':
+    async def from_model(model: ImageModel) -> 'ImageEntity':
         entity = ImageEntity(name=model.name,
                              url=model.url,
                              path=pathlib.Path(model.path),
@@ -125,7 +125,7 @@ class ImageEntity(Entity, AggregateRoot):
         entity._uid = UniqueIdentifier(model.uid)
         return entity
 
-    def to_model(self, model: ImageModel | None = None) -> 'ImageModel':
+    async def to_model(self, model: ImageModel | None = None) -> 'ImageModel':
         if model is None:
             return ImageModel(uid=str(self.uid),
                               name=self.name,

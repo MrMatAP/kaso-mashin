@@ -88,22 +88,25 @@ class DiskEntity(Entity, AggregateRoot):
         return self._image
 
     @staticmethod
-    def from_model(model: DiskModel) -> 'DiskEntity':
+    async def from_model(model: DiskModel) -> 'DiskEntity':
         entity = DiskEntity(name=model.name,
                             path=pathlib.Path(model.path),
                             size=BinarySizedValue(model.size, model.size_scale),
                             disk_format=model.disk_format)
         entity._uid = UniqueIdentifier(model.uid)
+        if model.image_uid is not None:
+            entity._image = await ImageEntity.repository.get_by_uid(model.image_uid)
         return entity
 
-    def to_model(self, model: DiskModel | None = None) -> 'DiskModel':
+    async def to_model(self, model: DiskModel | None = None) -> 'DiskModel':
         if model is None:
             return DiskModel(uid=str(self.uid),
                              name=self.name,
                              path=str(self.path),
                              size=self.size.value,
                              size_scale=self.size.scale,
-                             disk_format=self.disk_format)
+                             disk_format=self.disk_format,
+                             image_uid=str(self.image.uid) if self.image is not None else None)
         else:
             model.uid = str(self.uid)
             model.name = self.name
@@ -111,6 +114,8 @@ class DiskEntity(Entity, AggregateRoot):
             model.size = self.size.value
             model.size_scale = self.size.scale
             model.disk_format = self.disk_format
+            if self.image is not None:
+                model.image_uid = str(self.image.uid)
             return model
 
     def __eq__(self, other: 'DiskEntity') -> bool:  # type: ignore[override]

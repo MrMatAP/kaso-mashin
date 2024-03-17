@@ -75,10 +75,10 @@ class TaskEntity(Entity, AggregateRoot):
         return self._outcome
 
     @staticmethod
-    def from_model(model: TaskModel) -> 'TaskEntity':
+    async def from_model(model: TaskModel) -> 'TaskEntity':
         pass
 
-    def to_model(self, model: TaskModel | None = None) -> TaskModel:
+    async def to_model(self, model: TaskModel | None = None) -> TaskModel:
         pass
 
     def __eq__(self, other: 'TaskEntity') -> bool:

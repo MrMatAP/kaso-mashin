@@ -94,11 +94,11 @@ class AggregateRoot(typing.Generic[T_EntityModel, T_Entity]):
 
     @staticmethod
     @abc.abstractmethod
-    def from_model(model: T_EntityModel) -> T_Entity:
+    async def from_model(model: T_EntityModel) -> T_Entity:
         pass
 
     @abc.abstractmethod
-    def to_model(self, model: T_EntityModel | None = None) -> T_EntityModel:
+    async def to_model(self, model: T_EntityModel | None = None) -> T_EntityModel:
         pass
 
 
@@ -122,16 +122,16 @@ class AsyncRepository(typing.Generic[T_AggregateRoot, T_EntityModel]):
             model = await session.get(self._model_class, str(uid))
             if model is None:
                 raise EntityNotFoundException(status=400, msg='No such entity')
-            return self._aggregate_root_class.from_model(model)
+            return await self._aggregate_root_class.from_model(model)
 
     async def list(self) -> typing.List[T_AggregateRoot]:
         async with self._session_maker() as session:
             models = await session.scalars(select(self._model_class))
-            return [self._aggregate_root_class.from_model(m) for m in models]
+            return [await self._aggregate_root_class.from_model(m) for m in models]
 
     async def create(self, entity: T_AggregateRoot) -> T_AggregateRoot:
         async with self._session_maker() as session:
-            session.add(entity.to_model())
+            session.add(await entity.to_model())
             await session.commit()
         return entity
 
@@ -140,7 +140,7 @@ class AsyncRepository(typing.Generic[T_AggregateRoot, T_EntityModel]):
             model = await session.get(self._model_class, str(entity.uid))
             if model is None:
                 raise EntityNotFoundException(status=400, msg='No such entity')
-            session.add(entity.to_model(model))
+            session.add(await entity.to_model(model))
             await session.commit()
         return entity
 

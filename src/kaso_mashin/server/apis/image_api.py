@@ -98,7 +98,7 @@ class ImageAPI(AbstractAPI):
     async def create_image(self, schema: ImageCreateSchema, background_tasks: fastapi.BackgroundTasks):
         task = await TaskEntity.create(name=f'Download image {schema.name} from URL {schema.url}')
         now = datetime.datetime.now().strftime('%Y-%m-%d-%H%M')
-        imagepath = self._runtime.config.image_path / f'{schema.name}-{now}.qcow2'
+        imagepath = self._runtime.config.images_path / f'{schema.name}-{now}.qcow2'
         background_tasks.add_task(ImageEntity.create,
                                   task=task,
                                   user=self._runtime.owning_user,

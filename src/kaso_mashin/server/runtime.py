@@ -3,6 +3,9 @@ import fastapi
 import shutil
 import getpass
 import os
+
+import httpx
+import aiofiles
 import ipaddress
 
 import netifaces
@@ -16,7 +19,8 @@ from kaso_mashin.common.entities import (
     ImageRepository, ImageModel, ImageEntity,
     NetworkRepository, NetworkModel, NetworkEntity,
     NetworkKind,
-    DEFAULT_SHARED_NETWORK_NAME, DEFAULT_BRIDGED_NETWORK_NAME, DEFAULT_HOST_NETWORK_NAME
+    DEFAULT_SHARED_NETWORK_NAME, DEFAULT_BRIDGED_NETWORK_NAME, DEFAULT_HOST_NETWORK_NAME,
+    InstanceRepository, InstanceModel, InstanceEntity
 )
 
 
@@ -36,15 +40,30 @@ class Runtime:
         self._disk_repository = None
         self._image_repository = None
         self._network_repository = None
+        self._instance_repository = None
+        self._uefi_code_path = config.bootstrap_path / 'uefi-code.fd'
+        self._uefi_vars_path = config.bootstrap_path / 'uefi-vars.fd'
 
-    def late_init(self, server: bool = False):
-        """
-        Perform late initialisation after configuration
-        """
-        shutil.chown(self.config.path, user=self.owning_user)
+    async def lifespan_bootstrap(self):
+        client = httpx.AsyncClient(follow_redirects=True, timeout=60)
+        if not self.uefi_code_path.exists():
+            async with client.stream('GET', url=self._config.uefi_code_url) as resp, aiofiles.open(self.uefi_code_path, 'wb') as file:
+                async for chunk in resp.aiter_bytes(chunk_size=8196):
+                    await file.write(chunk)
+            shutil.chown(path=self.uefi_code_path, user=self._owning_user)
+        if not self.uefi_vars_path.exists():
+            async with client.stream('GET', url=self._config.uefi_vars_url) as resp, aiofiles.open(self.uefi_vars_path, 'wb') as file:
+                async for chunk in resp.aiter_bytes(chunk_size=8196):
+                    await file.write(chunk)
+                shutil.chown(path=self.uefi_vars_path, user=self._owning_user)
+
+    async def lifespan_server(self):
         self._server_url = f'http://{self.config.default_server_host}:{self.config.default_server_port}'
-        if not server:
-            return
+
+    async def lifespan_paths(self):
+        for path in self.config.path, self.config.images_path, self.config.instances_path, self.config.bootstrap_path:
+            path.mkdir(parents=True, exist_ok=True)
+            shutil.chown(path=path, user=self.owning_user)
 
     async def lifespan_networks(self):
         host_network = await self.network_repository.get_by_name(DEFAULT_HOST_NETWORK_NAME)
@@ -117,7 +136,13 @@ class Runtime:
         self._network_repository = NetworkRepository(session_maker=await self._db.async_sessionmaker,
                                                      aggregate_root_class=NetworkEntity,
                                                      model_class=NetworkModel)
+        self._instance_repository = InstanceRepository(session_maker=await self._db.async_sessionmaker,
+                                                       aggregate_root_class=InstanceEntity,
+                                                       model_class=InstanceModel)
         await self.lifespan_networks()
+        await self.lifespan_paths()
+        await self.lifespan_server()
+        await self.lifespan_bootstrap()
         yield
 
     @property
@@ -135,6 +160,10 @@ class Runtime:
     @property
     def network_repository(self) -> NetworkRepository:
         return self._network_repository
+
+    @property
+    def instance_repository(self) -> InstanceRepository:
+        return self._instance_repository
 
     @property
     def config(self) -> Config:
@@ -155,6 +184,14 @@ class Runtime:
     @property
     def owning_user(self) -> str:
         return self._owning_user
+
+    @property
+    def uefi_code_path(self):
+        return self._uefi_code_path
+
+    @property
+    def uefi_vars_path(self):
+        return self._uefi_vars_path
 
     # @property
     # def bootstrap_controller(self) -> BootstrapController:

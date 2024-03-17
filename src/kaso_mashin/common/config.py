@@ -18,7 +18,9 @@ class Config:
     Configuration handling for kaso_mashin
     """
     path: pathlib.Path = dataclasses.field(default=pathlib.Path('~/var/kaso').expanduser())
-    image_path: pathlib.Path = dataclasses.field(default=pathlib.Path('~/var/kaso/images').expanduser())
+    images_path: pathlib.Path = dataclasses.field(default=pathlib.Path('~/var/kaso/images').expanduser())
+    instances_path: pathlib.Path = dataclasses.field(default=pathlib.Path('~/var/kaso/instances').expanduser())
+    bootstrap_path: pathlib.Path = dataclasses.field(default=pathlib.Path('~/var/kaso/bootstrap').expanduser())
     default_os_disk_size: str = dataclasses.field(default='5G')
     default_phone_home_port: int = dataclasses.field(default=10200)
     default_host_network_dhcp4_start: str = dataclasses.field(default='172.16.4.10')
@@ -29,6 +31,8 @@ class Config:
     default_shared_network_cidr: str = dataclasses.field(default='172.16.5.0/24')
     default_server_host: str = dataclasses.field(default='127.0.0.1')
     default_server_port: int = dataclasses.field(default=8000)
+    uefi_code_url: str = dataclasses.field(default='https://stable.release.flatcar-linux.net/arm64-usr/current/flatcar_production_qemu_uefi_efi_code.fd')
+    uefi_vars_url: str = dataclasses.field(default='https://stable.release.flatcar-linux.net/arm64-usr/current/flatcar_production_qemu_uefi_efi_vars.fd')
 
     def __init__(self, config_file: pathlib.Path = None):
         self._logger = logging.getLogger(f'{self.__class__.__module__}.{self.__class__.__name__}')

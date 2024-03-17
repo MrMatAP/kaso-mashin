@@ -21,3 +21,8 @@ from .networks import (
     NetworkListSchema, NetworkGetSchema, NetworkCreateSchema, NetworkModifySchema,
     NetworkKind, DEFAULT_HOST_NETWORK_NAME, DEFAULT_BRIDGED_NETWORK_NAME, DEFAULT_SHARED_NETWORK_NAME
 )
+from .instances import (
+    InstanceException,
+    InstanceRepository, InstanceEntity, InstanceModel,
+    InstanceListSchema, InstanceGetSchema, InstanceCreateSchema, InstanceModifySchema
+)

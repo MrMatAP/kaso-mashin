@@ -7,6 +7,7 @@ import fastapi
 from kaso_mashin.server.apis import AbstractAPI
 from kaso_mashin.server.runtime import Runtime
 from kaso_mashin.common.model import ExceptionSchema
+from kaso_mashin.common.ddd_scaffold import EntityNotFoundException
 from kaso_mashin.common.entities import (
     DiskEntity,
     DiskListSchema, DiskGetSchema, DiskCreateSchema, DiskModifySchema
@@ -48,13 +49,17 @@ class DiskAPI(AbstractAPI):
                                    response_description='The created disk',
                                    status_code=201,
                                    response_model=DiskGetSchema)
-        self._router.add_api_route('/{uid}', self.modify_disk, methods=['PUT'],
+        self._router.add_api_route(path='/{uid}',
+                                   endpoint=self.modify_disk,
+                                   methods=['PUT'],
                                    summary='Modify a disk',
                                    description='This will update the permissible fields of a disk',
                                    response_description='The updated disk',
                                    status_code=200,
                                    response_model=DiskGetSchema)
-        self._router.add_api_route('/{uid}', self.remove_disk, methods=['DELETE'],
+        self._router.add_api_route(path='/{uid}',
+                                   endpoint=self.remove_disk,
+                                   methods=['DELETE'],
                                    summary='Remove a disk',
                                    description='Remove a disk. This will irrevocably and permanently delete the disk',
                                    response_description='There is no response content',
@@ -97,6 +102,12 @@ class DiskAPI(AbstractAPI):
                           uid: typing.Annotated[uuid.UUID, fastapi.Path(title='Disk UUID',
                                                                         description='The unique disk Id',
                                                                         examples=[
-                                                                            '4198471B-8C84-4636-87CD-9DF4E24CF43F'])]):
-        entity = await self._runtime.disk_repository.get_by_uid(uid)
-        await entity.remove()
+                                                                            '4198471B-8C84-4636-87CD-9DF4E24CF43F'])],
+                          response: fastapi.Response):
+        try:
+            entity = await self._runtime.disk_repository.get_by_uid(uid)
+            await entity.remove()
+            response.status_code = 204
+        except EntityNotFoundException:
+            response.status_code = 410
+        return response
