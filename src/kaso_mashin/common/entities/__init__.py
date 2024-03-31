@@ -26,3 +26,9 @@ from .instances import (
     InstanceRepository, InstanceEntity, InstanceModel,
     InstanceListSchema, InstanceGetSchema, InstanceCreateSchema, InstanceModifySchema
 )
+from .bootstraps import (
+    BootstrapException,
+    BootstrapRepository, BootstrapEntity, BootstrapModel,
+    BootstrapListSchema, BootstrapGetSchema, BootstrapCreateSchema, BootstrapModifySchema,
+    BootstrapKind
+)

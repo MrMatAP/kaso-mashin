@@ -15,7 +15,7 @@ from kaso_mashin.common.config import Config
 from kaso_mashin.common.model import ExceptionSchema
 from kaso_mashin.server.db import DB
 from kaso_mashin.server.runtime import Runtime
-from kaso_mashin.server.apis import TaskAPI, ImageAPI, DiskAPI, NetworkAPI, InstanceAPI
+from kaso_mashin.server.apis import TaskAPI, ImageAPI, DiskAPI, NetworkAPI, InstanceAPI, BootstrapAPI
 
 
 def create_server(runtime: Runtime) -> fastapi.applications.FastAPI:
@@ -32,6 +32,7 @@ def create_server(runtime: Runtime) -> fastapi.applications.FastAPI:
     app.include_router(ImageAPI(runtime).router, prefix='/api/images')
     app.include_router(DiskAPI(runtime).router, prefix='/api/disks')
     app.include_router(InstanceAPI(runtime).router, prefix='/api/instances')
+    app.include_router(BootstrapAPI(runtime).router, prefix='/api/bootstraps')
 
     app.mount(path='/',
               app=fastapi.staticfiles.StaticFiles(directory=pathlib.Path(os.path.dirname(__file__), 'static')),
@@ -103,8 +104,6 @@ def main(args: typing.Optional[typing.List] = None) -> int:
     config.load(args.config)
     config.cli_override(args)
     try:
-        logger.info('Effective user %s', runtime.effective_user)
-        logger.info('Owning user %s', runtime.owning_user)
         app = create_server(runtime)
         uvicorn.run(app, host=config.default_server_host, port=config.default_server_port)
         return 0

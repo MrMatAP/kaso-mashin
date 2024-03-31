@@ -20,7 +20,8 @@ from kaso_mashin.common.entities import (
     NetworkRepository, NetworkModel, NetworkEntity,
     NetworkKind,
     DEFAULT_SHARED_NETWORK_NAME, DEFAULT_BRIDGED_NETWORK_NAME, DEFAULT_HOST_NETWORK_NAME,
-    InstanceRepository, InstanceModel, InstanceEntity
+    InstanceRepository, InstanceModel, InstanceEntity,
+    BootstrapRepository, BootstrapModel, BootstrapEntity
 )
 
 
@@ -41,10 +42,11 @@ class Runtime:
         self._image_repository = None
         self._network_repository = None
         self._instance_repository = None
+        self._bootstrap_repository = None
         self._uefi_code_path = config.bootstrap_path / 'uefi-code.fd'
         self._uefi_vars_path = config.bootstrap_path / 'uefi-vars.fd'
 
-    async def lifespan_bootstrap(self):
+    async def lifespan_uefi(self):
         client = httpx.AsyncClient(follow_redirects=True, timeout=60)
         if not self.uefi_code_path.exists():
             async with client.stream('GET', url=self._config.uefi_code_url) as resp, aiofiles.open(self.uefi_code_path, 'wb') as file:
@@ -124,25 +126,34 @@ class Runtime:
     @contextlib.asynccontextmanager
     async def lifespan(self, app: fastapi.FastAPI):
         del app
-        self._task_repository = TaskRepository(session_maker=await self._db.async_sessionmaker,
+        self._task_repository = TaskRepository(config=self.config,
+                                               session_maker=await self._db.async_sessionmaker,
                                                aggregate_root_class=TaskEntity,
                                                model_class=TaskModel)
-        self._disk_repository = DiskRepository(session_maker=await self._db.async_sessionmaker,
+        self._disk_repository = DiskRepository(config=self.config,
+                                               session_maker=await self._db.async_sessionmaker,
                                                aggregate_root_class=DiskEntity,
                                                model_class=DiskModel)
-        self._image_repository = ImageRepository(session_maker=await self._db.async_sessionmaker,
+        self._image_repository = ImageRepository(config=self.config,
+                                                 session_maker=await self._db.async_sessionmaker,
                                                  aggregate_root_class=ImageEntity,
                                                  model_class=ImageModel)
-        self._network_repository = NetworkRepository(session_maker=await self._db.async_sessionmaker,
+        self._network_repository = NetworkRepository(config=self.config,
+                                                     session_maker=await self._db.async_sessionmaker,
                                                      aggregate_root_class=NetworkEntity,
                                                      model_class=NetworkModel)
-        self._instance_repository = InstanceRepository(session_maker=await self._db.async_sessionmaker,
+        self._instance_repository = InstanceRepository(config=self.config,
+                                                       session_maker=await self._db.async_sessionmaker,
                                                        aggregate_root_class=InstanceEntity,
                                                        model_class=InstanceModel)
+        self._bootstrap_repository = BootstrapRepository(config=self.config,
+                                                         session_maker=await self._db.async_sessionmaker,
+                                                         aggregate_root_class=BootstrapEntity,
+                                                         model_class=BootstrapModel)
         await self.lifespan_networks()
         await self.lifespan_paths()
         await self.lifespan_server()
-        await self.lifespan_bootstrap()
+        await self.lifespan_uefi()
         yield
 
     @property
@@ -164,6 +175,10 @@ class Runtime:
     @property
     def instance_repository(self) -> InstanceRepository:
         return self._instance_repository
+
+    @property
+    def bootstrap_repository(self) -> BootstrapRepository:
+        return self._bootstrap_repository
 
     @property
     def config(self) -> Config:

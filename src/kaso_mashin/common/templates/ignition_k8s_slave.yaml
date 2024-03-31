@@ -1,0 +1,64 @@
+version: 1.0.0
+variant: flatcar
+storage:
+  links:
+    - target: /opt/extensions/kubernetes/kubernetes-v1.28.6-arm64.raw
+      path: /etc/extensions/kubernetes.raw
+      hard: false
+  files:
+    - path: /etc/sysupdate.kubernetes.d/kubernetes.conf
+      contents:
+        source: https://github.com/flatcar/sysext-bakery/releases/download/latest/kubernetes.conf
+    - path: /etc/sysupdate.d/noop.conf
+      contents:
+        source: https://github.com/flatcar/sysext-bakery/releases/download/latest/noop.conf
+    - path: /opt/extensions/kubernetes/kubernetes-v1.28.6-arm64.raw
+      contents:
+        source: https://github.com/flatcar/sysext-bakery/releases/download/latest/kubernetes-v1.28.6-arm64.raw
+    - path: /etc/systemd/network/00-eth0.network
+      contents:
+        inline: |
+          [Match]
+          Name=eth0
+
+          [Network]
+          DHCP=yes
+          LinkLocalAddressing=yes
+          IPv6AcceptRA=yes
+    - path: /etc/systemd/timesyncd.conf
+      mode: 0644
+      overwrite: true
+      contents:
+        inline: |
+          [Time]
+          NTP=ntp.metas.ch ptbtime1.ptb.de ptbtime2.ptb.de ptbtime3.ptb.de time.metrologie.at
+    - path: /etc/hostname
+      mode: 0644
+      contents:
+        inline: |
+          {{ name }}
+systemd:
+  units:
+    - name: systemd-sysupdate.timer
+      enabled: true
+    - name: systemd-sysupdate.service
+      dropins:
+        - name: kubernetes.conf
+          contents: |
+            [Service]
+            ExecStartPre=/usr/bin/sh -c "readlink --canonicalize /etc/extensions/kubernetes.raw > /tmp/kubernetes"
+            ExecStartPre=/usr/lib/systemd/systemd-sysupdate -C kubernetes update
+            ExecStartPost=/usr/bin/sh -c "readlink --canonicalize /etc/extensions/kubernetes.raw > /tmp/kubernetes-new"
+            ExecStartPost=/usr/bin/sh -c "[[ $(cat /tmp/kubernetes) != $(cat /tmp/kubernetes-new) ]] && touch /run/reboot-required"
+    - name: kubeadm.service
+      enabled: true
+      contents: |
+        [Unit]
+        Description=Kubeadm service
+        Requires=containerd.service
+        After=containerd.service
+        [Service]
+        ExecStart=/usr/bin/kubeadm join k8s-master:6443 --token 7d98ev.cwdqv9knfz2l5cip --discovery-token-ca-cert-hash sha256:5a9ba1a4d225defb230dc81cf0d538a5ab69cc21184e833af76149a78435b952
+        [Install]
+        WantedBy=multi-user.target
+

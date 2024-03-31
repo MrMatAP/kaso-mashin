@@ -6,7 +6,8 @@ from .ddd_scaffold import (
     EntityModel, T_EntityModel,
     Entity, T_Entity,
     AggregateRoot, T_AggregateRoot,
-    AsyncRepository
+    AsyncRepository,
+    Service
 )
 
 from .base_types import (

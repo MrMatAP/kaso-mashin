@@ -8,6 +8,7 @@ from sqlalchemy.ext.asyncio import async_sessionmaker, AsyncSession
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
 
 from kaso_mashin import KasoMashinException
+from kaso_mashin.common.config import Config
 
 
 UniqueIdentifier = uuid.UUID
@@ -18,6 +19,13 @@ class EntityNotFoundException(KasoMashinException):
 
 
 class EntityInvariantException(KasoMashinException):
+    pass
+
+
+class Service(abc.ABC):
+    """
+    A domain service
+    """
     pass
 
 
@@ -84,6 +92,7 @@ class AggregateRoot(typing.Generic[T_EntityModel, T_Entity]):
     Aggregate roots have two important class attributes that declare their repository and the model class they
     are associated with at runtime. These attributes are set by the repository when it is instantiated.
     """
+    config: 'Config' = None
     repository: 'AsyncRepository' = None
     model_class: typing.Type[T_EntityModel] = None
 
@@ -108,11 +117,13 @@ T_AggregateRoot = typing.TypeVar('T_AggregateRoot', bound=AggregateRoot)
 class AsyncRepository(typing.Generic[T_AggregateRoot, T_EntityModel]):
 
     def __init__(self,
+                 config: Config,
                  session_maker: async_sessionmaker[AsyncSession],
                  aggregate_root_class: typing.Type[T_AggregateRoot],
                  model_class: typing.Type[T_EntityModel]):
         self._session_maker = session_maker
         self._aggregate_root_class = aggregate_root_class
+        self._aggregate_root_class.config = config
         self._aggregate_root_class.repository = self
         self._aggregate_root_class.model_class = model_class
         self._model_class = model_class
