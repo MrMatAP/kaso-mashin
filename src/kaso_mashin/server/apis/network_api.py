@@ -4,7 +4,7 @@ from uuid import UUID
 import fastapi
 
 from kaso_mashin.common import AsyncRepository
-from kaso_mashin.server.apis import AbstractAPI
+from kaso_mashin.server.apis import BaseAPI
 from kaso_mashin.server.runtime import Runtime
 from kaso_mashin.common.entities import (
     NetworkEntity,
@@ -12,7 +12,7 @@ from kaso_mashin.common.entities import (
 )
 
 
-class NetworkAPI(AbstractAPI[NetworkListSchema, NetworkGetSchema, NetworkCreateSchema, NetworkModifySchema]):
+class NetworkAPI(BaseAPI[NetworkListSchema, NetworkGetSchema, NetworkCreateSchema, NetworkModifySchema]):
     """
     The Network API
     """

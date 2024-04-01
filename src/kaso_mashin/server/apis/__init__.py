@@ -1,4 +1,4 @@
-from .abstract_api import AbstractAPI
+from .base_api import BaseAPI
 from .config_api import ConfigAPI
 from .task_api import TaskAPI
 from .identity_api import IdentityAPI

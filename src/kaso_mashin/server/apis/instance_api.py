@@ -4,19 +4,20 @@ from uuid import UUID
 import fastapi
 
 from kaso_mashin.common import AsyncRepository
-from kaso_mashin.server.apis import AbstractAPI
+from kaso_mashin.server.apis import BaseAPI
 from kaso_mashin.server.runtime import Runtime
 from kaso_mashin.common.base_types import ExceptionSchema
-from kaso_mashin.common.ddd_scaffold import EntityNotFoundException
+from kaso_mashin.common.ddd_scaffold import EntityNotFoundException, UniqueIdentifier
 from kaso_mashin.common.entities import (
     InstanceEntity, InstanceListSchema, InstanceGetSchema, InstanceCreateSchema, InstanceModifySchema,
     TaskEntity, TaskGetSchema,
     ImageEntity,
-    NetworkEntity
+    NetworkEntity,
+    BootstrapEntity
 )
 
 
-class InstanceAPI(AbstractAPI[InstanceListSchema, InstanceGetSchema, InstanceCreateSchema, InstanceModifySchema]):
+class InstanceAPI(BaseAPI[InstanceListSchema, InstanceGetSchema, InstanceCreateSchema, InstanceModifySchema]):
     """
     The Instance API
     """
@@ -27,7 +28,8 @@ class InstanceAPI(AbstractAPI[InstanceListSchema, InstanceGetSchema, InstanceCre
                          list_schema_type=InstanceListSchema,
                          get_schema_type=InstanceGetSchema,
                          create_schema_type=InstanceCreateSchema,
-                         modify_schema_type=InstanceModifySchema)
+                         modify_schema_type=InstanceModifySchema,
+                         async_create=True)
 
     @property
     def repository(self) -> AsyncRepository:
@@ -37,8 +39,9 @@ class InstanceAPI(AbstractAPI[InstanceListSchema, InstanceGetSchema, InstanceCre
                      schema: InstanceCreateSchema,
                      background_tasks: fastapi.BackgroundTasks) -> TaskGetSchema | ExceptionSchema:
         try:
-            image = await ImageEntity.repository.get_by_uid(schema.image_uid)
-            network = await NetworkEntity.repository.get_by_uid(schema.network_uid)
+            image = await ImageEntity.repository.get_by_uid(UniqueIdentifier(schema.image_uid))
+            network = await NetworkEntity.repository.get_by_uid(UniqueIdentifier(schema.network_uid))
+            bootstrap = await BootstrapEntity.repository.get_by_uid(UniqueIdentifier(schema.bootstrap_uid))
             task = await TaskEntity.create(name=f'Creating instance {schema.name}')
             instance_path = self._runtime.config.instances_path / schema.name
             background_tasks.add_task(InstanceEntity.create,
@@ -52,7 +55,8 @@ class InstanceAPI(AbstractAPI[InstanceListSchema, InstanceGetSchema, InstanceCre
                                       ram=schema.ram,
                                       image=image,
                                       os_disk_size=schema.os_disk_size,
-                                      network=network)
+                                      network=network,
+                                      bootstrap=bootstrap)
             return TaskGetSchema.model_validate(task)
         except EntityNotFoundException as e:
             return ExceptionSchema.model_validate(e)

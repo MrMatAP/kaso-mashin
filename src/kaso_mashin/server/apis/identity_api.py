@@ -5,7 +5,7 @@ from uuid import UUID
 import fastapi
 
 from kaso_mashin.common import AsyncRepository
-from kaso_mashin.server.apis import AbstractAPI
+from kaso_mashin.server.apis import BaseAPI
 from kaso_mashin.server.runtime import Runtime
 from kaso_mashin.common.entities import (
     IdentityEntity,
@@ -13,7 +13,7 @@ from kaso_mashin.common.entities import (
 )
 
 
-class IdentityAPI(AbstractAPI):
+class IdentityAPI(BaseAPI):
     """
     The identity API
     """

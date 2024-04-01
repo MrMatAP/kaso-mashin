@@ -1,0 +1,26 @@
+<component name="ProjectRunConfigurationManager">
+  <configuration default="false" name="kaso instance create (foo)" type="PythonConfigurationType" factoryName="Python">
+    <module name="kaso-mashin" />
+    <option name="ENV_FILES" value="" />
+    <option name="INTERPRETER_OPTIONS" value="" />
+    <option name="PARENT_ENVS" value="true" />
+    <envs>
+      <env name="PYTHONUNBUFFERED" value="1" />
+    </envs>
+    <option name="SDK_HOME" value="/opt/dyn/python/kaso-mashin/bin/python" />
+    <option name="SDK_NAME" value="Python 3.11 (kaso-mashin)" />
+    <option name="WORKING_DIRECTORY" value="$PROJECT_DIR$" />
+    <option name="IS_MODULE_SDK" value="false" />
+    <option name="ADD_CONTENT_ROOTS" value="true" />
+    <option name="ADD_SOURCE_ROOTS" value="true" />
+    <EXTENSION ID="PythonCoverageRunConfigurationExtension" runner="coverage.py" />
+    <option name="SCRIPT_NAME" value="kaso_mashin.cli.run" />
+    <option name="PARAMETERS" value="instance create -n foo --vcpu 2 --ram 2 --os-disk 10 --image-uid 07f22f4d-2efe-4c55-9c8a-aee4a4f40469 --network-uid c4d351fa-6c50-4288-92f9-5b8a05e2a554 --bootstrap-uid 6b0b0408-4fc3-4d55-a0da-9c89b9ad1f45" />
+    <option name="SHOW_COMMAND_LINE" value="false" />
+    <option name="EMULATE_TERMINAL" value="true" />
+    <option name="MODULE_MODE" value="true" />
+    <option name="REDIRECT_INPUT" value="false" />
+    <option name="INPUT_FILE" value="" />
+    <method v="2" />
+  </configuration>
+</component>

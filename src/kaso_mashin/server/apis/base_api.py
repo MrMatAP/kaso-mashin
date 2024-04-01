@@ -14,7 +14,7 @@ from kaso_mashin.common.entities import TaskGetSchema
 from kaso_mashin.common.base_types import ExceptionSchema
 
 
-class AbstractAPI(Generic[T_EntityListSchema, T_EntityGetSchema, T_EntityCreateSchema, T_EntityModifySchema], abc.ABC):
+class BaseAPI(Generic[T_EntityListSchema, T_EntityGetSchema, T_EntityCreateSchema, T_EntityModifySchema], abc.ABC):
     """
     An abstract base class for APIs
     """
@@ -25,7 +25,8 @@ class AbstractAPI(Generic[T_EntityListSchema, T_EntityGetSchema, T_EntityCreateS
                  list_schema_type: Type[T_EntityListSchema],
                  get_schema_type: Type[T_EntityGetSchema],
                  create_schema_type: Type[T_EntityCreateSchema],
-                 modify_schema_type: Type[T_EntityModifySchema]):
+                 modify_schema_type: Type[T_EntityModifySchema],
+                 async_create: bool = False):
         self._runtime = runtime
         self._name = name
         self._list_schema_type = list_schema_type
@@ -52,14 +53,24 @@ class AbstractAPI(Generic[T_EntityListSchema, T_EntityGetSchema, T_EntityCreateS
                                    response_description=f'A {name} entity',
                                    status_code=200,
                                    response_model=get_schema_type)
-        self._router.add_api_route(path='/',
-                                   endpoint=self.create,
-                                   methods=['POST'],
-                                   summary=f'Create a {name} entity',
-                                   description=f'Create a new {name} entity given the provided data',
-                                   response_description=f'The created {name} entity',
-                                   status_code=201,
-                                   response_model=get_schema_type)
+        if async_create:
+            self._router.add_api_route(path='/',
+                                       endpoint=self.create,
+                                       methods=['POST'],
+                                       summary=f'Create a {name} entity',
+                                       description=f'Create a new {name} entity given the provided data',
+                                       response_description=f'The created {name} entity',
+                                       status_code=201,
+                                       response_model=TaskGetSchema)
+        else:
+            self._router.add_api_route(path='/',
+                                       endpoint=self.create,
+                                       methods=['POST'],
+                                       summary=f'Create a {name} entity',
+                                       description=f'Create a new {name} entity given the provided data',
+                                       response_description=f'The created {name} entity',
+                                       status_code=201,
+                                       response_model=get_schema_type)
         self._router.add_api_route(path='/{uid}',
                                    endpoint=self.modify,
                                    methods=['PUT'],
@@ -89,7 +100,7 @@ class AbstractAPI(Generic[T_EntityListSchema, T_EntityGetSchema, T_EntityCreateS
                                                     description='The UUID of the entity to get',
                                                     examples=['4198471B-8C84-4636-87CD-9DF4E24CF43F'])]) -> T_EntityGetSchema:
         entity = await self.repository.get_by_uid(uid)
-        return self._get_schema_type.model_validate(entity, strict=True)
+        return self._get_schema_type.model_validate(entity)
 
     async def create(self,
                      schema: T_EntityCreateSchema,

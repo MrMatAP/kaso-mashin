@@ -13,6 +13,7 @@ import sqlalchemy.exc
 from kaso_mashin import __version__, console, default_config_file, KasoMashinException
 from kaso_mashin.common.config import Config
 from kaso_mashin.common.base_types import ExceptionSchema
+from kaso_mashin.common import EntityNotFoundException, EntityInvariantException
 from kaso_mashin.server.db import DB
 from kaso_mashin.server.runtime import Runtime
 from kaso_mashin.server.apis import (
@@ -54,6 +55,28 @@ def create_server(runtime: Runtime) -> fastapi.applications.FastAPI:
 
     @app.exception_handler(KasoMashinException)
     async def kaso_mashin_exception_handler(request: fastapi.Request, exc: KasoMashinException):
+        del request  # pylint: disable=unused-argument
+        logging.getLogger('kaso_mashin.server').error('(%s) %s',
+                                                      exc.status,
+                                                      f'{exc.__class__.__name__}: {exc.msg}')
+        return fastapi.responses.JSONResponse(status_code=exc.status,
+                                              content=ExceptionSchema(status=exc.status,
+                                                                      msg=f'{exc.__class__.__name__}: {exc.msg}')
+                                              .model_dump())
+
+    @app.exception_handler(EntityNotFoundException)
+    async def entity_not_found_exception_handler(request: fastapi.Request, exc: EntityNotFoundException):
+        del request  # pylint: disable=unused-argument
+        logging.getLogger('kaso_mashin.server').error('(%s) %s',
+                                                      exc.status,
+                                                      f'{exc.__class__.__name__}: {exc.msg}')
+        return fastapi.responses.JSONResponse(status_code=exc.status,
+                                              content=ExceptionSchema(status=exc.status,
+                                                                      msg=f'{exc.__class__.__name__}: {exc.msg}')
+                                              .model_dump())
+
+    @app.exception_handler(EntityInvariantException)
+    async def entity_not_found_exception_handler(request: fastapi.Request, exc: EntityInvariantException):
         del request  # pylint: disable=unused-argument
         logging.getLogger('kaso_mashin.server').error('(%s) %s',
                                                       exc.status,

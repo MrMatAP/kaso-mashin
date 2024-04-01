@@ -1,12 +1,12 @@
 from kaso_mashin.common import AsyncRepository
-from kaso_mashin.server.apis import AbstractAPI
+from kaso_mashin.server.apis import BaseAPI
 from kaso_mashin.server.runtime import Runtime
 from kaso_mashin.common.entities import (
     TaskListSchema, TaskGetSchema
 )
 
 
-class TaskAPI(AbstractAPI[TaskListSchema, TaskGetSchema, TaskGetSchema, TaskGetSchema]):
+class TaskAPI(BaseAPI[TaskListSchema, TaskGetSchema, TaskGetSchema, TaskGetSchema]):
     """
     The Task API
     """

@@ -23,8 +23,59 @@ from kaso_mashin.common.entities import (
     TaskEntity,
     ImageEntity,
     DiskEntity, DiskFormat, DiskGetSchema,
-    NetworkEntity, NetworkGetSchema
+    NetworkEntity, NetworkGetSchema,
+    BootstrapEntity, BootstrapGetSchema,
 )
+
+
+class InstanceListSchema(EntitySchema):
+    """
+    Schema to list instances
+    """
+    uid: UniqueIdentifier = Field(description='The unique identifier of the instance',
+                                  examples=['b430727e-2491-4184-bb4f-c7d6d213e093'])
+    name: str = Field(description='The instance name', examples=['k8s-master', 'your-mom'])
+
+
+class InstanceCreateSchema(EntitySchema):
+    """
+    Schema to create an instance
+    """
+    name: str = Field(description='The instance name', examples=['k8s-master', 'your-mom'])
+    vcpu: int = Field(description='Number of virtual CPU cores', examples=[2])
+    ram: BinarySizedValue = Field(description='Amount of RAM',
+                                  examples=[BinarySizedValue(2, BinaryScale.G)])
+    os_disk_size: BinarySizedValue = Field(description='Size of the OS disk')
+    image_uid: str = Field(description='The image UID from which to create the OS disk from',
+                           examples=['b430727e-2491-4184-bb4f-c7d6d213e093'])
+    network_uid: str = Field(description='The network on which to run this instance',
+                             examples=['b430727e-2491-4184-bb4f-c7d6d213e093'])
+    bootstrap_uid: str = Field(description='The bootstrap uid',
+                               examples=['b430727e-2491-4184-bb4f-c7d6d213e093'])
+
+
+class InstanceGetSchema(EntitySchema):
+    """
+    Schema to get information about a specific instance
+    """
+    uid: UniqueIdentifier = Field(description='The unique identifier of the instance',
+                                  examples=['b430727e-2491-4184-bb4f-c7d6d213e093'])
+    name: str = Field(description='The instance name', examples=['k8s-master', 'your-mom'])
+    path: str = Field(description='Path of the instance on the local disk')
+    vcpu: int = Field(description='Number of virtual CPU cores', examples=[2])
+    ram: BinarySizedValue = Field(description='Amount of RAM',
+                                  examples=[BinarySizedValue(2, BinaryScale.G)])
+    mac: str = Field(description='Instance MAC address')
+    os_disk: DiskGetSchema = Field(description='The image from which to create the OS disk from')
+    network: NetworkGetSchema = Field(description='The network on which to run this instance')
+    bootstrap: BootstrapGetSchema = Field(description='The bootstrapper')
+
+
+class InstanceModifySchema(EntitySchema):
+    """
+    Schema to modify an existing instance
+    """
+    pass
 
 
 class InstanceException(KasoMashinException):
@@ -49,6 +100,7 @@ class InstanceModel(EntityModel):
     mac: Mapped[str] = mapped_column(String)
     os_disk_uid: Mapped[str] = mapped_column(UUID(as_uuid=True).with_variant(String(32), 'sqlite'))
     network_uid: Mapped[str] = mapped_column(UUID(as_uuid=True).with_variant(String(32), 'sqlite'))
+    bootstrap_uid: Mapped[str] = mapped_column(UUID(as_uuid=True).with_variant(String(32), 'sqlite'))
 
 
 class InstanceEntity(Entity, AggregateRoot):
@@ -65,7 +117,8 @@ class InstanceEntity(Entity, AggregateRoot):
                  ram: BinarySizedValue,
                  mac: str,
                  os_disk: DiskEntity,
-                 network: NetworkEntity):
+                 network: NetworkEntity,
+                 bootstrap: BootstrapEntity):
         super().__init__()
         self._name = name
         self._path = path
@@ -76,6 +129,7 @@ class InstanceEntity(Entity, AggregateRoot):
         self._mac = mac
         self._os_disk = os_disk
         self._network = network
+        self._bootstrap = bootstrap
 
     @property
     def name(self) -> str:
@@ -113,6 +167,10 @@ class InstanceEntity(Entity, AggregateRoot):
     def network(self) -> NetworkEntity:
         return self._network
 
+    @property
+    def bootstrap(self) -> BootstrapEntity:
+        return self._bootstrap
+
     def __eq__(self, other: 'InstanceEntity') -> bool:
         return all([
             super().__eq__(other),
@@ -124,7 +182,8 @@ class InstanceEntity(Entity, AggregateRoot):
             self.ram == other.ram,
             self.mac == other.mac,
             self.os_disk == other.os_disk,
-            self.network == other.network
+            self.network == other.network,
+            self.bootstrap == other.bootstrap
         ])
 
     def __repr__(self) -> str:
@@ -138,7 +197,8 @@ class InstanceEntity(Entity, AggregateRoot):
             f'ram={self.ram}, '
             f'mac={self.mac}, '
             f'os_disk={self.os_disk}, '
-            f'network={self.network}'
+            f'network={self.network}, '
+            f'bootstrap={self.bootstrap}'
             ')>'
         )
 
@@ -147,6 +207,7 @@ class InstanceEntity(Entity, AggregateRoot):
         # TODO: Internal consistency. This will fail if the disk is dead
         os_disk = await DiskEntity.repository.get_by_uid(model.os_disk_uid)
         network = await NetworkEntity.repository.get_by_uid(model.network_uid)
+        bootstrap = await BootstrapEntity.repository.get_by_uid(model.bootstrap_uid)
 
         entity = InstanceEntity(name=model.name,
                                 path=pathlib.Path(model.path),
@@ -156,7 +217,8 @@ class InstanceEntity(Entity, AggregateRoot):
                                 ram=BinarySizedValue(value=model.ram, scale=BinaryScale(model.ram_scale)),
                                 mac=model.mac,
                                 os_disk=os_disk,
-                                network=network)
+                                network=network,
+                                bootstrap=bootstrap)
         entity._uid = UniqueIdentifier(model.uid)
         return entity
 
@@ -172,7 +234,8 @@ class InstanceEntity(Entity, AggregateRoot):
                                  ram_scale=self.ram.scale,
                                  mac=self.mac,
                                  os_disk_uid=str(self.os_disk.uid),
-                                 network_uid=str(self.network.uid))
+                                 network_uid=str(self.network.uid),
+                                 bootstrap_uid=str(self.bootstrap.uid))
         else:
             model.uid = str(self.uid)
             model.name = self.name
@@ -185,6 +248,7 @@ class InstanceEntity(Entity, AggregateRoot):
             model.mac = str(self.mac)
             model.os_disk_uid = str(self.os_disk.uid)
             model.network_uid = str(self.network.uid)
+            model.bootstrap_uid = str(self.bootstrap.uid)
             return model
 
     @staticmethod
@@ -198,7 +262,8 @@ class InstanceEntity(Entity, AggregateRoot):
                      ram: BinarySizedValue,
                      image: ImageEntity,
                      os_disk_size: BinarySizedValue,
-                     network: NetworkEntity) -> 'InstanceEntity':
+                     network: NetworkEntity,
+                     bootstrap: BootstrapEntity) -> 'InstanceEntity':
         if path.exists():
             raise InstanceException(status=400,
                                     msg=f'Instance path at {path} already exists',
@@ -219,6 +284,10 @@ class InstanceEntity(Entity, AggregateRoot):
                                               disk_format=DiskFormat.QCoW2,
                                               image=image)
 
+            bootstrap_file = path / 'bootstrap.json'
+            await bootstrap.render(bootstrap_file=bootstrap_file,
+                                   kv={'name': name})
+
             entity = InstanceEntity(name=name,
                                     path=path,
                                     uefi_code=instance_uefi_code,
@@ -227,7 +296,8 @@ class InstanceEntity(Entity, AggregateRoot):
                                     ram=ram,
                                     mac=f'005056{uuid.uuid4().hex[:6]}',
                                     os_disk=os_disk,
-                                    network=network)
+                                    network=network,
+                                    bootstrap=bootstrap)
 
             outcome = await InstanceEntity.repository.create(entity)
             await task.done(msg='Successfully created')
@@ -254,52 +324,4 @@ class InstanceEntity(Entity, AggregateRoot):
 
 
 class InstanceRepository(AsyncRepository[InstanceEntity, InstanceModel]):
-    pass
-
-
-class InstanceListSchema(EntitySchema):
-    """
-    Schema to list instances
-    """
-    uid: UniqueIdentifier = Field(description='The unique identifier of the instance',
-                                  examples=['b430727e-2491-4184-bb4f-c7d6d213e093'])
-    name: str = Field(description='The instance name', examples=['k8s-master', 'your-mom'])
-
-
-class InstanceCreateSchema(EntitySchema):
-    """
-    Schema to create an instance
-    """
-    name: str = Field(description='The instance name', examples=['k8s-master', 'your-mom'])
-    vcpu: int = Field(description='Number of virtual CPU cores', examples=[2])
-    ram: BinarySizedValue = Field(description='Amount of RAM',
-                                  examples=[BinarySizedValue(2, BinaryScale.G)])
-    os_disk_size: BinarySizedValue = Field(description='Size of the OS disk')
-    image_uid: UniqueIdentifier = Field(description='The image UID from which to create the OS disk from',
-                                        examples=['b430727e-2491-4184-bb4f-c7d6d213e093'])
-    network_uid: UniqueIdentifier = Field(description='The network on which to run this instance',
-                                          examples=['b430727e-2491-4184-bb4f-c7d6d213e093'])
-
-
-class InstanceGetSchema(EntitySchema):
-    """
-    Schema to get information about a specific instance
-    """
-    uid: UniqueIdentifier = Field(description='The unique identifier of the instance',
-                                  examples=['b430727e-2491-4184-bb4f-c7d6d213e093'])
-    name: str = Field(description='The instance name', examples=['k8s-master', 'your-mom'])
-    path: str = Field(description='Path of the instance on the local disk')
-    vcpu: int = Field(description='Number of virtual CPU cores', examples=[2])
-    ram: BinarySizedValue = Field(description='Amount of RAM',
-                                  examples=[BinarySizedValue(2, BinaryScale.G)])
-    mac: str = Field(description='Instance MAC address')
-    os_disk: DiskGetSchema = Field(description='The image from which to create the OS disk from')
-    network: NetworkGetSchema = Field(description='The network on which to run this instance',
-                                      examples=['b430727e-2491-4184-bb4f-c7d6d213e093'])
-
-
-class InstanceModifySchema(EntitySchema):
-    """
-    Schema to modify an existing instance
-    """
     pass

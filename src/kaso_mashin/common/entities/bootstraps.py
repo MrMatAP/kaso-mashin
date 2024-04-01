@@ -7,7 +7,7 @@ from pydantic import Field
 import jinja2
 import jinja2.meta
 
-from sqlalchemy import String, Enum, UnicodeText
+from sqlalchemy import String, Enum, UnicodeText, select
 from sqlalchemy.orm import Mapped, mapped_column
 
 from kaso_mashin import KasoMashinException
@@ -19,6 +19,9 @@ from kaso_mashin.common import (
     AggregateRoot,
     AsyncRepository
 )
+
+DEFAULT_K8S_MASTER_TEMPLATE_NAME = 'default_k8s_master'
+DEFAULT_K8S_SLAVE_TEMPLATE_NAME = 'default_k8s_slave'
 
 
 class BootstrapKind(str, enum.Enum):
@@ -80,7 +83,9 @@ class BootstrapEntity(Entity, AggregateRoot):
         try:
             rendered = await self._template.render_async(kv)
             if self.kind == BootstrapKind.IGNITION:
-                args = [self.runtime.butane_path, '-p', '-o', bootstrap_file]
+                bootstrap_file_source = bootstrap_file.parent.joinpath('bootstrap.yaml')
+                bootstrap_file_source.write_text(rendered)
+                args = [self.runtime.config.butane_path, '-p', '-o', bootstrap_file, bootstrap_file_source]
                 subprocess.run(args, check=True)
             else:
                 bootstrap_file.write_text(rendered, encoding='utf-8')
@@ -88,6 +93,8 @@ class BootstrapEntity(Entity, AggregateRoot):
             raise BootstrapException(status=400, msg='Templating error') from te
         except subprocess.CalledProcessError as e:
             raise BootstrapException(status=500, msg='Failed to render bootstrap') from e
+        except Exception as e:
+            raise BootstrapException(status=500, msg='Unknown error') from e
 
     def __eq__(self, other: 'BootstrapEntity') -> bool:
         return all([
@@ -140,7 +147,14 @@ class BootstrapEntity(Entity, AggregateRoot):
 
 
 class BootstrapRepository(AsyncRepository[BootstrapEntity, BootstrapModel]):
-    pass
+
+    async def get_by_name(self, name: str) -> BootstrapEntity | None:
+        async with self._session_maker() as session:
+            model = await session.scalar(select(self._model_class)
+                                         .where(self._model_class.name == name))
+            if model is None:
+                return None
+            return await self._aggregate_root_class.from_model(model)
 
 
 class BootstrapListSchema(EntitySchema):

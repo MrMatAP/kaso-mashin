@@ -4,7 +4,7 @@ from uuid import UUID
 import fastapi
 
 from kaso_mashin.common import AsyncRepository
-from kaso_mashin.server.apis import AbstractAPI
+from kaso_mashin.server.apis import BaseAPI
 from kaso_mashin.server.runtime import Runtime
 from kaso_mashin.common.entities import (
     BootstrapEntity,
@@ -12,7 +12,7 @@ from kaso_mashin.common.entities import (
 )
 
 
-class BootstrapAPI(AbstractAPI[BootstrapListSchema, BootstrapGetSchema, BootstrapCreateSchema, BootstrapModifySchema]):
+class BootstrapAPI(BaseAPI[BootstrapListSchema, BootstrapGetSchema, BootstrapCreateSchema, BootstrapModifySchema]):
     """
     The Bootstrap API
     """

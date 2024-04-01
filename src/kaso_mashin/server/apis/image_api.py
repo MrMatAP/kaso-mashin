@@ -6,7 +6,7 @@ from uuid import UUID
 import fastapi
 
 from kaso_mashin.common import AsyncRepository
-from kaso_mashin.server.apis import AbstractAPI
+from kaso_mashin.server.apis import BaseAPI
 from kaso_mashin.server.runtime import Runtime
 from kaso_mashin.common.config import Predefined_Images, ImagePredefinedSchema
 from kaso_mashin.common.entities import (
@@ -17,7 +17,7 @@ from kaso_mashin.common.entities import (
 )
 
 
-class ImageAPI(AbstractAPI[ImageListSchema, ImageGetSchema, ImageCreateSchema, ImageModifySchema]):
+class ImageAPI(BaseAPI[ImageListSchema, ImageGetSchema, ImageCreateSchema, ImageModifySchema]):
     """
     The Image API
     """

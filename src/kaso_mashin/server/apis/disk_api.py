@@ -5,7 +5,7 @@ import pathlib
 import fastapi
 
 from kaso_mashin.common import AsyncRepository
-from kaso_mashin.server.apis import AbstractAPI
+from kaso_mashin.server.apis import BaseAPI
 from kaso_mashin.server.runtime import Runtime
 from kaso_mashin.common.entities import (
     DiskEntity,
@@ -13,7 +13,7 @@ from kaso_mashin.common.entities import (
 )
 
 
-class DiskAPI(AbstractAPI[DiskListSchema, DiskGetSchema, DiskCreateSchema, DiskModifySchema]):
+class DiskAPI(BaseAPI[DiskListSchema, DiskGetSchema, DiskCreateSchema, DiskModifySchema]):
     """
     The Disk API
     """

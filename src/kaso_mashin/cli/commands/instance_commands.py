@@ -75,7 +75,12 @@ class InstanceCommands(AbstractCommands):
                                             dest='network_uid',
                                             type=str,
                                             required=True,
-                                            help='The network id on which this instance should be attached')
+                                            help='The network uid on which this instance should be attached')
+        instance_create_parser.add_argument('--bootstrap-uid',
+                                            dest='bootstrap_uid',
+                                            type=str,
+                                            required=True,
+                                            help='The bootstrap uid using which this instance should be created')
         instance_create_parser.set_defaults(cmd=self.create)
         instance_modify_parser = instance_subparser.add_parser(name='modify', help='Modify an instance')
         instance_modify_parser.add_argument('--uid',
@@ -86,21 +91,21 @@ class InstanceCommands(AbstractCommands):
         instance_remove_parser = instance_subparser.add_parser(name='remove', help='Remove an instance')
         instance_remove_parser.add_argument('--uid',
                                             dest='uid',
-                                            type=uuid.UUID,
+                                            type=str,
                                             required=True,
                                             help='The instance uid')
         instance_remove_parser.set_defaults(cmd=self.remove)
         instance_start_parser = instance_subparser.add_parser(name='start', help='Start an instance')
         instance_start_parser.add_argument('--uid',
                                            dest='uid',
-                                           type=uuid.UUID,
+                                           type=str,
                                            required=True,
                                            help='The instance uid')
         instance_start_parser.set_defaults(cmd=self.start)
         instance_stop_parser = instance_subparser.add_parser(name='stop', help='Stop an instance')
         instance_stop_parser.add_argument('--id',
                                           dest='uid',
-                                          type=uuid.UUID,
+                                          type=str,
                                           required=True,
                                           help='The instance uid')
         instance_stop_parser.set_defaults(cmd=self.stop)
@@ -135,7 +140,8 @@ class InstanceCommands(AbstractCommands):
                                              ram=BinarySizedValue(value=args.ram, scale=args.ram_scale),
                                              os_disk_size=BinarySizedValue(value=args.os_disk, scale=args.os_disk_scale),
                                              image_uid=args.image_uid,
-                                             network_uid=args.network_uid)
+                                             network_uid=args.network_uid,
+                                             bootstrap_uid=args.bootstrap_uid)
         resp = self.api_client(uri='/api/instances/',
                                method='POST',
                                body=create_schema.model_dump(),

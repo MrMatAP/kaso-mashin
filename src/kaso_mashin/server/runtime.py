@@ -1,13 +1,13 @@
-import contextlib
-import fastapi
-import shutil
-import getpass
 import os
+import pathlib
+import shutil
+import contextlib
 
+import fastapi
+import getpass
 import httpx
 import aiofiles
 import ipaddress
-
 import netifaces
 
 from kaso_mashin.common.config import Config
@@ -18,10 +18,10 @@ from kaso_mashin.common.entities import (
     DiskRepository, DiskModel, DiskEntity,
     ImageRepository, ImageModel, ImageEntity,
     NetworkRepository, NetworkModel, NetworkEntity,
-    NetworkKind,
-    DEFAULT_SHARED_NETWORK_NAME, DEFAULT_BRIDGED_NETWORK_NAME, DEFAULT_HOST_NETWORK_NAME,
+    NetworkKind, DEFAULT_SHARED_NETWORK_NAME, DEFAULT_BRIDGED_NETWORK_NAME, DEFAULT_HOST_NETWORK_NAME,
     InstanceRepository, InstanceModel, InstanceEntity,
     BootstrapRepository, BootstrapModel, BootstrapEntity,
+    BootstrapKind, DEFAULT_K8S_MASTER_TEMPLATE_NAME, DEFAULT_K8S_SLAVE_TEMPLATE_NAME,
     IdentityRepository, IdentityModel, IdentityEntity
 )
 
@@ -60,6 +60,21 @@ class Runtime:
                 async for chunk in resp.aiter_bytes(chunk_size=8196):
                     await file.write(chunk)
                 shutil.chown(path=self.uefi_vars_path, user=self._owning_user)
+
+    async def lifespan_bootstrap(self):
+        template_dir = pathlib.Path(__file__).parent.parent / 'common' / 'templates'
+        ignition_k8s_master = await self.bootstrap_repository.get_by_name(DEFAULT_K8S_MASTER_TEMPLATE_NAME)
+        if ignition_k8s_master is None:
+            ignition_k8s_master_template = template_dir / 'ignition_k8s_master.yaml'
+            await BootstrapEntity.create(name=DEFAULT_K8S_MASTER_TEMPLATE_NAME,
+                                         kind=BootstrapKind.IGNITION,
+                                         content=ignition_k8s_master_template.read_text(encoding='utf-8'))
+        ignition_k8s_slave = await self.bootstrap_repository.get_by_name(DEFAULT_K8S_SLAVE_TEMPLATE_NAME)
+        if ignition_k8s_slave is None:
+            ignition_k8s_slave_template = template_dir / 'ignition_k8s_slave.yaml'
+            await BootstrapEntity.create(name=DEFAULT_K8S_SLAVE_TEMPLATE_NAME,
+                                         kind=BootstrapKind.IGNITION,
+                                         content=ignition_k8s_slave_template.read_text(encoding='utf-8'))
 
     async def lifespan_server(self):
         self._server_url = f'http://{self.config.default_server_host}:{self.config.default_server_port}'
@@ -160,6 +175,7 @@ class Runtime:
         await self.lifespan_paths()
         await self.lifespan_server()
         await self.lifespan_uefi()
+        await self.lifespan_bootstrap()
         yield
 
     @property
