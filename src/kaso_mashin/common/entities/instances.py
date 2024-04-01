@@ -274,9 +274,9 @@ class InstanceCreateSchema(EntitySchema):
     vcpu: int = Field(description='Number of virtual CPU cores', examples=[2])
     ram: BinarySizedValue = Field(description='Amount of RAM',
                                   examples=[BinarySizedValue(2, BinaryScale.G)])
+    os_disk_size: BinarySizedValue = Field(description='Size of the OS disk')
     image_uid: UniqueIdentifier = Field(description='The image UID from which to create the OS disk from',
                                         examples=['b430727e-2491-4184-bb4f-c7d6d213e093'])
-    os_disk_size: BinarySizedValue = Field(description='Size of the OS disk')
     network_uid: UniqueIdentifier = Field(description='The network on which to run this instance',
                                           examples=['b430727e-2491-4184-bb4f-c7d6d213e093'])
 
@@ -288,8 +288,7 @@ class InstanceGetSchema(EntitySchema):
     uid: UniqueIdentifier = Field(description='The unique identifier of the instance',
                                   examples=['b430727e-2491-4184-bb4f-c7d6d213e093'])
     name: str = Field(description='The instance name', examples=['k8s-master', 'your-mom'])
-    uefi_code: pathlib.Path = Field(description='Path to the UEFI code file for this instance')
-    uefi_vars: pathlib.Path = Field(description='Path to the UEFI variables file for this instance')
+    path: str = Field(description='Path of the instance on the local disk')
     vcpu: int = Field(description='Number of virtual CPU cores', examples=[2])
     ram: BinarySizedValue = Field(description='Amount of RAM',
                                   examples=[BinarySizedValue(2, BinaryScale.G)])

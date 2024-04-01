@@ -5,7 +5,7 @@
     <scripts>
       <script value="package" />
     </scripts>
-    <node-interpreter value="node" />
+    <node-interpreter value="project" />
     <envs />
     <method v="2">
       <option name="NpmBeforeRunTask" enabled="true">

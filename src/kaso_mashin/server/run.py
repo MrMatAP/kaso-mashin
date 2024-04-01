@@ -12,10 +12,18 @@ import sqlalchemy.exc
 
 from kaso_mashin import __version__, console, default_config_file, KasoMashinException
 from kaso_mashin.common.config import Config
-from kaso_mashin.common.model import ExceptionSchema
+from kaso_mashin.common.base_types import ExceptionSchema
 from kaso_mashin.server.db import DB
 from kaso_mashin.server.runtime import Runtime
-from kaso_mashin.server.apis import TaskAPI, ImageAPI, DiskAPI, NetworkAPI, InstanceAPI, BootstrapAPI
+from kaso_mashin.server.apis import (
+    ConfigAPI,
+    TaskAPI,
+    ImageAPI,
+    DiskAPI,
+    NetworkAPI,
+    InstanceAPI,
+    BootstrapAPI,
+    IdentityAPI)
 
 
 def create_server(runtime: Runtime) -> fastapi.applications.FastAPI:
@@ -25,9 +33,9 @@ def create_server(runtime: Runtime) -> fastapi.applications.FastAPI:
                           version=__version__,
                           lifespan=runtime.lifespan)
 
-    #app.include_router(ConfigAPI(runtime).router, prefix='/api/config')
+    app.include_router(ConfigAPI(runtime).router, prefix='/api/config')
     app.include_router(TaskAPI(runtime).router, prefix='/api/tasks')
-    #app.include_router(IdentityAPI(runtime).router, prefix='/api/identities')
+    app.include_router(IdentityAPI(runtime).router, prefix='/api/identities')
     app.include_router(NetworkAPI(runtime).router, prefix='/api/networks')
     app.include_router(ImageAPI(runtime).router, prefix='/api/images')
     app.include_router(DiskAPI(runtime).router, prefix='/api/disks')

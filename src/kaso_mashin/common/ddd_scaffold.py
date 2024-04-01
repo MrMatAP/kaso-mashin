@@ -47,6 +47,10 @@ class EntitySchema(BaseModel):
 
 
 T_EntitySchema = typing.TypeVar('T_EntitySchema', bound=EntitySchema)
+T_EntityListSchema = typing.TypeVar('T_EntityListSchema', bound=EntitySchema)
+T_EntityGetSchema = typing.TypeVar('T_EntityGetSchema', bound=EntitySchema)
+T_EntityCreateSchema = typing.TypeVar('T_EntityCreateSchema', bound=EntitySchema)
+T_EntityModifySchema = typing.TypeVar('T_EntityModifySchema', bound=EntitySchema)
 
 
 class EntityModel(DeclarativeBase):

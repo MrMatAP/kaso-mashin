@@ -203,22 +203,6 @@ class DiskListSchema(EntitySchema):
     name: str = Field(description='The disk name', examples=['root', 'data-1', 'data-2'])
 
 
-class DiskCreateSchema(EntitySchema):
-    """
-    Schema to create a disk
-    """
-    name: str = Field(description='Disk name',
-                      examples=['root', 'data-1', 'data-2'])
-    path: pathlib.Path = Field(description='Path of the disk image on the local filesystem',
-                               examples=['/var/kaso/instances/root.qcow2'])
-    size: BinarySizedValue = Field(description='Disk size',
-                                   examples=[BinarySizedValue(2, BinaryScale.G)])
-    disk_format: DiskFormat = Field(description='Disk image file format',
-                                    examples=[DiskFormat.QCoW2, DiskFormat.Raw])
-    image_uid: UniqueIdentifier = Field(description='The image uid on which this disk is based on',
-                                        default=None)
-
-
 class DiskGetSchema(EntitySchema):
     """
     Schema to get information about a specific disk
@@ -233,6 +217,22 @@ class DiskGetSchema(EntitySchema):
                                     examples=[DiskFormat.QCoW2, DiskFormat.Raw])
     image: ImageGetSchema = Field(description='The image on which this disk is based on',
                                   default=None)
+
+
+class DiskCreateSchema(EntitySchema):
+    """
+    Schema to create a disk
+    """
+    name: str = Field(description='Disk name',
+                      examples=['root', 'data-1', 'data-2'])
+    path: pathlib.Path = Field(description='Path of the disk image on the local filesystem',
+                               examples=['/var/kaso/instances/root.qcow2'])
+    size: BinarySizedValue = Field(description='Disk size',
+                                   examples=[BinarySizedValue(2, BinaryScale.G)])
+    disk_format: DiskFormat = Field(description='Disk image file format',
+                                    examples=[DiskFormat.QCoW2, DiskFormat.Raw])
+    image_uid: UniqueIdentifier = Field(description='The image uid on which this disk is based on',
+                                        default=None)
 
 
 class DiskModifySchema(EntitySchema):

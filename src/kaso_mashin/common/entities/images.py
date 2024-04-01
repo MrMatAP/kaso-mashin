@@ -242,7 +242,7 @@ class ImageGetSchema(ImageCreateSchema):
     """
     uid: UniqueIdentifier = Field(description='The unique identifier',
                                   examples=['b430727e-2491-4184-bb4f-c7d6d213e093'])
-    # os_disks: typing.List['DiskGetSchema'] = Field(description='Disks created from this schema')
+    path: pathlib.Path = Field(description='Path to the image on the local disk')
 
 
 class ImageModifySchema(EntitySchema):

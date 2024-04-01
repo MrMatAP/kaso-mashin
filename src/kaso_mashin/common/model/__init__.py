@@ -1,5 +1,4 @@
 from .relation_tables import instance_to_identities
-from .config_model import Predefined_Images, ConfigSchema, ImagePredefinedSchema
 from .identity_model import (
     IdentityKind, IdentityModel,
     IdentityBaseSchema, IdentitySchema, IdentityCreateSchema, IdentityModifySchema)
@@ -12,4 +11,4 @@ from .bootstrap_model import BootstrapKind, CIVendorData, CIMetaData, CIUserData
 #     InstanceModel,
 #     InstanceSchema, InstanceCreateSchema, InstanceModifySchema )
 from .qemu_model import QEmuModel
-from .exception_model import ExceptionSchema
+

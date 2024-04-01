@@ -32,3 +32,9 @@ from .bootstraps import (
     BootstrapListSchema, BootstrapGetSchema, BootstrapCreateSchema, BootstrapModifySchema,
     BootstrapKind
 )
+from .identities import (
+    IdentityException,
+    IdentityRepository, IdentityEntity, IdentityModel,
+    IdentityListSchema, IdentityGetSchema, IdentityCreateSchema, IdentityModifySchema,
+    IdentityKind
+)

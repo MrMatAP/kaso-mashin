@@ -1,4 +1,4 @@
-from kaso_mashin.common.model import ExceptionSchema
+from kaso_mashin.common.base_types import ExceptionSchema
 
 
 class TestEmptyImageAPI:

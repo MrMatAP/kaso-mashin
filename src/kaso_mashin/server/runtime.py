@@ -21,7 +21,8 @@ from kaso_mashin.common.entities import (
     NetworkKind,
     DEFAULT_SHARED_NETWORK_NAME, DEFAULT_BRIDGED_NETWORK_NAME, DEFAULT_HOST_NETWORK_NAME,
     InstanceRepository, InstanceModel, InstanceEntity,
-    BootstrapRepository, BootstrapModel, BootstrapEntity
+    BootstrapRepository, BootstrapModel, BootstrapEntity,
+    IdentityRepository, IdentityModel, IdentityEntity
 )
 
 
@@ -43,6 +44,7 @@ class Runtime:
         self._network_repository = None
         self._instance_repository = None
         self._bootstrap_repository = None
+        self._identity_repository = None
         self._uefi_code_path = config.bootstrap_path / 'uefi-code.fd'
         self._uefi_vars_path = config.bootstrap_path / 'uefi-vars.fd'
 
@@ -150,6 +152,10 @@ class Runtime:
                                                          session_maker=await self._db.async_sessionmaker,
                                                          aggregate_root_class=BootstrapEntity,
                                                          model_class=BootstrapModel)
+        self._identity_repository = IdentityRepository(config=self.config,
+                                                       session_maker=await self._db.async_sessionmaker,
+                                                       aggregate_root_class=IdentityEntity,
+                                                       model_class=IdentityModel)
         await self.lifespan_networks()
         await self.lifespan_paths()
         await self.lifespan_server()
@@ -181,6 +187,10 @@ class Runtime:
         return self._bootstrap_repository
 
     @property
+    def identity_repository(self) -> IdentityRepository:
+        return self._identity_repository
+
+    @property
     def config(self) -> Config:
         return self._config
 
@@ -207,27 +217,3 @@ class Runtime:
     @property
     def uefi_vars_path(self):
         return self._uefi_vars_path
-
-    # @property
-    # def bootstrap_controller(self) -> BootstrapController:
-    #     return self._bootstrap_controller
-    #
-    # @property
-    # def os_disk_controller(self) -> OsDiskController:
-    #     return self._os_disk_controller
-    #
-    # @property
-    # def identity_controller(self) -> IdentityController:
-    #     return self._identity_controller
-    #
-    # @property
-    # def instance_controller(self) -> InstanceController:
-    #     return self._instance_controller
-    #
-    # @property
-    # def network_controller(self) -> NetworkController:
-    #     return self._network_controller
-    #
-    # @property
-    # def phonehome_controller(self) -> PhoneHomeController:
-    #     return self._phonehome_controller

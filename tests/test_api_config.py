@@ -1,4 +1,4 @@
-from kaso_mashin.common.model import ConfigSchema
+from kaso_mashin.common.config import ConfigSchema
 
 
 class TestConfigAPI:
