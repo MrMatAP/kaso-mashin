@@ -27,6 +27,58 @@ class NetworkKind(str, enum.Enum):
     VMNET_BRIDGED = 'bridged'
 
 
+class NetworkListSchema(EntitySchema):
+    """
+    Schema to list networks
+    """
+    uid: UniqueIdentifier = Field(description='The unique identifier',
+                                  examples=['b430727e-2491-4184-bb4f-c7d6d213e093'])
+    name: str = Field(description='The network name', examples=['foo', 'bar', 'baz'])
+    kind: NetworkKind = Field(description='Network kind',
+                              examples=[NetworkKind.VMNET_SHARED, NetworkKind.VMNET_HOST])
+    cidr: str = Field(description='The network CIDR',
+                      examples=['10.0.0.0/16', '172.16.2.0/24'])
+
+
+class NetworkCreateSchema(EntitySchema):
+    """
+    Schema to create a network
+    """
+    name: str = Field(description='The network name', examples=['foo', 'bar', 'baz'])
+    kind: NetworkKind = Field(description='Network kind',
+                              examples=[NetworkKind.VMNET_SHARED, NetworkKind.VMNET_HOST])
+    cidr: str = Field(description='The network CIDR',
+                      examples=['10.0.0.0/16', '172.16.2.0/24'])
+    gateway: str = Field(description='The network gateway',
+                         examples=['10.0.0.1', '172.16.2.1'])
+
+
+class NetworkGetSchema(NetworkCreateSchema):
+    """
+    Schema to get information about a specific network
+    """
+    uid: UniqueIdentifier = Field(description='The unique identifier',
+                                  examples=['b430727e-2491-4184-bb4f-c7d6d213e093'])
+
+
+class NetworkModifySchema(EntitySchema):
+    """
+    Schema to modify networks
+    """
+    name: str = Field(description='The network name',
+                      examples=['foo', 'bar', 'baz'],
+                      optional=True,
+                      default=None)
+    cidr: str = Field(description='The network CIDR',
+                      examples=['10.0.0.0/16', '172.16.2.0/24'],
+                      optional=True,
+                      default=None)
+    gateway: str = Field(description='The network gateway',
+                         examples=['10.0.0.1', '172.16.2.1'],
+                         optional=True,
+                         default=None)
+
+
 class NetworkException(KasoMashinException):
     """
     Exception for network-related issues
@@ -140,17 +192,17 @@ class NetworkEntity(Entity, AggregateRoot):
         await NetworkEntity.repository.create(network)
         return network
 
-    async def modify(self,
-                     name: str,
-                     cidr: str,
-                     gateway: str):
-        self._name = name
-        self._cidr = cidr
-        self._gateway = gateway
-        await self.repository.modify(self)
+    async def modify(self, schema: NetworkModifySchema) -> 'NetworkEntity':
+        if schema.name is not None:
+            self._name = schema.name
+        if schema.cidr is not None:
+            self._cidr = schema.cidr
+        if schema.gateway is not None:
+            self._gateway = schema.gateway
+        return await self.repository.modify(self)
 
     async def remove(self):
-        await self.repository.remove(self.uid)
+        await NetworkEntity.repository.remove(self.uid)
 
 
 class NetworkRepository(AsyncRepository[NetworkEntity, NetworkModel]):
@@ -162,48 +214,3 @@ class NetworkRepository(AsyncRepository[NetworkEntity, NetworkModel]):
             if model is None:
                 return None
             return await self._aggregate_root_class.from_model(model)
-
-
-class NetworkListSchema(EntitySchema):
-    """
-    Schema to list networks
-    """
-    uid: UniqueIdentifier = Field(description='The unique identifier',
-                                  examples=['b430727e-2491-4184-bb4f-c7d6d213e093'])
-    name: str = Field(description='The network name', examples=['foo', 'bar', 'baz'])
-    kind: NetworkKind = Field(description='Network kind',
-                              examples=[NetworkKind.VMNET_SHARED, NetworkKind.VMNET_HOST])
-    cidr: str = Field(description='The network CIDR',
-                      examples=['10.0.0.0/16', '172.16.2.0/24'])
-
-
-class NetworkCreateSchema(EntitySchema):
-    """
-    Schema to create a network
-    """
-    name: str = Field(description='The network name', examples=['foo', 'bar', 'baz'])
-    kind: NetworkKind = Field(description='Network kind',
-                              examples=[NetworkKind.VMNET_SHARED, NetworkKind.VMNET_HOST])
-    cidr: str = Field(description='The network CIDR',
-                      examples=['10.0.0.0/16', '172.16.2.0/24'])
-    gateway: str = Field(description='The network gateway',
-                         examples=['10.0.0.1', '172.16.2.1'])
-
-
-class NetworkGetSchema(NetworkCreateSchema):
-    """
-    Schema to get information about a specific network
-    """
-    uid: UniqueIdentifier = Field(description='The unique identifier',
-                                  examples=['b430727e-2491-4184-bb4f-c7d6d213e093'])
-
-
-class NetworkModifySchema(EntitySchema):
-    """
-    Schema to modify networks
-    """
-    name: str = Field(description='The network name', examples=['foo', 'bar', 'baz'])
-    cidr: str = Field(description='The network CIDR',
-                      examples=['10.0.0.0/16', '172.16.2.0/24'])
-    gateway: str = Field(description='The network gateway',
-                         examples=['10.0.0.1', '172.16.2.1'])

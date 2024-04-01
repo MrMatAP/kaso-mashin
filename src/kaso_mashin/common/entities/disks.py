@@ -28,6 +28,58 @@ class DiskFormat(enum.StrEnum):
     VDI = 'vdi'
 
 
+class DiskListSchema(EntitySchema):
+    """
+    Schema to list disks
+    """
+    uid: UniqueIdentifier = Field(description='The unique identifier',
+                                  examples=['b430727e-2491-4184-bb4f-c7d6d213e093'])
+    name: str = Field(description='The disk name', examples=['root', 'data-1', 'data-2'])
+
+
+class DiskGetSchema(EntitySchema):
+    """
+    Schema to get information about a specific disk
+    """
+    uid: UniqueIdentifier = Field(description='The unique identifier',
+                                  examples=['b430727e-2491-4184-bb4f-c7d6d213e093'])
+    path: pathlib.Path = Field(description='Path of the disk image on the local filesystem',
+                               examples=['/var/kaso/instances/root.qcow2'])
+    size: BinarySizedValue = Field(description='Disk size',
+                                   examples=[BinarySizedValue(2, BinaryScale.G)])
+    disk_format: DiskFormat = Field(description='Disk image file format',
+                                    examples=[DiskFormat.QCoW2, DiskFormat.Raw])
+    image_uid: UniqueIdentifier | None = Field(description='The image uid on which this disk is based on',
+                                               optional=True,
+                                               default=None)
+
+
+class DiskCreateSchema(EntitySchema):
+    """
+    Schema to create a disk
+    """
+    name: str = Field(description='Disk name',
+                      examples=['root', 'data-1', 'data-2'])
+    path: pathlib.Path = Field(description='Path of the disk image on the local filesystem',
+                               examples=['/var/kaso/instances/root.qcow2'])
+    size: BinarySizedValue = Field(description='Disk size',
+                                   examples=[BinarySizedValue(2, BinaryScale.G)])
+    disk_format: DiskFormat = Field(description='Disk image file format',
+                                    examples=[DiskFormat.QCoW2, DiskFormat.Raw])
+    image_uid: UniqueIdentifier = Field(description='The image uid on which this disk is based on',
+                                        default=None)
+
+
+class DiskModifySchema(EntitySchema):
+    """
+    Schema to modify an existing disk
+    """
+    size: BinarySizedValue = Field(description='Disk size',
+                                   examples=[BinarySizedValue(2, BinaryScale.G)],
+                                   optional=True,
+                                   default=None)
+
+
 class DiskException(KasoMashinException):
     """
     Exception for disk-related issues
@@ -95,7 +147,7 @@ class DiskEntity(Entity, AggregateRoot):
                             disk_format=model.disk_format)
         entity._uid = UniqueIdentifier(model.uid)
         if model.image_uid is not None:
-            entity._image = await ImageEntity.repository.get_by_uid(model.image_uid)
+            entity._image = await ImageEntity.repository.get_by_uid(model.uid)
         return entity
 
     async def to_model(self, model: DiskModel | None = None) -> 'DiskModel':
@@ -185,6 +237,10 @@ class DiskEntity(Entity, AggregateRoot):
         except subprocess.CalledProcessError as e:
             raise DiskException(status=500, msg=f'Failed to resize disk: {e.output}') from e
 
+    async def modify(self, schema: DiskModifySchema) -> 'DiskEntity':
+        if schema.size is not None:
+            return await self.resize(schema.size)
+
     async def remove(self):
         self.path.unlink(missing_ok=True)
         await DiskEntity.repository.remove(self.uid)
@@ -192,52 +248,3 @@ class DiskEntity(Entity, AggregateRoot):
 
 class DiskRepository(AsyncRepository[DiskEntity, DiskModel]):
     pass
-
-
-class DiskListSchema(EntitySchema):
-    """
-    Schema to list disks
-    """
-    uid: UniqueIdentifier = Field(description='The unique identifier',
-                                  examples=['b430727e-2491-4184-bb4f-c7d6d213e093'])
-    name: str = Field(description='The disk name', examples=['root', 'data-1', 'data-2'])
-
-
-class DiskGetSchema(EntitySchema):
-    """
-    Schema to get information about a specific disk
-    """
-    uid: UniqueIdentifier = Field(description='The unique identifier',
-                                  examples=['b430727e-2491-4184-bb4f-c7d6d213e093'])
-    path: pathlib.Path = Field(description='Path of the disk image on the local filesystem',
-                               examples=['/var/kaso/instances/root.qcow2'])
-    size: BinarySizedValue = Field(description='Disk size',
-                                   examples=[BinarySizedValue(2, BinaryScale.G)])
-    disk_format: DiskFormat = Field(description='Disk image file format',
-                                    examples=[DiskFormat.QCoW2, DiskFormat.Raw])
-    image: ImageGetSchema = Field(description='The image on which this disk is based on',
-                                  default=None)
-
-
-class DiskCreateSchema(EntitySchema):
-    """
-    Schema to create a disk
-    """
-    name: str = Field(description='Disk name',
-                      examples=['root', 'data-1', 'data-2'])
-    path: pathlib.Path = Field(description='Path of the disk image on the local filesystem',
-                               examples=['/var/kaso/instances/root.qcow2'])
-    size: BinarySizedValue = Field(description='Disk size',
-                                   examples=[BinarySizedValue(2, BinaryScale.G)])
-    disk_format: DiskFormat = Field(description='Disk image file format',
-                                    examples=[DiskFormat.QCoW2, DiskFormat.Raw])
-    image_uid: UniqueIdentifier = Field(description='The image uid on which this disk is based on',
-                                        default=None)
-
-
-class DiskModifySchema(EntitySchema):
-    """
-    Schema to modify an existing disk
-    """
-    size: BinarySizedValue = Field(description='Disk size',
-                                   examples=[BinarySizedValue(2, BinaryScale.G)])

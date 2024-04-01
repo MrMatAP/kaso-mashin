@@ -28,37 +28,6 @@ class NetworkBaseSchema(pydantic.BaseModel):
                                        examples=['shared'])
 
 
-class NetworkSchema(NetworkBaseSchema):
-    """
-    A network
-    """
-    network_id: int = pydantic.Field(description='The unique network id',
-                                     examples=[1])
-    host_if: str | None = pydantic.Field(
-        description='The name of the host interface this network is currently attached to',
-        default=None,
-        examples=['bridge100'])
-    host_ip4: SchemaIPv4 | None = pydantic.Field(description='The IPv4 address of the host',
-                                          default='',
-                                          examples=['172.16.4.28'])
-    nm4: SchemaIPv4 = pydantic.Field(description='The IPv4 netmask',
-                              examples=['255.255.0.0'])
-    gw4: SchemaIPv4 | None = pydantic.Field(description='The IPv4 gateway',
-                                     default=None,
-                              examples=['172.16.4.1'])
-    ns4: SchemaIPv4 | None = pydantic.Field(description='The IPv4 nameserver',
-                                     default=None,
-                                     examples=['172.16.4.15'])
-    dhcp4_start: SchemaIPv4 | None = pydantic.Field(description='The IPv4 DHCP4 start address',
-                                             default=None,
-                                             examples=['172.16.4.100'])
-    dhcp4_end: SchemaIPv4 | None = pydantic.Field(description='The IPv4 DHCP4 end address',
-                                           default=None,
-                                           examples=['172.16.4.254'])
-    host_phone_home_port: int = pydantic.Field(description='The port on which we listen for instances to phone home',
-                                               examples=[12000])
-
-
 class NetworkCreateSchema(NetworkBaseSchema):
     """
     Input schema for creating a network

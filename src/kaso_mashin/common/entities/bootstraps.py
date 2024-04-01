@@ -80,7 +80,7 @@ class BootstrapEntity(Entity, AggregateRoot):
         try:
             rendered = await self._template.render_async(kv)
             if self.kind == BootstrapKind.IGNITION:
-                args = [self.config.butane_path, '-p', '-o', bootstrap_file]
+                args = [self.runtime.butane_path, '-p', '-o', bootstrap_file]
                 subprocess.run(args, check=True)
             else:
                 bootstrap_file.write_text(rendered, encoding='utf-8')

@@ -5,7 +5,7 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 import pydantic
 
 from kaso_mashin import Base
-from kaso_mashin.common.custom_types import DbPath, SchemaPath
+from kaso_mashin.common.custom_types import DbPath
 from kaso_mashin.common.model.relation_tables import instance_to_identities
 from kaso_mashin.common.model.network_model import NetworkModel
 from kaso_mashin.common.model.identity_model import IdentityModel
@@ -15,34 +15,6 @@ class DisplayKind(str, enum.Enum):
     HEADLESS = 'headless'
     VNC = 'vnc'
     COCOA = 'cocoa'
-
-
-class InstanceSchema(pydantic.BaseModel):
-    """
-    The full schema of an instance, extends the base schema with fields generated when the instance is created
-    """
-    model_config = pydantic.ConfigDict(from_attributes=True)
-
-    instance_id: int = pydantic.Field(description='The unique instance ID', examples=[1])
-    name: str = pydantic.Field(description='The instance name', examples=['mrmat-jammy'])
-
-    path: SchemaPath = pydantic.Field(description='Path to the instance on the local disk',
-                                      examples=['/Users/mrmat/var/kaso/instances/mrmat-jammy'])
-    mac: str = pydantic.Field(description='The generated MAC address', examples=['08:00:20:0a:0b:0c'])
-    vcpu: int = pydantic.Field(description='Number of virtual CPUs', examples=[2])
-    ram: int = pydantic.Field(description='Amount of RAM in MB', examples=[2048])
-    display: str = pydantic.Field(description='Display kind', examples=['headless', 'vnc'])
-    bootstrapper: str = pydantic.Field(description='Name of the bootstrapper')
-    image_id: int = pydantic.Field(description='Image ID to use as the backing OS disk', examples=[1])
-    network_id: int = pydantic.Field(description='Network ID to connect the instance to', examples=[1])
-    os_disk_path: SchemaPath = pydantic.Field(description='OS disk path', examples=['/path/to/os.qcow'])
-    os_disk_size: str = pydantic.Field(description='OS disk size', examples=['5G'])
-    ci_base_path: SchemaPath = pydantic.Field(description='CI base path', examples=['/path/to/cloud-init'])
-    ci_disk_path: SchemaPath = pydantic.Field(description='CI disk path', examples=['/path/to/ci.img'])
-    vm_script_path: SchemaPath = pydantic.Field(description='VM script path', examples=['/path/to/vm.sh'])
-    vnc_path: SchemaPath = pydantic.Field(description='VNC Socket path', examples=['/path/to/vnc.sock'])
-    qmp_path: SchemaPath = pydantic.Field(description='QMP Socket path', examples=['/path/to/qmp.sock'])
-    console_path: SchemaPath = pydantic.Field(description='Console Socket path', examples=['/path/to/console.sock'])
 
 
 class InstanceCreateSchema(pydantic.BaseModel):

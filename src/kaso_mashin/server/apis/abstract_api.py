@@ -89,7 +89,7 @@ class AbstractAPI(Generic[T_EntityListSchema, T_EntityGetSchema, T_EntityCreateS
                                                     description='The UUID of the entity to get',
                                                     examples=['4198471B-8C84-4636-87CD-9DF4E24CF43F'])]) -> T_EntityGetSchema:
         entity = await self.repository.get_by_uid(uid)
-        return self._get_schema_type.model_validate(entity)
+        return self._get_schema_type.model_validate(entity, strict=True)
 
     async def create(self,
                      schema: T_EntityCreateSchema,

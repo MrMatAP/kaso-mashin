@@ -29,6 +29,55 @@ class IdentityException(KasoMashinException):
     pass
 
 
+class IdentityListSchema(EntitySchema):
+    """
+    Schema to list identities
+    """
+    uid: UniqueIdentifier = Field(description='The unique identifier',
+                                  examples=['b430727e-2491-4184-bb4f-c7d6d213e093'])
+    name: str = Field(description='The identity name', examples=['imfeldma'])
+    kind: IdentityKind = Field(description='The identity kind')
+    gecos: str = Field(description='The identity GECOS')
+
+
+class IdentityGetSchema(EntitySchema):
+    """
+    Schema to get identities
+    """
+    uid: UniqueIdentifier = Field(description='The unique identifier',
+                                  examples=['b430727e-2491-4184-bb4f-c7d6d213e093'])
+    name: str = Field(description='The identity name', examples=['imfeldma'])
+    kind: IdentityKind = Field(description='The identity kind')
+    gecos: str = Field(description='The identity GECOS')
+    homedir: pathlib.Path = Field(description='The home directory')
+    shell: str = Field(description='The identity shell')
+    credential: str = Field(description='The identity credential')
+
+
+class IdentityCreateSchema(EntitySchema):
+    """
+    Schema to create an identity
+    """
+    name: str = Field(description='The identity name', examples=['imfeldma'])
+    kind: IdentityKind = Field(description='The identity kind')
+    gecos: str = Field(description='The identity GECOS')
+    homedir: pathlib.Path = Field(description='The home directory')
+    shell: str = Field(description='The identity shell')
+    credential: str = Field(description='The identity credential')
+
+
+class IdentityModifySchema(EntitySchema):
+    """
+    Schema to modify an identity
+    """
+    name: str = Field(description='The identity name', examples=['imfeldma'], optional=True, default=None)
+    kind: IdentityKind = Field(description='The identity kind', optional=True, default=None)
+    gecos: str = Field(description='The identity GECOS', optional=True, default=None)
+    homedir: pathlib.Path = Field(description='The home directory', optional=True, default=None)
+    shell: str = Field(description='The identity shell', optional=True, default=None)
+    credential: str = Field(description='The identity credential', optional=True, default=None)
+
+
 class IdentityModel(EntityModel):
     """
     Representation of an identity entity in the database
@@ -94,7 +143,7 @@ class IdentityEntity(Entity, AggregateRoot):
                                 homedir=pathlib.Path(model.homedir),
                                 shell=model.shell,
                                 credential=model.credential)
-        entity._uid = model.uid
+        entity._uid = UniqueIdentifier(model.uid)
         return entity
 
     async def to_model(self, model: IdentityModel | None = None) -> IdentityModel:
@@ -152,58 +201,24 @@ class IdentityEntity(Entity, AggregateRoot):
                                   credential=credential)
         return await IdentityEntity.repository.create(identity)
 
+    async def modify(self, schema: IdentityModifySchema) -> 'IdentityEntity':
+        if schema.name is not None:
+            self._name = schema.name
+        if schema.kind is not None:
+            self._kind = schema.kind
+        if schema.gecos is not None:
+            self._gecos = schema.gecos
+        if schema.homedir is not None:
+            self._homedir = schema.homedir
+        if schema.shell is not None:
+            self._shell = schema.shell
+        if schema.credential is not None:
+            self._credential = schema.credential
+        return await IdentityEntity.repository.modify(self)
+
     async def remove(self):
         await IdentityEntity.repository.remove(self.uid)
 
 
 class IdentityRepository(AsyncRepository[IdentityEntity, IdentityModel]):
     pass
-
-
-class IdentityListSchema(EntitySchema):
-    """
-    Schema to list identities
-    """
-    uid: UniqueIdentifier = Field(description='The unique identifier',
-                                  examples=['b430727e-2491-4184-bb4f-c7d6d213e093'])
-    name: str = Field(description='The identity name', examples=['imfeldma'])
-    kind: IdentityKind = Field(description='The identity kind')
-    gecos: str = Field(description='The identity GECOS')
-
-
-class IdentityGetSchema(EntitySchema):
-    """
-    Schema to get identities
-    """
-    uid: UniqueIdentifier = Field(description='The unique identifier',
-                                  examples=['b430727e-2491-4184-bb4f-c7d6d213e093'])
-    name: str = Field(description='The identity name', examples=['imfeldma'])
-    kind: IdentityKind = Field(description='The identity kind')
-    gecos: str = Field(description='The identity GECOS')
-    homedir: pathlib.Path = Field(description='The home directory')
-    shell: str = Field(description='The identity shell')
-    credential: str = Field(description='The identity credential')
-
-
-class IdentityCreateSchema(EntitySchema):
-    """
-    Schema to create an identity
-    """
-    name: str = Field(description='The identity name', examples=['imfeldma'])
-    kind: IdentityKind = Field(description='The identity kind')
-    gecos: str = Field(description='The identity GECOS')
-    homedir: pathlib.Path = Field(description='The home directory')
-    shell: str = Field(description='The identity shell')
-    credential: str = Field(description='The identity credential')
-
-
-class IdentityModifySchema(EntitySchema):
-    """
-    Schema to modify an identity
-    """
-    name: str = Field(description='The identity name', examples=['imfeldma'])
-    kind: IdentityKind = Field(description='The identity kind')
-    gecos: str = Field(description='The identity GECOS')
-    homedir: pathlib.Path = Field(description='The home directory')
-    shell: str = Field(description='The identity shell')
-    credential: str = Field(description='The identity credential')

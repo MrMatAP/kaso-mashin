@@ -128,31 +128,31 @@ class Runtime:
     @contextlib.asynccontextmanager
     async def lifespan(self, app: fastapi.FastAPI):
         del app
-        self._task_repository = TaskRepository(config=self.config,
+        self._task_repository = TaskRepository(runtime=self,
                                                session_maker=await self._db.async_sessionmaker,
                                                aggregate_root_class=TaskEntity,
                                                model_class=TaskModel)
-        self._disk_repository = DiskRepository(config=self.config,
+        self._disk_repository = DiskRepository(runtime=self,
                                                session_maker=await self._db.async_sessionmaker,
                                                aggregate_root_class=DiskEntity,
                                                model_class=DiskModel)
-        self._image_repository = ImageRepository(config=self.config,
+        self._image_repository = ImageRepository(runtime=self,
                                                  session_maker=await self._db.async_sessionmaker,
                                                  aggregate_root_class=ImageEntity,
                                                  model_class=ImageModel)
-        self._network_repository = NetworkRepository(config=self.config,
+        self._network_repository = NetworkRepository(runtime=self,
                                                      session_maker=await self._db.async_sessionmaker,
                                                      aggregate_root_class=NetworkEntity,
                                                      model_class=NetworkModel)
-        self._instance_repository = InstanceRepository(config=self.config,
+        self._instance_repository = InstanceRepository(runtime=self,
                                                        session_maker=await self._db.async_sessionmaker,
                                                        aggregate_root_class=InstanceEntity,
                                                        model_class=InstanceModel)
-        self._bootstrap_repository = BootstrapRepository(config=self.config,
+        self._bootstrap_repository = BootstrapRepository(runtime=self,
                                                          session_maker=await self._db.async_sessionmaker,
                                                          aggregate_root_class=BootstrapEntity,
                                                          model_class=BootstrapModel)
-        self._identity_repository = IdentityRepository(config=self.config,
+        self._identity_repository = IdentityRepository(runtime=self,
                                                        session_maker=await self._db.async_sessionmaker,
                                                        aggregate_root_class=IdentityEntity,
                                                        model_class=IdentityModel)

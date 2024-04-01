@@ -127,11 +127,11 @@ class TaskEntity(Entity, AggregateRoot):
 class TaskRepository(AsyncRepository[TaskEntity, TaskModel]):
 
     def __init__(self,
-                 config: 'Config',
+                 runtime: 'Runtime',
                  session_maker: async_sessionmaker[AsyncSession],
                  aggregate_root_class: typing.Type[T_AggregateRoot],
                  model_class: typing.Type[T_EntityModel]):
-        super().__init__(config=config,
+        super().__init__(runtime=runtime,
                          session_maker=session_maker,
                          aggregate_root_class=aggregate_root_class,
                          model_class=model_class)
