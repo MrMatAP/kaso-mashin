@@ -36,7 +36,8 @@ from .bootstraps import (
 from .instances import (
     InstanceException,
     InstanceRepository, InstanceEntity, InstanceModel,
-    InstanceListSchema, InstanceGetSchema, InstanceCreateSchema, InstanceModifySchema
+    InstanceListSchema, InstanceGetSchema, InstanceCreateSchema, InstanceModifySchema,
+    InstanceState
 )
 
 
