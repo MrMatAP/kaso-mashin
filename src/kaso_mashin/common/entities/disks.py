@@ -147,7 +147,7 @@ class DiskEntity(Entity, AggregateRoot):
                             disk_format=model.disk_format)
         entity._uid = UniqueIdentifier(model.uid)
         if model.image_uid is not None:
-            entity._image = await ImageEntity.repository.get_by_uid(model.uid)
+            entity._image = await ImageEntity.repository.get_by_uid(model.image_uid)
         return entity
 
     async def to_model(self, model: DiskModel | None = None) -> 'DiskModel':
