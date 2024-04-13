@@ -1,5 +1,6 @@
 import argparse
 import uuid
+import ipaddress
 
 import rich.table
 import rich.box
@@ -83,11 +84,15 @@ class NetworkCommands(AbstractCommands):
             return 1
         networks = [NetworkListSchema.model_validate(network) for network in resp.json()]
         table = rich.table.Table(box=rich.box.ROUNDED)
-        table.add_column('[blue]ID')
+        table.add_column('[blue]UID')
         table.add_column('[blue]Kind')
         table.add_column('[blue]Name')
+        table.add_column('[blue]CIDR')
         for network in networks:
-            table.add_row(str(network.uid), str(network.kind), network.name)
+            table.add_row(str(network.uid),
+                          str(network.kind.value),
+                          network.name,
+                          str(network.cidr))
         console.print(table)
         return 0
 
@@ -104,8 +109,8 @@ class NetworkCommands(AbstractCommands):
     def create(self, args: argparse.Namespace) -> int:
         schema = NetworkCreateSchema(name=args.name,
                                      kind=args.kind,
-                                     cidr=args.cidr,
-                                     gateway=args.gateway)
+                                     cidr=ipaddress.IPv4Network(args.cidr),
+                                     gateway=ipaddress.IPv4Address(args.gateway))
         resp = self.api_client(uri='/api/networks',
                                method='POST',
                                body=schema.model_dump(),
@@ -153,6 +158,7 @@ class NetworkCommands(AbstractCommands):
         table.add_row('[blue]UID', str(network.uid))
         table.add_row('[blue]Kind', network.kind)
         table.add_row('[blue]Name', network.name)
-        table.add_row('[blue]CIDR', network.cidr)
-        table.add_row('[blue]Gateway', network.gateway)
+        table.add_row('[blue]CIDR', str(network.cidr))
+        table.add_row('[blue]Gateway', str(network.gateway))
+        table.add_row('[blue]DHCP Range', f'{network.dhcp_start} - {network.dhcp_end}')
         console.print(table)
