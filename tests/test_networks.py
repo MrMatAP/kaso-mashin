@@ -1,4 +1,5 @@
 import uuid
+import ipaddress
 
 import pytest
 from conftest import seed, BaseTest
@@ -41,14 +42,16 @@ class TestSeededNetworks(BaseTest[NetworkModel, NetworkEntity, NetworkGetSchema]
         assert obj.uid == UniqueIdentifier(model.uid)
         assert obj.name == model.name
         assert obj.kind == model.kind
-        assert obj.cidr == model.cidr
+        assert obj.cidr == ipaddress.IPv4Network(model.cidr)
 
     def assert_get_by_model(self, obj: T_EntityGetSchema | T_Entity, model: T_EntityModel):
         assert obj.uid == UniqueIdentifier(model.uid)
         assert obj.name == model.name
         assert obj.kind == model.kind
-        assert obj.cidr == model.cidr
-        assert obj.gateway == model.gateway
+        assert obj.cidr == ipaddress.IPv4Network(model.cidr)
+        assert obj.gateway == ipaddress.IPv4Address(model.gateway)
+        assert obj.dhcp_start == ipaddress.IPv4Address(model.dhcp_start)
+        assert obj.dhcp_end == ipaddress.IPv4Address(model.dhcp_end)
 
     async def test_list(self, test_context_seeded):
         entities = await test_context_seeded.runtime.network_repository.list()

@@ -46,8 +46,9 @@ class TestSeededInstances(BaseTest[InstanceModel, InstanceEntity, InstanceGetSch
         assert obj.uid == UniqueIdentifier(model.uid)
         assert obj.name == model.name
         assert obj.path == pathlib.Path(model.path)
-        assert obj.vcpu == obj.vcpu
-        assert obj.ram.value == obj.ram
-        assert obj.ram.scale == obj.ram_scale
-        assert obj.mac == obj.mac
+        assert obj.vcpu == model.vcpu
+        assert obj.ram.value == model.ram
+        assert obj.ram.scale == model.ram_scale
+        assert obj.mac == model.mac
         # TODO: os_disk and network
+        assert obj.bootstrap_file == pathlib.Path(model.bootstrap_file)
