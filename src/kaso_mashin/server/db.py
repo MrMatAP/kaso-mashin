@@ -63,4 +63,5 @@ class DB:
             self._async_sessionmaker = sqlalchemy.ext.asyncio.async_sessionmaker(engine, expire_on_commit=False)
             async with engine.begin() as conn:
                 await conn.run_sync(EntityModel.metadata.create_all)
+            shutil.chown(self.path, user=self.owning_user)
         return self._async_sessionmaker
