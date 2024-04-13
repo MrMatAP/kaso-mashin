@@ -42,11 +42,11 @@ class TaskEntity(Entity, AggregateRoot):
     Domain model entity for a task
     """
 
-    def __init__(self, name: str):
+    def __init__(self, name: str, msg: str = 'Task created'):
         super().__init__()
         self._name = name
         self._state = TaskState.RUNNING
-        self._msg = ''
+        self._msg = msg
         self._percent_complete = 0
         self._outcome: Entity | None = None
 
@@ -101,8 +101,8 @@ class TaskEntity(Entity, AggregateRoot):
         )
 
     @staticmethod
-    async def create(name: str) -> 'TaskEntity':
-        task = TaskEntity(name=name)
+    async def create(name: str, msg: str = 'Task created') -> 'TaskEntity':
+        task = TaskEntity(name=name, msg=msg)
         return await TaskEntity.repository.create(task)
 
     async def progress(self, percent_complete: int, msg: str = None):
