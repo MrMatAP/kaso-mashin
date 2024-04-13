@@ -142,7 +142,7 @@ class ImageCommands(AbstractCommands):
     def create(self, args: argparse.Namespace) -> int:
         create_schema = ImageCreateSchema(name=args.name,
                                           url=args.url or Predefined_Images.get(args.predefined),
-                                          min_vcpu=args.min_cpu,
+                                          min_vcpu=args.min_vcpu,
                                           min_ram=BinarySizedValue(value=args.min_ram, scale=args.min_ram_scale),
                                           min_disk=BinarySizedValue(value=args.min_disk, scale=args.min_disk_scale))
         if args.url:
