@@ -16,14 +16,14 @@ types-aiofiles==23.2.0.20240106     # Apache 2.0
 
 # Runtime requirements
 
-rich==13.7.0                        # MIT
+rich==13.7.1                        # MIT
 requests==2.31.0                    # Apache 2.0
 pyyaml==6.0.1                       # MIT
 netifaces==0.11.0                   # MIT
-aiosqlite==0.19.0                   # MIT
-sqlalchemy[asyncio]==2.0.25         # MIT
+aiosqlite==0.20.0                   # MIT
+sqlalchemy[asyncio]==2.0.29         # MIT
 websockets==12.0                    # BSD 3-Clause
-fastapi==0.110.0                    # MIT
+fastapi==0.110.1                    # MIT
 uvicorn==0.24.0.post1               # BSD 3-Clause
 httpx==0.25.2                       # BSD 3-Clause
 aiofiles==23.2.1                    # Apache 2.0
