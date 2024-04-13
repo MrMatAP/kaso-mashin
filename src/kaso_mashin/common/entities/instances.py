@@ -1,7 +1,7 @@
+import enum
+import re
 import pathlib
 import shutil
-import subprocess
-import uuid
 
 from pydantic import Field
 
@@ -26,6 +26,16 @@ from kaso_mashin.common.entities import (
     NetworkEntity, NetworkGetSchema,
     BootstrapEntity, BootstrapGetSchema,
 )
+
+
+class InstanceState(str, enum.Enum):
+    STOPPING = "STOPPING"
+    STOPPED = "STOPPED"
+    STARTING = "STARTING"
+    STARTED = "STARTED"
+
+
+MAC_VENDOR_PREFIX = '00:50:56'
 
 
 class InstanceListSchema(EntitySchema):
@@ -61,7 +71,7 @@ class InstanceGetSchema(EntitySchema):
     uid: UniqueIdentifier = Field(description='The unique identifier of the instance',
                                   examples=['b430727e-2491-4184-bb4f-c7d6d213e093'])
     name: str = Field(description='The instance name', examples=['k8s-master', 'your-mom'])
-    path: str = Field(description='Path of the instance on the local disk')
+    path: pathlib.Path = Field(description='Path of the instance on the local disk')
     vcpu: int = Field(description='Number of virtual CPU cores', examples=[2])
     ram: BinarySizedValue = Field(description='Amount of RAM',
                                   examples=[BinarySizedValue(2, BinaryScale.G)])
@@ -69,13 +79,14 @@ class InstanceGetSchema(EntitySchema):
     os_disk: DiskGetSchema = Field(description='The image from which to create the OS disk from')
     network: NetworkGetSchema = Field(description='The network on which to run this instance')
     bootstrap: BootstrapGetSchema = Field(description='The bootstrapper')
+    bootstrap_file: pathlib.Path = Field(description='The path to the bootstrap file on the local disk')
 
 
 class InstanceModifySchema(EntitySchema):
     """
     Schema to modify an existing instance
     """
-    pass
+    state: InstanceState = Field(description='The state of the instance')
 
 
 class InstanceException(KasoMashinException):
@@ -101,6 +112,7 @@ class InstanceModel(EntityModel):
     os_disk_uid: Mapped[str] = mapped_column(UUID(as_uuid=True).with_variant(String(32), 'sqlite'))
     network_uid: Mapped[str] = mapped_column(UUID(as_uuid=True).with_variant(String(32), 'sqlite'))
     bootstrap_uid: Mapped[str] = mapped_column(UUID(as_uuid=True).with_variant(String(32), 'sqlite'))
+    bootstrap_file: Mapped[str] = mapped_column(String)
 
 
 class InstanceEntity(Entity, AggregateRoot):
@@ -115,10 +127,10 @@ class InstanceEntity(Entity, AggregateRoot):
                  uefi_vars: pathlib.Path,
                  vcpu: int,
                  ram: BinarySizedValue,
-                 mac: str,
                  os_disk: DiskEntity,
                  network: NetworkEntity,
-                 bootstrap: BootstrapEntity):
+                 bootstrap: BootstrapEntity,
+                 bootstrap_file: pathlib.Path):
         super().__init__()
         self._name = name
         self._path = path
@@ -126,10 +138,13 @@ class InstanceEntity(Entity, AggregateRoot):
         self._uefi_vars = uefi_vars
         self._vcpu = vcpu
         self._ram = ram
-        self._mac = mac
+        self._mac = self._generate_mac()
         self._os_disk = os_disk
         self._network = network
         self._bootstrap = bootstrap
+        self._bootstrap_file = bootstrap_file
+        self._popen = None
+        self._state = InstanceState.STOPPED
 
     @property
     def name(self) -> str:
@@ -171,6 +186,10 @@ class InstanceEntity(Entity, AggregateRoot):
     def bootstrap(self) -> BootstrapEntity:
         return self._bootstrap
 
+    @property
+    def bootstrap_file(self) -> pathlib.Path:
+        return self._bootstrap_file
+
     def __eq__(self, other: 'InstanceEntity') -> bool:
         return all([
             super().__eq__(other),
@@ -183,7 +202,8 @@ class InstanceEntity(Entity, AggregateRoot):
             self.mac == other.mac,
             self.os_disk == other.os_disk,
             self.network == other.network,
-            self.bootstrap == other.bootstrap
+            self.bootstrap == other.bootstrap,
+            self.bootstrap_file == other.bootstrap_file
         ])
 
     def __repr__(self) -> str:
@@ -198,16 +218,17 @@ class InstanceEntity(Entity, AggregateRoot):
             f'mac={self.mac}, '
             f'os_disk={self.os_disk}, '
             f'network={self.network}, '
-            f'bootstrap={self.bootstrap}'
+            f'bootstrap={self.bootstrap}, '
+            f'bootstrap_file={self.bootstrap_file}'
             ')>'
         )
 
     @staticmethod
     async def from_model(model: InstanceModel) -> 'InstanceEntity':
         # TODO: Internal consistency. This will fail if the disk is dead
-        os_disk = await DiskEntity.repository.get_by_uid(model.os_disk_uid)
-        network = await NetworkEntity.repository.get_by_uid(model.network_uid)
-        bootstrap = await BootstrapEntity.repository.get_by_uid(model.bootstrap_uid)
+        os_disk = await DiskEntity.repository.get_by_uid(UniqueIdentifier(model.os_disk_uid))
+        network = await NetworkEntity.repository.get_by_uid(UniqueIdentifier(model.network_uid))
+        bootstrap = await BootstrapEntity.repository.get_by_uid(UniqueIdentifier(model.bootstrap_uid))
 
         entity = InstanceEntity(name=model.name,
                                 path=pathlib.Path(model.path),
@@ -215,11 +236,12 @@ class InstanceEntity(Entity, AggregateRoot):
                                 uefi_vars=pathlib.Path(model.uefi_vars),
                                 vcpu=model.vcpu,
                                 ram=BinarySizedValue(value=model.ram, scale=BinaryScale(model.ram_scale)),
-                                mac=model.mac,
                                 os_disk=os_disk,
                                 network=network,
-                                bootstrap=bootstrap)
+                                bootstrap=bootstrap,
+                                bootstrap_file=pathlib.Path(model.bootstrap_file))
         entity._uid = UniqueIdentifier(model.uid)
+        entity._mac = model.mac
         return entity
 
     async def to_model(self, model: InstanceModel | None = None) -> InstanceModel:
@@ -235,7 +257,8 @@ class InstanceEntity(Entity, AggregateRoot):
                                  mac=self.mac,
                                  os_disk_uid=str(self.os_disk.uid),
                                  network_uid=str(self.network.uid),
-                                 bootstrap_uid=str(self.bootstrap.uid))
+                                 bootstrap_uid=str(self.bootstrap.uid),
+                                 bootstrap_file=str(self.bootstrap_file))
         else:
             model.uid = str(self.uid)
             model.name = self.name
@@ -249,7 +272,12 @@ class InstanceEntity(Entity, AggregateRoot):
             model.os_disk_uid = str(self.os_disk.uid)
             model.network_uid = str(self.network.uid)
             model.bootstrap_uid = str(self.bootstrap.uid)
+            model.bootstrap_file = str(self.bootstrap_file)
             return model
+
+    def _generate_mac(self) -> str:
+        octets = re.findall('..', self.uid.hex[:6])
+        return f'{MAC_VENDOR_PREFIX}:{":".join(octets)}'
 
     @staticmethod
     async def create(task: TaskEntity,
@@ -294,10 +322,10 @@ class InstanceEntity(Entity, AggregateRoot):
                                     uefi_vars=instance_uefi_vars,
                                     vcpu=vcpu,
                                     ram=ram,
-                                    mac=f'005056{uuid.uuid4().hex[:6]}',
                                     os_disk=os_disk,
                                     network=network,
-                                    bootstrap=bootstrap)
+                                    bootstrap=bootstrap,
+                                    bootstrap_file=bootstrap_file)
 
             outcome = await InstanceEntity.repository.create(entity)
             await task.done(msg='Successfully created')
@@ -309,16 +337,25 @@ class InstanceEntity(Entity, AggregateRoot):
             shutil.rmtree(path)
             raise InstanceException(status=400, msg=f'Some exception {e}')
 
-    async def modify(self, task: TaskEntity):
+    async def modify(self, schema: InstanceModifySchema, task: TaskEntity):
+        if schema.state == InstanceState.STARTED:
+            await self.start()
+        if schema.state == InstanceState.STOPPED:
+            await self.stop()
         await task.done(msg='Successfully modified')
 
     async def start(self):
-        pass
+        self._popen = self.runtime.qemu_service.start(self)
+        self._state = InstanceState.STARTED
 
     async def stop(self):
-        pass
+        if self._popen is None:
+            return
+        self._popen.terminate()
+        self._state = InstanceState.STOPPED
 
     async def remove(self):
+        await self.stop()
         shutil.rmtree(self.path)
         await InstanceEntity.repository.remove(self.uid)
 

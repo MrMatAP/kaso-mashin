@@ -7,7 +7,7 @@ import argparse
 from kaso_mashin import __version__, console, default_config_file
 from kaso_mashin.common.config import Config
 from kaso_mashin.cli.commands import (
-    NetworkCommands, ImageCommands, IdentityCommands, InstanceCommands
+    NetworkCommands, ImageCommands, IdentityCommands, InstanceCommands, BootstrapCommands
 )
 
 
@@ -23,6 +23,7 @@ def main(args: typing.Optional[typing.List] = None) -> int:
     network_commands = NetworkCommands(config)
     image_commands = ImageCommands(config)
     identity_commands = IdentityCommands(config)
+    bootstrap_commands = BootstrapCommands(config)
     instance_commands = InstanceCommands(config)
 
     parser = argparse.ArgumentParser(add_help=True, description=f'kaso-mashin - {__version__}')
@@ -55,6 +56,8 @@ def main(args: typing.Optional[typing.List] = None) -> int:
     identity_commands.register_commands(identity_parser)
     instance_parser = subparsers.add_parser(name='instance', help='Manage instances')
     instance_commands.register_commands(instance_parser)
+    bootstrap_parser = subparsers.add_parser(name='bootstrap', help='Manage Bootstraps')
+    bootstrap_commands.register_commands(bootstrap_parser)
 
     args = parser.parse_args(args if args is not None else sys.argv[1:])
     logger.setLevel(logging.DEBUG if args.debug else logging.INFO)
