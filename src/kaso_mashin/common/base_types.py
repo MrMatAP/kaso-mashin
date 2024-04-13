@@ -14,12 +14,31 @@ from .ddd_scaffold import (
 
 
 class BinaryScale(enum.StrEnum):
+    b = 'Bytes'
     k = 'Kilobytes'
     M = 'Megabytes'
     G = 'Gigabytes'
     T = 'Terabytes'
     P = 'Petabytes'
     E = 'Exabytes'
+
+    @staticmethod
+    def scale_value(scale: 'BinaryScale') -> int:
+        return {
+            BinaryScale.b: 0,
+            BinaryScale.k: 1,
+            BinaryScale.M: 2,
+            BinaryScale.G: 3,
+            BinaryScale.T: 4,
+            BinaryScale.P: 5,
+            BinaryScale.E: 6
+        }[scale]
+
+    def __lt__(self, other: 'BinaryScale') -> bool:
+        return BinaryScale.scale_value(self) < BinaryScale.scale_value(other)
+
+    def __gt__(self, other: 'BinaryScale') -> bool:
+        return BinaryScale.scale_value(self) > BinaryScale.scale_value(other)
 
 
 class BinarySizedValueSchema(EntitySchema):
@@ -34,6 +53,18 @@ class BinarySizedValue(ValueObject):
     """
     value: int = dataclasses.field(default=0)
     scale: BinaryScale = dataclasses.field(default=BinaryScale.G)
+
+    def at_scale(self, scale: BinaryScale = BinaryScale.M) -> 'BinarySizedValue':
+        if self.scale == scale:
+            return self
+        scale_difference = BinaryScale.scale_value(self.scale) - BinaryScale.scale_value(scale)
+        if scale_difference == 0:
+            return self
+        if scale_difference > 0:
+            return BinarySizedValue(scale=scale,
+                                    value=int(self.value * (1024 ** scale_difference)))
+        return BinarySizedValue(scale=scale,
+                                value=int(self.value / (1024 ** abs(scale_difference))))
 
     def __str__(self):
         return f'{self.value}{self.scale.name}'
