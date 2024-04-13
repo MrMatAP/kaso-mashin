@@ -11,7 +11,7 @@ from kaso_mashin import console
 from kaso_mashin.cli.commands import AbstractCommands
 from kaso_mashin.common.base_types import BinaryScale, BinarySizedValue
 from kaso_mashin.common.entities import (
-    TaskGetSchema, TaskState,
+    TaskGetSchema, TaskState, InstanceState,
     InstanceListSchema, InstanceGetSchema, InstanceCreateSchema, InstanceModifySchema)
 
 
@@ -181,21 +181,25 @@ class InstanceCommands(AbstractCommands):
         if not resp:
             return 1
         if resp.status_code == 204:
-            console.print(f'Removed identity with id {args.uid}')
+            console.print(f'Removed instance with id {args.uid}')
         elif resp.status_code == 410:
             console.print(f'Identity with id {args.uid} does not exist')
         return 0 if resp else 1
 
     def start(self, args: argparse.Namespace) -> int:
-        resp = self.api_client(uri=f'/api/instances/{args.uid}/state',
-                               method='POST',
+        schema = InstanceModifySchema(state=InstanceState.STARTED)
+        resp = self.api_client(uri=f'/api/instances/{args.uid}',
+                               method='PUT',
+                               body=schema.model_dump(),
                                expected_status=[200],
                                fallback_msg='Failed to start instance')
         return 0 if resp else 1
 
     def stop(self, args: argparse.Namespace) -> int:
+        schema = InstanceModifySchema(state=InstanceState.STOPPED)
         resp = self.api_client(uri=f'/api/instances/{args.uid}/state',
-                               method='DELETE',
+                               method='PUT',
+                               body=schema.model_dump(),
                                expected_status=[200],
                                fallback_msg='Failed to start instance')
         return 0 if resp else 1
@@ -211,4 +215,11 @@ class InstanceCommands(AbstractCommands):
         table.add_row('[blue]VCPUs', str(instance.vcpu))
         table.add_row('[blue]RAM', f'{instance.ram.value} {instance.ram.scale}')
         table.add_row('[blue]MAC', instance.mac)
+        table.add_row('[blue]OS Disk UID', str(instance.os_disk.uid))
+        table.add_row('[blue]OS Disk Path', str(instance.os_disk.path))
+        table.add_row('[blue]Network UID', str(instance.network.uid))
+        table.add_row('[blue]Network Name', instance.network.name)
+        table.add_row('[blue]Bootstrap UID', str(instance.bootstrap.uid))
+        table.add_row('[blue]Bootstrap Name', instance.bootstrap.name)
+        table.add_row('[blue]Bootstrap Path', str(instance.bootstrap_file))
         console.print(table)
