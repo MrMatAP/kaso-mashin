@@ -58,7 +58,8 @@ class AbstractCommands(abc.ABC):
             expected_status = [200]
         resp = httpx.request(url=f'{self.config.server_url}{uri}',
                              method=method,
-                             json=body)
+                             json=body,
+                             timeout=120)
         if resp.status_code not in expected_status:
             table = rich.table.Table(title='ERROR', box=rich.box.ROUNDED, show_header=False)
             table.add_row('[red]Status:', str(resp.status_code))
