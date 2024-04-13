@@ -4,6 +4,7 @@ from typing import Annotated
 from uuid import UUID
 
 import fastapi
+from pydantic import ValidationError
 
 from kaso_mashin.common import AsyncRepository
 from kaso_mashin.server.apis import BaseAPI
@@ -28,7 +29,8 @@ class ImageAPI(BaseAPI[ImageListSchema, ImageGetSchema, ImageCreateSchema, Image
                          list_schema_type=ImageListSchema,
                          get_schema_type=ImageGetSchema,
                          create_schema_type=ImageCreateSchema,
-                         modify_schema_type=ImageModifySchema)
+                         modify_schema_type=ImageModifySchema,
+                         async_create=True)
 
         self._router.add_api_route(path='/predefined',
                                    endpoint=self.list_predefined_images,
@@ -39,17 +41,6 @@ class ImageAPI(BaseAPI[ImageListSchema, ImageGetSchema, ImageCreateSchema, Image
                                    status_code=200,
                                    responses={200: {'model': typing.List[ImagePredefinedSchema]}})
 
-        self._router.add_api_route(path='/',
-                                   endpoint=self.create,
-                                   methods=['POST'],
-                                   summary='Create a new image',
-                                   description='Creating an image is an asynchronous operation, you will get a task '
-                                               'object back which you can subsequently check for progress using the '
-                                               'task API',
-                                   response_description='A task',
-                                   status_code=201,
-                                   response_model=TaskGetSchema)
-
     @property
     def repository(self) -> AsyncRepository:
         return self._runtime.image_repository
@@ -57,7 +48,8 @@ class ImageAPI(BaseAPI[ImageListSchema, ImageGetSchema, ImageCreateSchema, Image
     async def create(self,
                      schema: ImageCreateSchema,
                      background_tasks: fastapi.BackgroundTasks) -> TaskGetSchema:
-        task = await TaskEntity.create(name=f'Download image {schema.name} from URL {schema.url}')
+        task = await TaskEntity.create(name=f'Download image {schema.name} from URL {schema.url}',
+                                       msg='Downloading image')
         now = datetime.datetime.now().strftime('%Y-%m-%d-%H%M')
         imagepath = self._runtime.config.images_path / f'{schema.name}-{now}.qcow2'
         background_tasks.add_task(ImageEntity.create,
