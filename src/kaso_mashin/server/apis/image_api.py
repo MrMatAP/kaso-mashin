@@ -69,7 +69,7 @@ class ImageAPI(BaseAPI[ImageListSchema, ImageListEntrySchema, ImageGetSchema, Im
                                                              examples=['4198471B-8C84-4636-87CD-9DF4E24CF43F'])],
                      schema: ImageModifySchema,
                      background_tasks: fastapi.BackgroundTasks) -> ImageGetSchema:
-        entity = await self._runtime.image_repository.get_by_uid(uid)
+        entity: ImageEntity = await self._runtime.image_repository.get_by_uid(uid)
         await entity.modify(min_vcpu=schema.min_vcpu,
                             min_ram=schema.min_ram,
                             min_disk=schema.min_disk)

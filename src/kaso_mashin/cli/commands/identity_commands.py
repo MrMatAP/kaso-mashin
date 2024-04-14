@@ -163,7 +163,7 @@ class IdentityCommands(BaseCommands[IdentityListSchema, IdentityGetSchema]):
             with open(pubkey_path, 'r', encoding='UTF-8') as p:
                 schema.pubkey = p.read().strip()
         if args.passwd:
-            schema.passwd = passlib.hash.sha512_crypt.using(rounds=4096).hash(args.passwd)
+            schema.credential = passlib.hash.sha512_crypt.using(rounds=4096).hash(args.passwd)
         resp = self._api_client(uri=f'{self.prefix}/{args.uid}',
                                 method='PUT',
                                 schema=schema,

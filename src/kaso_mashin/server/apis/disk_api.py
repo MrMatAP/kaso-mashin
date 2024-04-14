@@ -50,7 +50,7 @@ class DiskAPI(BaseAPI[DiskListSchema, DiskListEntrySchema, DiskGetSchema, DiskCr
                                                              examples=['4198471B-8C84-4636-87CD-9DF4E24CF43F'])],
                      schema: DiskModifySchema,
                      background_tasks: fastapi.BackgroundTasks) -> DiskGetSchema:
-        entity = await self.repository.get_by_uid(uid)
+        entity: DiskEntity = await self.repository.get_by_uid(uid)
         if entity.size != schema.size:
             entity = await entity.resize(schema.size)
         return DiskGetSchema.model_validate(entity)

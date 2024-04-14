@@ -34,10 +34,10 @@ class BinaryScale(enum.StrEnum):
             BinaryScale.E: 6
         }[scale]
 
-    def __lt__(self, other: 'BinaryScale') -> bool:
+    def __lt__(self, other) -> bool:
         return BinaryScale.scale_value(self) < BinaryScale.scale_value(other)
 
-    def __gt__(self, other: 'BinaryScale') -> bool:
+    def __gt__(self, other) -> bool:
         return BinaryScale.scale_value(self) > BinaryScale.scale_value(other)
 
 

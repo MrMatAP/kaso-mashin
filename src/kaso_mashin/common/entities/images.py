@@ -175,7 +175,7 @@ class ImageEntity(Entity, AggregateRoot):
     def min_disk(self) -> BinarySizedValue:
         return self._min_disk
 
-    def __eq__(self, other: 'ImageEntity') -> bool:
+    def __eq__(self, other: object) -> bool:
         return all([
             super().__eq__(other),
             self._name == other.name,
@@ -188,13 +188,13 @@ class ImageEntity(Entity, AggregateRoot):
 
     def __repr__(self) -> str:
         return (
-            f'<ImageEntity(uid={self.uid}, '
+            f'ImageEntity(uid={self.uid}, '
             f'name={self.name}, '
             f'url={self.url}, '
             f'path={self.path}, '
             f'min_vcpu={self.min_vcpu}, '
             f'min_ram={self.min_ram}, '
-            f'min_disk={self.min_disk})>'
+            f'min_disk={self.min_disk})'
         )
 
     @staticmethod

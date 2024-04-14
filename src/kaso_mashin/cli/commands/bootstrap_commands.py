@@ -77,5 +77,6 @@ class BootstrapCommands(BaseCommands[BootstrapListSchema, BootstrapGetSchema]):
             return 1
         bootstrap = BootstrapGetSchema.model_validate(resp.content)
         console.print(bootstrap)
+        return 0
 
 

@@ -76,7 +76,7 @@ def create_server(runtime: Runtime) -> fastapi.applications.FastAPI:
                                               .model_dump())
 
     @app.exception_handler(EntityInvariantException)
-    async def entity_not_found_exception_handler(request: fastapi.Request, exc: EntityInvariantException):
+    async def entity_invariant_exception_handler(request: fastapi.Request, exc: EntityInvariantException):
         del request  # pylint: disable=unused-argument
         logging.getLogger('kaso_mashin.server').error('(%s) %s',
                                                       exc.status,

@@ -247,7 +247,7 @@ class InstanceEntity(Entity, AggregateRoot):
 
     def __repr__(self) -> str:
         return (
-            f'<InstanceEntity(uid={self.uid}, '
+            f'InstanceEntity(uid={self.uid}, '
             f'name={self.name}, '
             f'path={self.path}, '
             f'uefi_code={self.uefi_code}, '
@@ -259,7 +259,7 @@ class InstanceEntity(Entity, AggregateRoot):
             f'network={self.network}, '
             f'bootstrap={self.bootstrap}, '
             f'bootstrap_file={self.bootstrap_file}'
-            ')>'
+            ')'
         )
 
     @staticmethod

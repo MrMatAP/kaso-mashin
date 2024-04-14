@@ -38,7 +38,7 @@ class Config:
     butane_path: pathlib.Path = dataclasses.field(default=pathlib.Path('/opt/homebrew/bin/butane'))
     qemu_aarch64_path: pathlib.Path = dataclasses.field(default=pathlib.Path('/opt/homebrew/bin/qemu-system-aarch64'))
 
-    def __init__(self, config_file: pathlib.Path = None):
+    def __init__(self, config_file: typing.Optional[pathlib.Path] = None):
         self._logger = logging.getLogger(f'{self.__class__.__module__}.{self.__class__.__name__}')
         if config_file:
             self.load(config_file)

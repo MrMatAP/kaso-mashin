@@ -40,9 +40,9 @@ class InstanceAPI(BaseAPI[InstanceListSchema, InstanceListEntrySchema, InstanceG
                      schema: InstanceCreateSchema,
                      background_tasks: fastapi.BackgroundTasks) -> TaskGetSchema | ExceptionSchema:
         try:
-            image = await ImageEntity.repository.get_by_uid(UniqueIdentifier(schema.image_uid))
-            network = await NetworkEntity.repository.get_by_uid(UniqueIdentifier(schema.network_uid))
-            bootstrap = await BootstrapEntity.repository.get_by_uid(UniqueIdentifier(schema.bootstrap_uid))
+            image: ImageEntity = await ImageEntity.repository.get_by_uid(UniqueIdentifier(schema.image_uid))
+            network: NetworkEntity = await NetworkEntity.repository.get_by_uid(UniqueIdentifier(schema.network_uid))
+            bootstrap: BootstrapEntity = await BootstrapEntity.repository.get_by_uid(UniqueIdentifier(schema.bootstrap_uid))
             task = await TaskEntity.create(name=f'Creating instance {schema.name}')
             instance_path = self._runtime.config.instances_path / schema.name
             background_tasks.add_task(InstanceEntity.create,
@@ -68,8 +68,9 @@ class InstanceAPI(BaseAPI[InstanceListSchema, InstanceListEntrySchema, InstanceG
                                                              examples=['4198471B-8C84-4636-87CD-9DF4E24CF43F'])],
                      schema: InstanceModifySchema,
                      background_tasks: fastapi.BackgroundTasks) -> TaskGetSchema:
-        entity = await self._runtime.instance_repository.get_by_uid(uid)
-        task = TaskEntity.create(f'Modifying instance {entity.name}')
+        entity: InstanceEntity = await self._runtime.instance_repository.get_by_uid(uid)
+        task = await TaskEntity.create(f'Modifying instance {entity.name}')
         background_tasks.add_task(entity.modify,
+                                  schema=schema,
                                   task=task)
         return TaskGetSchema.model_validate(task)

@@ -100,7 +100,7 @@ class BaseCommands(typing.Generic[T_EntityListSchema, T_EntityGetSchema], abc.AB
                     uri: str,
                     schema: EntitySchema = None,
                     method: str = 'GET',
-                    expected_status: typing.List = None,
+                    expected_status: typing.Optional[typing.List] = None,
                     fallback_msg: str = 'Something bad and unknown happened...') -> httpx.Response | None:
         """
         Convenience method for invoking the server API and perform error handling. Since this is specifically for the

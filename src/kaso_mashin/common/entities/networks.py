@@ -212,14 +212,14 @@ class NetworkEntity(Entity, AggregateRoot):
 
     def __repr__(self) -> str:
         return (
-            f'<NetworkEntity(uid={self.uid}, '
+            f'NetworkEntity(uid={self.uid}, '
             f'name={self.name},'
             f'kind={self.kind},'
             f'cidr={self.cidr},'
             f'gateway={self.gateway},'
             f'dhcp_start={self.dhcp_start},'
             f'dhcp_end={self.dhcp_end}'
-            ')>'
+            ')'
         )
 
     @staticmethod

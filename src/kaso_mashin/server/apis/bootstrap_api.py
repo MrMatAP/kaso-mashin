@@ -44,7 +44,7 @@ class BootstrapAPI(BaseAPI[BootstrapListSchema, BootstrapListEntrySchema, Bootst
                                                              examples=['4198471B-8C84-4636-87CD-9DF4E24CF43F'])],
                      schema: BootstrapModifySchema,
                      background_tasks: fastapi.BackgroundTasks) -> BootstrapGetSchema:
-        entity = await self.repository.get_by_uid(uid)
+        entity: BootstrapEntity = await self.repository.get_by_uid(uid)
         await entity.modify(name=schema.name,
                             kind=schema.kind,
                             content=schema.content)

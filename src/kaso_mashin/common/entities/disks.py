@@ -203,12 +203,12 @@ class DiskEntity(Entity, AggregateRoot):
 
     def __repr__(self) -> str:
         return (
-            f'<DiskEntity(uid={self.uid}, '
+            f'DiskEntity(uid={self.uid}, '
             f'name={self.name}, '
             f'path={self.path}, '
             f'size={self.size}, '
             f'disk_format={self.disk_format},'
-            f'image={self.image})>')
+            f'image={self.image})')
 
     @staticmethod
     async def create(name: str,
@@ -226,8 +226,8 @@ class DiskEntity(Entity, AggregateRoot):
                     'create',
                     '-f', str(disk_format)]
             if image is not None:
-                args.extend(['-F', str(disk_format), '-b', image.path, '-o', 'compat=v3'])
-            args.extend([path, str(size)])
+                args.extend(['-F', str(disk_format), '-b', str(image.path), '-o', 'compat=v3'])
+            args.extend([str(path), str(size)])
             subprocess.run(args, check=True)
             disk = DiskEntity(name=name,
                               path=path,
@@ -250,7 +250,7 @@ class DiskEntity(Entity, AggregateRoot):
             args = ['/opt/homebrew/bin/qemu-img', 'resize']
             if self.size > value:
                 args.append('--shrink')
-            args += ['-f', str(self.disk_format), self._path, str(value)]
+            args += ['-f', str(self.disk_format), str(self._path), str(value)]
             subprocess.run(args, check=True)
             self._size = value
             await DiskEntity.repository.modify(self)

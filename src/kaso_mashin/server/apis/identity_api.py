@@ -46,11 +46,6 @@ class IdentityAPI(BaseAPI[IdentityListSchema, IdentityListEntrySchema, IdentityG
                                                              description='The UUID of the entity to modify',
                                                              examples=['4198471B-8C84-4636-87CD-9DF4E24CF43F'])],
                      schema: IdentityModifySchema, background_tasks: fastapi.BackgroundTasks) -> IdentityGetSchema:
-        entity = await self.repository.get_by_uid(uid)
-        await entity.modify(name=schema.name,
-                            kind=schema.kind,
-                            gecos=schema.gecos,
-                            homedir=pathlib.Path(schema.homedir),
-                            shell=schema.shell,
-                            credential=schema.credential)
+        entity: IdentityEntity = await self.repository.get_by_uid(uid)
+        await entity.modify(schema)
         return IdentityGetSchema.model_validate(entity)

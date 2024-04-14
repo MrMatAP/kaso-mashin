@@ -12,7 +12,8 @@ from kaso_mashin.common.entities import (
 )
 
 
-class NetworkAPI(BaseAPI[NetworkListSchema, NetworkListEntrySchema, NetworkGetSchema, NetworkCreateSchema, NetworkModifySchema]):
+class NetworkAPI(
+    BaseAPI[NetworkListSchema, NetworkListEntrySchema, NetworkGetSchema, NetworkCreateSchema, NetworkModifySchema]):
     """
     The Network API
     """
@@ -24,7 +25,7 @@ class NetworkAPI(BaseAPI[NetworkListSchema, NetworkListEntrySchema, NetworkGetSc
                          list_entry_schema_type=NetworkListEntrySchema,
                          get_schema_type=NetworkGetSchema,
                          create_schema_type=NetworkCreateSchema,
-                         modify_schema_type=NetworkGetSchema)
+                         modify_schema_type=NetworkModifySchema)
 
     @property
     def repository(self) -> AsyncRepository:
@@ -33,10 +34,10 @@ class NetworkAPI(BaseAPI[NetworkListSchema, NetworkListEntrySchema, NetworkGetSc
     async def create(self,
                      schema: NetworkCreateSchema,
                      background_tasks: fastapi.BackgroundTasks) -> NetworkGetSchema:
-        entity = await NetworkEntity.create(name=schema.name,
-                                            kind=schema.kind,
-                                            cidr=schema.cidr,
-                                            gateway=schema.gateway)
+        entity: NetworkEntity = await NetworkEntity.create(name=schema.name,
+                                                           kind=schema.kind,
+                                                           cidr=schema.cidr,
+                                                           gateway=schema.gateway)
         return NetworkGetSchema.model_validate(entity)
 
     async def modify(self, uid: Annotated[UUID, fastapi.Path(title='Entity UUID',

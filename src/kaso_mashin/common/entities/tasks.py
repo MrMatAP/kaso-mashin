@@ -32,7 +32,7 @@ class TaskListEntrySchema(EntitySchema):
     Schema for a task list
     """
     uid: UniqueIdentifier = Field(description='The unique identifier', examples=['b430727e-2491-4184-bb4f-c7d6d213e093'])
-    name: str = Field(description='Task name', example=['Downloading image'])
+    name: str = Field(description='Task name', examples=['Downloading image'])
     state: TaskState = Field(description='The current state of the task', examples=[TaskState.RUNNING, TaskState.DONE])
 
 
@@ -128,7 +128,7 @@ class TaskEntity(Entity, AggregateRoot):
     async def to_model(self, model: TaskModel | None = None) -> TaskModel:
         pass
 
-    def __eq__(self, other: 'TaskEntity') -> bool:
+    def __eq__(self, other: object) -> bool:
         return all([
             super().__eq__(other),
             self._name == other.name,
@@ -140,11 +140,11 @@ class TaskEntity(Entity, AggregateRoot):
 
     def __repr__(self) -> str:
         return (
-            f'<TaskEntity(uid={self.uid}, '
+            f'TaskEntity(uid={self.uid}, '
             f'name={self.name}, '
             f'state={self.state}, '
             f'msg={self.msg}, '
-            f'percent_complete={self.percent_complete})>'
+            f'percent_complete={self.percent_complete})'
         )
 
     @staticmethod
