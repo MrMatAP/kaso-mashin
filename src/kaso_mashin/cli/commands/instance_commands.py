@@ -12,8 +12,14 @@ from kaso_mashin.cli.commands import BaseCommands
 from kaso_mashin.common.base_types import BinaryScale, BinarySizedValue
 from kaso_mashin.common.config import Config
 from kaso_mashin.common.entities import (
-    TaskGetSchema, TaskState, InstanceState,
-    InstanceListSchema, InstanceGetSchema, InstanceCreateSchema, InstanceModifySchema)
+    TaskGetSchema,
+    TaskState,
+    InstanceState,
+    InstanceListSchema,
+    InstanceGetSchema,
+    InstanceCreateSchema,
+    InstanceModifySchema,
+)
 
 
 class InstanceCommands(BaseCommands[InstanceListSchema, InstanceGetSchema]):
@@ -23,153 +29,196 @@ class InstanceCommands(BaseCommands[InstanceListSchema, InstanceGetSchema]):
 
     def __init__(self, config: Config):
         super().__init__(config)
-        self._prefix = '/api/instances'
+        self._prefix = "/api/instances"
         self._list_schema_type = InstanceListSchema
         self._get_schema_type = InstanceGetSchema
 
     def register_commands(self, parser: argparse.ArgumentParser):
         instance_subparser = parser.add_subparsers()
-        instance_list_parser = instance_subparser.add_parser(name='list', help='List instances')
+        instance_list_parser = instance_subparser.add_parser(
+            name="list", help="List instances"
+        )
         instance_list_parser.set_defaults(cmd=self.list)
-        instance_get_parser = instance_subparser.add_parser(name='get', help='Get an instance')
-        instance_get_parser.add_argument('--uid',
-                                         dest='uid',
-                                         type=uuid.UUID,
-                                         help='The instance id')
+        instance_get_parser = instance_subparser.add_parser(
+            name="get", help="Get an instance"
+        )
+        instance_get_parser.add_argument(
+            "--uid", dest="uid", type=uuid.UUID, help="The instance id"
+        )
         instance_get_parser.set_defaults(cmd=self.get)
-        instance_create_parser = instance_subparser.add_parser(name='create', help='Create an instance')
-        instance_create_parser.add_argument('-n', '--name',
-                                            dest='name',
-                                            type=str,
-                                            required=True,
-                                            help='The instance name')
-        instance_create_parser.add_argument('--vcpu',
-                                            dest='vcpu',
-                                            type=int,
-                                            required=False,
-                                            default=2,
-                                            help='Number of vCPUs to assign to this instance')
-        instance_create_parser.add_argument('--ram',
-                                            dest='ram',
-                                            type=int,
-                                            required=False,
-                                            default=2,
-                                            help='Amount of RAM in MB to assign to this instance')
-        instance_create_parser.add_argument('--ram-scale',
-                                            dest='ram_scale',
-                                            type=BinaryScale,
-                                            required=False,
-                                            default=BinaryScale.G,
-                                            help='Scale for the amount of RAM')
-        instance_create_parser.add_argument('--os-disk',
-                                            dest='os_disk',
-                                            type=int,
-                                            required=False,
-                                            default=10,
-                                            help='Amount of OS disk space')
-        instance_create_parser.add_argument('--os-disk-scale',
-                                            dest='os_disk_scale',
-                                            type=BinaryScale,
-                                            required=False,
-                                            default=BinaryScale.G,
-                                            help='Scale for the amount of OS disk space')
-        instance_create_parser.add_argument('--image-uid',
-                                            dest='image_uid',
-                                            type=str,
-                                            required=True,
-                                            help='UID of the image for the OS disk')
-        instance_create_parser.add_argument('--network-uid',
-                                            dest='network_uid',
-                                            type=str,
-                                            required=True,
-                                            help='The network uid on which this instance should be attached')
-        instance_create_parser.add_argument('--bootstrap-uid',
-                                            dest='bootstrap_uid',
-                                            type=str,
-                                            required=True,
-                                            help='The bootstrap uid using which this instance should be created')
+        instance_create_parser = instance_subparser.add_parser(
+            name="create", help="Create an instance"
+        )
+        instance_create_parser.add_argument(
+            "-n",
+            "--name",
+            dest="name",
+            type=str,
+            required=True,
+            help="The instance name",
+        )
+        instance_create_parser.add_argument(
+            "--vcpu",
+            dest="vcpu",
+            type=int,
+            required=False,
+            default=2,
+            help="Number of vCPUs to assign to this instance",
+        )
+        instance_create_parser.add_argument(
+            "--ram",
+            dest="ram",
+            type=int,
+            required=False,
+            default=2,
+            help="Amount of RAM in MB to assign to this instance",
+        )
+        instance_create_parser.add_argument(
+            "--ram-scale",
+            dest="ram_scale",
+            type=BinaryScale,
+            required=False,
+            default=BinaryScale.G,
+            help="Scale for the amount of RAM",
+        )
+        instance_create_parser.add_argument(
+            "--os-disk",
+            dest="os_disk",
+            type=int,
+            required=False,
+            default=10,
+            help="Amount of OS disk space",
+        )
+        instance_create_parser.add_argument(
+            "--os-disk-scale",
+            dest="os_disk_scale",
+            type=BinaryScale,
+            required=False,
+            default=BinaryScale.G,
+            help="Scale for the amount of OS disk space",
+        )
+        instance_create_parser.add_argument(
+            "--image-uid",
+            dest="image_uid",
+            type=str,
+            required=True,
+            help="UID of the image for the OS disk",
+        )
+        instance_create_parser.add_argument(
+            "--network-uid",
+            dest="network_uid",
+            type=str,
+            required=True,
+            help="The network uid on which this instance should be attached",
+        )
+        instance_create_parser.add_argument(
+            "--bootstrap-uid",
+            dest="bootstrap_uid",
+            type=str,
+            required=True,
+            help="The bootstrap uid using which this instance should be created",
+        )
         instance_create_parser.set_defaults(cmd=self.create)
-        instance_modify_parser = instance_subparser.add_parser(name='modify', help='Modify an instance')
-        instance_modify_parser.add_argument('--uid',
-                                            dest='uid',
-                                            type=uuid.UUID,
-                                            help='The instance uid')
+        instance_modify_parser = instance_subparser.add_parser(
+            name="modify", help="Modify an instance"
+        )
+        instance_modify_parser.add_argument(
+            "--uid", dest="uid", type=uuid.UUID, help="The instance uid"
+        )
         instance_modify_parser.set_defaults(cmd=self.modify)
-        instance_remove_parser = instance_subparser.add_parser(name='remove', help='Remove an instance')
-        instance_remove_parser.add_argument('--uid',
-                                            dest='uid',
-                                            type=uuid.UUID,
-                                            required=True,
-                                            help='The instance uid')
+        instance_remove_parser = instance_subparser.add_parser(
+            name="remove", help="Remove an instance"
+        )
+        instance_remove_parser.add_argument(
+            "--uid", dest="uid", type=uuid.UUID, required=True, help="The instance uid"
+        )
         instance_remove_parser.set_defaults(cmd=self.remove)
-        instance_start_parser = instance_subparser.add_parser(name='start', help='Start an instance')
-        instance_start_parser.add_argument('--uid',
-                                           dest='uid',
-                                           type=uuid.UUID,
-                                           required=True,
-                                           help='The instance uid')
+        instance_start_parser = instance_subparser.add_parser(
+            name="start", help="Start an instance"
+        )
+        instance_start_parser.add_argument(
+            "--uid", dest="uid", type=uuid.UUID, required=True, help="The instance uid"
+        )
         instance_start_parser.set_defaults(cmd=self.start)
-        instance_stop_parser = instance_subparser.add_parser(name='stop', help='Stop an instance')
-        instance_stop_parser.add_argument('--id',
-                                          dest='uid',
-                                          type=uuid.UUID,
-                                          required=True,
-                                          help='The instance uid')
+        instance_stop_parser = instance_subparser.add_parser(
+            name="stop", help="Stop an instance"
+        )
+        instance_stop_parser.add_argument(
+            "--id", dest="uid", type=uuid.UUID, required=True, help="The instance uid"
+        )
         instance_stop_parser.set_defaults(cmd=self.stop)
 
     def create(self, args: argparse.Namespace) -> int:
-        schema = InstanceCreateSchema(name=args.name,
-                                      vcpu=args.vcpu,
-                                      ram=BinarySizedValue(value=args.ram, scale=args.ram_scale),
-                                      os_disk_size=BinarySizedValue(value=args.os_disk, scale=args.os_disk_scale),
-                                      image_uid=args.image_uid,
-                                      network_uid=args.network_uid,
-                                      bootstrap_uid=args.bootstrap_uid)
-        resp = self._api_client(uri='/api/instances/',
-                                method='POST',
-                                schema=schema,
-                                expected_status=[201],
-                                fallback_msg='Failed to create instance')
+        schema = InstanceCreateSchema(
+            name=args.name,
+            vcpu=args.vcpu,
+            ram=BinarySizedValue(value=args.ram, scale=args.ram_scale),
+            os_disk_size=BinarySizedValue(value=args.os_disk, scale=args.os_disk_scale),
+            image_uid=args.image_uid,
+            network_uid=args.network_uid,
+            bootstrap_uid=args.bootstrap_uid,
+        )
+        resp = self._api_client(
+            uri="/api/instances/",
+            method="POST",
+            schema=schema,
+            expected_status=[201],
+            fallback_msg="Failed to create instance",
+        )
         if not resp:
             return 1
         task = TaskGetSchema.model_validate(resp.json())
         with rich.progress.Progress() as progress:
-            create_task = progress.add_task(f'[green]Creating instance {args.name}...', total=100)
+            create_task = progress.add_task(
+                f"[green]Creating instance {args.name}...", total=100
+            )
             while not task.state == TaskState.DONE:
-                resp = self._api_client(uri=f'/api/tasks/{task.uid}',
-                                        expected_status=[200],
-                                        fallback_msg=f'Failed to fetch status for task {task.uid}')
+                resp = self._api_client(
+                    uri=f"/api/tasks/{task.uid}",
+                    expected_status=[200],
+                    fallback_msg=f"Failed to fetch status for task {task.uid}",
+                )
                 if not resp:
                     return 1
                 task = TaskGetSchema.model_validate(resp.json())
                 if task.state == TaskState.FAILED:
-                    progress.update(create_task, completed=100, refresh=True,
-                                    description=f'Failed: {task.msg}')
+                    progress.update(
+                        create_task,
+                        completed=100,
+                        refresh=True,
+                        description=f"Failed: {task.msg}",
+                    )
                     return 1
                 else:
-                    progress.update(create_task, completed=task.percent_complete, refresh=True)
+                    progress.update(
+                        create_task, completed=task.percent_complete, refresh=True
+                    )
                 time.sleep(2)
         return 0
 
     def modify(self, args: argparse.Namespace) -> int:
         del args
-        console.print('[yellow]Not yet implemented')
+        console.print("[yellow]Not yet implemented")
         return 1
 
     def start(self, args: argparse.Namespace) -> int:
         schema = InstanceModifySchema(state=InstanceState.STARTED)
-        resp = self._api_client(uri=f'/api/instances/{args.uid}',
-                                method='PUT',
-                                schema=schema,
-                                expected_status=[200],
-                                fallback_msg='Failed to start instance')
+        resp = self._api_client(
+            uri=f"/api/instances/{args.uid}",
+            method="PUT",
+            schema=schema,
+            expected_status=[200],
+            fallback_msg="Failed to start instance",
+        )
         return 0 if resp else 1
 
     def stop(self, args: argparse.Namespace) -> int:
         schema = InstanceModifySchema(state=InstanceState.STOPPED)
-        resp = self._api_client(uri=f'/api/instances/{args.uid}/state',
-                                method='PUT',
-                                schema=schema,
-                                expected_status=[200],
-                                fallback_msg='Failed to start instance')
+        resp = self._api_client(
+            uri=f"/api/instances/{args.uid}/state",
+            method="PUT",
+            schema=schema,
+            expected_status=[200],
+            fallback_msg="Failed to start instance",
+        )
         return 0 if resp else 1

@@ -5,9 +5,11 @@ import typing
 from kaso_mashin import KasoMashinException
 
 
-def execute(command: str,
-            args: typing.List[str],
-            cwd: typing.Optional[pathlib.Path] = pathlib.Path.cwd()) -> subprocess.CompletedProcess:
+def execute(
+    command: str,
+    args: typing.List[str],
+    cwd: typing.Optional[pathlib.Path] = pathlib.Path.cwd(),
+) -> subprocess.CompletedProcess:
     """
     Execute a command with the provided parameters
     Args:
@@ -24,10 +26,8 @@ def execute(command: str,
     """
     try:
         args.insert(0, str(command))
-        return subprocess.run(args=args,
-                              capture_output=True,
-                              check=True,
-                              encoding='UTF-8',
-                              cwd=cwd)
+        return subprocess.run(
+            args=args, capture_output=True, check=True, encoding="UTF-8", cwd=cwd
+        )
     except subprocess.CalledProcessError as cpe:
         raise KasoMashinException(status=cpe.returncode, msg=cpe.output) from cpe

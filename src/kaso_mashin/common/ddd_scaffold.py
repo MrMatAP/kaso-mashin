@@ -25,6 +25,7 @@ class Service(abc.ABC):
     """
     A domain service
     """
+
     pass
 
 
@@ -32,37 +33,41 @@ class ValueObject(abc.ABC):
     """
     A domain value object
     """
+
     pass
 
 
-T_ValueObject = typing.TypeVar('T_ValueObject', bound=ValueObject)
+T_ValueObject = typing.TypeVar("T_ValueObject", bound=ValueObject)
 
 
 class EntitySchema(BaseModel):
     """
     Schema base class for serialised entities
     """
+
     model_config = ConfigDict(from_attributes=True)
 
 
-T_EntitySchema = typing.TypeVar('T_EntitySchema', bound=EntitySchema)
-T_EntityListSchema = typing.TypeVar('T_EntityListSchema', bound=EntitySchema)
-T_EntityListEntrySchema = typing.TypeVar('T_EntityListEntrySchema', bound=EntitySchema)
-T_EntityGetSchema = typing.TypeVar('T_EntityGetSchema', bound=EntitySchema)
-T_EntityCreateSchema = typing.TypeVar('T_EntityCreateSchema', bound=EntitySchema)
-T_EntityModifySchema = typing.TypeVar('T_EntityModifySchema', bound=EntitySchema)
+T_EntitySchema = typing.TypeVar("T_EntitySchema", bound=EntitySchema)
+T_EntityListSchema = typing.TypeVar("T_EntityListSchema", bound=EntitySchema)
+T_EntityListEntrySchema = typing.TypeVar("T_EntityListEntrySchema", bound=EntitySchema)
+T_EntityGetSchema = typing.TypeVar("T_EntityGetSchema", bound=EntitySchema)
+T_EntityCreateSchema = typing.TypeVar("T_EntityCreateSchema", bound=EntitySchema)
+T_EntityModifySchema = typing.TypeVar("T_EntityModifySchema", bound=EntitySchema)
 
 
 class EntityModel(DeclarativeBase):
     """
     Base class for a persisted entity
     """
+
     __abstract__ = True
-    uid: Mapped[str] = mapped_column(UUID(as_uuid=True).with_variant(String(32), 'sqlite'),
-                                     primary_key=True)
+    uid: Mapped[str] = mapped_column(
+        UUID(as_uuid=True).with_variant(String(32), "sqlite"), primary_key=True
+    )
 
 
-T_EntityModel = typing.TypeVar('T_EntityModel', bound=EntityModel)
+T_EntityModel = typing.TypeVar("T_EntityModel", bound=EntityModel)
 
 
 class Entity:
@@ -78,13 +83,15 @@ class Entity:
         return self._uid
 
     def __eq__(self, other: object) -> bool:
-        return all([
-            isinstance(other, self.__class__),
-            self._uid == other.uid            # type: ignore[attr-defined]
-        ])
+        return all(
+            [
+                isinstance(other, self.__class__),
+                self._uid == other.uid,  # type: ignore[attr-defined]
+            ]
+        )
 
     def __repr__(self) -> str:
-        return f'<Entity(uid={self._uid})>'
+        return f"<Entity(uid={self._uid})>"
 
 
 T_Entity = typing.TypeVar("T_Entity", bound=Entity)
@@ -96,13 +103,14 @@ class AggregateRoot(typing.Generic[T_EntityModel, T_Entity]):
     Aggregate roots have two important class attributes that declare their repository and the model class they
     are associated with at runtime. These attributes are set by the repository when it is instantiated.
     """
-    runtime: 'Runtime' = None
-    repository: 'AsyncRepository' = None
+
+    runtime: "Runtime" = None
+    repository: "AsyncRepository" = None
     model_class: typing.Type[T_EntityModel] = None
 
     @staticmethod
     @abc.abstractmethod
-    async def create(**kwargs) -> 'T_AggregateRoot':
+    async def create(**kwargs) -> "T_AggregateRoot":
         pass
 
     @staticmethod
@@ -115,16 +123,18 @@ class AggregateRoot(typing.Generic[T_EntityModel, T_Entity]):
         pass
 
 
-T_AggregateRoot = typing.TypeVar('T_AggregateRoot', bound=AggregateRoot)
+T_AggregateRoot = typing.TypeVar("T_AggregateRoot", bound=AggregateRoot)
 
 
 class AsyncRepository(typing.Generic[T_AggregateRoot, T_EntityModel]):
 
-    def __init__(self,
-                 runtime: 'Runtime',
-                 session_maker: async_sessionmaker[AsyncSession],
-                 aggregate_root_class: typing.Type[T_AggregateRoot],
-                 model_class: typing.Type[T_EntityModel]):
+    def __init__(
+        self,
+        runtime: "Runtime",
+        session_maker: async_sessionmaker[AsyncSession],
+        aggregate_root_class: typing.Type[T_AggregateRoot],
+        model_class: typing.Type[T_EntityModel],
+    ):
         self._runtime = runtime
         self._session_maker = session_maker
         self._aggregate_root_class = aggregate_root_class
@@ -137,7 +147,7 @@ class AsyncRepository(typing.Generic[T_AggregateRoot, T_EntityModel]):
         async with self._session_maker() as session:
             model = await session.get(self._model_class, str(uid))
             if model is None:
-                raise EntityNotFoundException(status=400, msg='No such entity')
+                raise EntityNotFoundException(status=400, msg="No such entity")
             return await self._aggregate_root_class.from_model(model)
 
     async def list(self) -> typing.List[T_AggregateRoot]:
@@ -155,7 +165,7 @@ class AsyncRepository(typing.Generic[T_AggregateRoot, T_EntityModel]):
         async with self._session_maker() as session:
             model = await session.get(self._model_class, str(entity.uid))
             if model is None:
-                raise EntityNotFoundException(status=400, msg='No such entity')
+                raise EntityNotFoundException(status=400, msg="No such entity")
             session.add(await entity.to_model(model))
             await session.commit()
         return entity

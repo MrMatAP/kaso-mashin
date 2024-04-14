@@ -20,7 +20,7 @@ class DB:
         self._engine = None
         self._session = None
         self._async_sessionmaker = None
-        self._path = pathlib.Path(f'{self._config.path}/kaso.sqlite3')
+        self._path = pathlib.Path(f"{self._config.path}/kaso.sqlite3")
         self._owning_user = None
 
     def __del__(self):
@@ -45,7 +45,7 @@ class DB:
     @property
     def engine(self) -> sqlalchemy.Engine:
         if not self._engine:
-            self._engine = sqlalchemy.create_engine(f'sqlite:///{self.path}')
+            self._engine = sqlalchemy.create_engine(f"sqlite:///{self.path}")
             Base.metadata.create_all(self._engine)
         return self._engine
 
@@ -57,10 +57,16 @@ class DB:
         return self._session
 
     @property
-    async def async_sessionmaker(self) -> sqlalchemy.ext.asyncio.async_sessionmaker[sqlalchemy.ext.asyncio.AsyncSession]:
+    async def async_sessionmaker(
+        self,
+    ) -> sqlalchemy.ext.asyncio.async_sessionmaker[sqlalchemy.ext.asyncio.AsyncSession]:
         if not self._async_sessionmaker:
-            engine = sqlalchemy.ext.asyncio.create_async_engine(f'sqlite+aiosqlite:///{self.path}')
-            self._async_sessionmaker = sqlalchemy.ext.asyncio.async_sessionmaker(engine, expire_on_commit=False)
+            engine = sqlalchemy.ext.asyncio.create_async_engine(
+                f"sqlite+aiosqlite:///{self.path}"
+            )
+            self._async_sessionmaker = sqlalchemy.ext.asyncio.async_sessionmaker(
+                engine, expire_on_commit=False
+            )
             async with engine.begin() as conn:
                 await conn.run_sync(EntityModel.metadata.create_all)
             shutil.chown(self.path, user=self.owning_user)

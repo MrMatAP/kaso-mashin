@@ -8,8 +8,8 @@ class Renderable:
 
     def render_to(self, path: pathlib.Path):
         path.parent.mkdir(parents=True, exist_ok=True)
-        with open(path, mode='w', encoding='UTF-8') as p:
+        with open(path, mode="w", encoding="UTF-8") as p:
             p.write(self.render())
 
     def render(self) -> str:
-        return ''
+        return ""

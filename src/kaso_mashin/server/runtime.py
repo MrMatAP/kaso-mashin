@@ -14,15 +14,34 @@ from kaso_mashin.common.config import Config
 from kaso_mashin.server.db import DB
 
 from kaso_mashin.common.entities import (
-    TaskRepository, TaskModel, TaskEntity,
-    DiskRepository, DiskModel, DiskEntity,
-    ImageRepository, ImageModel, ImageEntity,
-    NetworkRepository, NetworkModel, NetworkEntity,
-    NetworkKind, DEFAULT_SHARED_NETWORK_NAME, DEFAULT_BRIDGED_NETWORK_NAME, DEFAULT_HOST_NETWORK_NAME,
-    InstanceRepository, InstanceModel, InstanceEntity,
-    BootstrapRepository, BootstrapModel, BootstrapEntity,
-    BootstrapKind, DEFAULT_K8S_MASTER_TEMPLATE_NAME, DEFAULT_K8S_SLAVE_TEMPLATE_NAME,
-    IdentityRepository, IdentityModel, IdentityEntity
+    TaskRepository,
+    TaskModel,
+    TaskEntity,
+    DiskRepository,
+    DiskModel,
+    DiskEntity,
+    ImageRepository,
+    ImageModel,
+    ImageEntity,
+    NetworkRepository,
+    NetworkModel,
+    NetworkEntity,
+    NetworkKind,
+    DEFAULT_SHARED_NETWORK_NAME,
+    DEFAULT_BRIDGED_NETWORK_NAME,
+    DEFAULT_HOST_NETWORK_NAME,
+    InstanceRepository,
+    InstanceModel,
+    InstanceEntity,
+    BootstrapRepository,
+    BootstrapModel,
+    BootstrapEntity,
+    BootstrapKind,
+    DEFAULT_K8S_MASTER_TEMPLATE_NAME,
+    DEFAULT_K8S_SLAVE_TEMPLATE_NAME,
+    IdentityRepository,
+    IdentityModel,
+    IdentityEntity,
 )
 from kaso_mashin.common.services import QEMUService
 
@@ -36,7 +55,7 @@ class Runtime:
         self._config = config
         self._db = db
         self._effective_user = getpass.getuser()
-        self._owning_user = os.environ.get('SUDO_USER', self._effective_user)
+        self._owning_user = os.environ.get("SUDO_USER", self._effective_user)
         self._db.owning_user = self._owning_user
         self._server_url = None
         self._task_repository = None
@@ -46,65 +65,96 @@ class Runtime:
         self._instance_repository = None
         self._bootstrap_repository = None
         self._identity_repository = None
-        self._uefi_code_path = config.bootstrap_path / 'uefi-code.fd'
-        self._uefi_vars_path = config.bootstrap_path / 'uefi-vars.fd'
+        self._uefi_code_path = config.bootstrap_path / "uefi-code.fd"
+        self._uefi_vars_path = config.bootstrap_path / "uefi-vars.fd"
         self._qemu_service = QEMUService(self)
 
     async def lifespan_uefi(self):
         client = httpx.AsyncClient(follow_redirects=True, timeout=60)
         if not self.uefi_code_path.exists():
-            async with client.stream('GET', url=self._config.uefi_code_url) as resp, aiofiles.open(self.uefi_code_path, 'wb') as file:
+            async with (
+                client.stream("GET", url=self._config.uefi_code_url) as resp,
+                aiofiles.open(self.uefi_code_path, "wb") as file,
+            ):
                 async for chunk in resp.aiter_bytes(chunk_size=8196):
                     await file.write(chunk)
             shutil.chown(path=self.uefi_code_path, user=self._owning_user)
         if not self.uefi_vars_path.exists():
-            async with client.stream('GET', url=self._config.uefi_vars_url) as resp, aiofiles.open(self.uefi_vars_path, 'wb') as file:
+            async with (
+                client.stream("GET", url=self._config.uefi_vars_url) as resp,
+                aiofiles.open(self.uefi_vars_path, "wb") as file,
+            ):
                 async for chunk in resp.aiter_bytes(chunk_size=8196):
                     await file.write(chunk)
                 shutil.chown(path=self.uefi_vars_path, user=self._owning_user)
 
     async def lifespan_bootstrap(self):
-        template_dir = pathlib.Path(__file__).parent.parent / 'common' / 'templates'
-        ignition_k8s_master = await self.bootstrap_repository.get_by_name(DEFAULT_K8S_MASTER_TEMPLATE_NAME)
+        template_dir = pathlib.Path(__file__).parent.parent / "common" / "templates"
+        ignition_k8s_master = await self.bootstrap_repository.get_by_name(
+            DEFAULT_K8S_MASTER_TEMPLATE_NAME
+        )
         if ignition_k8s_master is None:
-            ignition_k8s_master_template = template_dir / 'ignition_k8s_master.yaml'
-            await BootstrapEntity.create(name=DEFAULT_K8S_MASTER_TEMPLATE_NAME,
-                                         kind=BootstrapKind.IGNITION,
-                                         content=ignition_k8s_master_template.read_text(encoding='utf-8'))
-        ignition_k8s_slave = await self.bootstrap_repository.get_by_name(DEFAULT_K8S_SLAVE_TEMPLATE_NAME)
+            ignition_k8s_master_template = template_dir / "ignition_k8s_master.yaml"
+            await BootstrapEntity.create(
+                name=DEFAULT_K8S_MASTER_TEMPLATE_NAME,
+                kind=BootstrapKind.IGNITION,
+                content=ignition_k8s_master_template.read_text(encoding="utf-8"),
+            )
+        ignition_k8s_slave = await self.bootstrap_repository.get_by_name(
+            DEFAULT_K8S_SLAVE_TEMPLATE_NAME
+        )
         if ignition_k8s_slave is None:
-            ignition_k8s_slave_template = template_dir / 'ignition_k8s_slave.yaml'
-            await BootstrapEntity.create(name=DEFAULT_K8S_SLAVE_TEMPLATE_NAME,
-                                         kind=BootstrapKind.IGNITION,
-                                         content=ignition_k8s_slave_template.read_text(encoding='utf-8'))
+            ignition_k8s_slave_template = template_dir / "ignition_k8s_slave.yaml"
+            await BootstrapEntity.create(
+                name=DEFAULT_K8S_SLAVE_TEMPLATE_NAME,
+                kind=BootstrapKind.IGNITION,
+                content=ignition_k8s_slave_template.read_text(encoding="utf-8"),
+            )
 
     async def lifespan_server(self):
-        self._server_url = f'http://{self.config.default_server_host}:{self.config.default_server_port}'
+        self._server_url = f"http://{self.config.default_server_host}:{self.config.default_server_port}"
 
     async def lifespan_paths(self):
-        for path in self.config.path, self.config.images_path, self.config.instances_path, self.config.bootstrap_path:
+        for path in (
+            self.config.path,
+            self.config.images_path,
+            self.config.instances_path,
+            self.config.bootstrap_path,
+        ):
             path.mkdir(parents=True, exist_ok=True)
             shutil.chown(path=path, user=self.owning_user)
 
     async def lifespan_networks(self):
-        host_network = await self.network_repository.get_by_name(DEFAULT_HOST_NETWORK_NAME)
+        host_network = await self.network_repository.get_by_name(
+            DEFAULT_HOST_NETWORK_NAME
+        )
         if not host_network:
-            await NetworkEntity.create(name=DEFAULT_HOST_NETWORK_NAME,
-                                       kind=NetworkKind.VMNET_HOST,
-                                       cidr='10.1.0.0/24',
-                                       gateway='10.1.0.1')
-        shared_network = await self.network_repository.get_by_name(DEFAULT_SHARED_NETWORK_NAME)
+            await NetworkEntity.create(
+                name=DEFAULT_HOST_NETWORK_NAME,
+                kind=NetworkKind.VMNET_HOST,
+                cidr="10.1.0.0/24",
+                gateway="10.1.0.1",
+            )
+        shared_network = await self.network_repository.get_by_name(
+            DEFAULT_SHARED_NETWORK_NAME
+        )
         if not shared_network:
-            await NetworkEntity.create(name=DEFAULT_SHARED_NETWORK_NAME,
-                                       kind=NetworkKind.VMNET_SHARED,
-                                       cidr='10.2.0.0/24',
-                                       gateway='10.2.0.1')
-        bridged_network = await self.network_repository.get_by_name(DEFAULT_BRIDGED_NETWORK_NAME)
+            await NetworkEntity.create(
+                name=DEFAULT_SHARED_NETWORK_NAME,
+                kind=NetworkKind.VMNET_SHARED,
+                cidr="10.2.0.0/24",
+                gateway="10.2.0.1",
+            )
+        bridged_network = await self.network_repository.get_by_name(
+            DEFAULT_BRIDGED_NETWORK_NAME
+        )
         if not bridged_network:
-            await NetworkEntity.create(name=DEFAULT_BRIDGED_NETWORK_NAME,
-                                       kind=NetworkKind.VMNET_BRIDGED,
-                                       cidr='10.3.0.0/24',
-                                       gateway='10.3.0.1')
+            await NetworkEntity.create(
+                name=DEFAULT_BRIDGED_NETWORK_NAME,
+                kind=NetworkKind.VMNET_BRIDGED,
+                cidr="10.3.0.0/24",
+                gateway="10.3.0.1",
+            )
 
         # # TODO: Network updates should only happen in server mode, NOT in client mode
         # if not self.network_controller.get(name=NetworkController.DEFAULT_BRIDGED_NETWORK_NAME):
@@ -146,34 +196,48 @@ class Runtime:
     async def lifespan(self, app: fastapi.FastAPI):
         del app
         await self.lifespan_paths()
-        self._task_repository = TaskRepository(runtime=self,
-                                               session_maker=await self._db.async_sessionmaker,
-                                               aggregate_root_class=TaskEntity,
-                                               model_class=TaskModel)
-        self._disk_repository = DiskRepository(runtime=self,
-                                               session_maker=await self._db.async_sessionmaker,
-                                               aggregate_root_class=DiskEntity,
-                                               model_class=DiskModel)
-        self._image_repository = ImageRepository(runtime=self,
-                                                 session_maker=await self._db.async_sessionmaker,
-                                                 aggregate_root_class=ImageEntity,
-                                                 model_class=ImageModel)
-        self._network_repository = NetworkRepository(runtime=self,
-                                                     session_maker=await self._db.async_sessionmaker,
-                                                     aggregate_root_class=NetworkEntity,
-                                                     model_class=NetworkModel)
-        self._instance_repository = InstanceRepository(runtime=self,
-                                                       session_maker=await self._db.async_sessionmaker,
-                                                       aggregate_root_class=InstanceEntity,
-                                                       model_class=InstanceModel)
-        self._bootstrap_repository = BootstrapRepository(runtime=self,
-                                                         session_maker=await self._db.async_sessionmaker,
-                                                         aggregate_root_class=BootstrapEntity,
-                                                         model_class=BootstrapModel)
-        self._identity_repository = IdentityRepository(runtime=self,
-                                                       session_maker=await self._db.async_sessionmaker,
-                                                       aggregate_root_class=IdentityEntity,
-                                                       model_class=IdentityModel)
+        self._task_repository = TaskRepository(
+            runtime=self,
+            session_maker=await self._db.async_sessionmaker,
+            aggregate_root_class=TaskEntity,
+            model_class=TaskModel,
+        )
+        self._disk_repository = DiskRepository(
+            runtime=self,
+            session_maker=await self._db.async_sessionmaker,
+            aggregate_root_class=DiskEntity,
+            model_class=DiskModel,
+        )
+        self._image_repository = ImageRepository(
+            runtime=self,
+            session_maker=await self._db.async_sessionmaker,
+            aggregate_root_class=ImageEntity,
+            model_class=ImageModel,
+        )
+        self._network_repository = NetworkRepository(
+            runtime=self,
+            session_maker=await self._db.async_sessionmaker,
+            aggregate_root_class=NetworkEntity,
+            model_class=NetworkModel,
+        )
+        self._instance_repository = InstanceRepository(
+            runtime=self,
+            session_maker=await self._db.async_sessionmaker,
+            aggregate_root_class=InstanceEntity,
+            model_class=InstanceModel,
+        )
+        self._bootstrap_repository = BootstrapRepository(
+            runtime=self,
+            session_maker=await self._db.async_sessionmaker,
+            aggregate_root_class=BootstrapEntity,
+            model_class=BootstrapModel,
+        )
+        self._identity_repository = IdentityRepository(
+            runtime=self,
+            session_maker=await self._db.async_sessionmaker,
+            aggregate_root_class=IdentityEntity,
+            model_class=IdentityModel,
+        )
         await self.lifespan_networks()
         await self.lifespan_server()
         await self.lifespan_uefi()
