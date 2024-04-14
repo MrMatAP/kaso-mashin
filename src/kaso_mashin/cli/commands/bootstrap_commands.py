@@ -71,12 +71,12 @@ class BootstrapCommands(AbstractCommands):
         return 0
 
     def create(self, args: argparse.Namespace) -> int:
-        create_schema = BootstrapCreateSchema(name=args.name,
+        schema = BootstrapCreateSchema(name=args.name,
                                               kind=args.kind,
                                               content='<TODO>')
         resp = self.api_client(uri='/api/bootstraps/',
                                method='POST',
-                               body=create_schema.model_dump(),
+                               schema=schema,
                                expected_status=[201],
                                fallback_msg='Failed creating bootstrap')
         if not resp:
@@ -91,7 +91,7 @@ class BootstrapCommands(AbstractCommands):
                                        content='<TODO>')
         resp = self.api_client(uri=f'/api/bootstraps/{args.uid}',
                                method='PUT',
-                               body=schema.model_dump(),
+                               schema=schema,
                                expected_status=[200],
                                fallback_msg='Failed to modify bootstrap')
         if not resp:

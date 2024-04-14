@@ -1,5 +1,6 @@
 import argparse
 import pathlib
+import uuid
 
 import passlib.hash
 import rich.table
@@ -26,7 +27,7 @@ class IdentityCommands(AbstractCommands):
         identity_get_parser = identity_subparser.add_parser(name='get', help='Get an identity')
         identity_get_parser.add_argument('--uid',
                                          dest='uid',
-                                         type=str,
+                                         type=uuid.UUID,
                                          help='The identity uid')
         identity_get_parser.set_defaults(cmd=self.get)
         identity_create_parser = identity_subparser.add_parser(name='create', help='Create an identity')
@@ -65,7 +66,7 @@ class IdentityCommands(AbstractCommands):
         identity_modify_parser = identity_subparser.add_parser(name='modify', help='Modify an identity')
         identity_modify_parser.add_argument('--uid',
                                             dest='uid',
-                                            type=str,
+                                            type=uuid.UUID,
                                             required=True,
                                             help='The identity uid to modify')
         identity_modify_parser.add_argument('-n', '--name',
@@ -73,7 +74,6 @@ class IdentityCommands(AbstractCommands):
                                             type=str,
                                             required=False,
                                             help='Name of the identity')
-
         identity_modify_parser.add_argument('--gecos',
                                             dest='gecos',
                                             type=str,
@@ -107,7 +107,7 @@ class IdentityCommands(AbstractCommands):
         identity_remove_parser = identity_subparser.add_parser(name='remove', help='Remove an identity')
         identity_remove_parser.add_argument('--uid',
                                             dest='uid',
-                                            type=str,
+                                            type=uuid.UUID,
                                             required=True,
                                             help='The identity uid to remove')
         identity_remove_parser.set_defaults(cmd=self.remove)
@@ -161,7 +161,7 @@ class IdentityCommands(AbstractCommands):
             schema.passwd = passlib.hash.sha512_crypt.using(rounds=4096).hash(args.passwd)
         resp = self.api_client(uri='/api/identities/',
                                method='POST',
-                               body=schema.model_dump(),
+                               schema=schema,
                                expected_status=[201],
                                fallback_msg='Failed to create the identity')
         if not resp:
@@ -188,7 +188,7 @@ class IdentityCommands(AbstractCommands):
             schema.passwd = passlib.hash.sha512_crypt.using(rounds=4096).hash(args.passwd)
         resp = self.api_client(uri=f'/api/identities/{args.uid}',
                                method='PUT',
-                               body=schema.model_dump(),
+                               schema=schema,
                                expected_status=[200],
                                fallback_msg='Failed to modify identity')
         if not resp:

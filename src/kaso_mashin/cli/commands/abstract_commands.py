@@ -2,13 +2,15 @@ import abc
 import logging
 import typing
 import argparse
+
+import pydantic
 import httpx
 import rich.table
 import rich.box
 
 from kaso_mashin import console
 from kaso_mashin.common.config import Config
-from kaso_mashin.common.base_types import ExceptionSchema
+from kaso_mashin.common.base_types import ExceptionSchema, EntitySchema
 
 
 class AbstractCommands(abc.ABC):
@@ -36,7 +38,7 @@ class AbstractCommands(abc.ABC):
 
     def api_client(self,
                    uri: str,
-                   body: str = None,
+                   schema: EntitySchema = None,
                    method: str = 'GET',
                    expected_status: typing.List = None,
                    fallback_msg: str = 'Something bad and unknown happened...') -> httpx.Response | None:
@@ -46,7 +48,7 @@ class AbstractCommands(abc.ABC):
 
         Args:
             uri: The relative URI to invoke
-            body: An optional body for PUT or POST requests
+            schema: An optional body for PUT or POST requests
             method: The HTTP method, defaults to 'GET'
             expected_status: A list of HTTP status codes the client deems to be acceptable for success
             fallback_msg: A custom error message for failures
@@ -54,23 +56,30 @@ class AbstractCommands(abc.ABC):
         Returns:
             The httpx response or None upon failure
         """
-        if expected_status is None:
-            expected_status = [200]
-        resp = httpx.request(url=f'{self.config.server_url}{uri}',
-                             method=method,
-                             content=body,
-                             timeout=120)
-        if resp.status_code not in expected_status:
-            table = rich.table.Table(title='ERROR', box=rich.box.ROUNDED, show_header=False)
-            table.add_row('[red]Status:', str(resp.status_code))
-            try:
-                ex = ExceptionSchema.model_validate_json(resp.content)
-                table.add_row('[red]Message:', ex.msg)
-            except ValueError:
-                table.add_row('[red]Message:', fallback_msg)
-            console.print(table)
+        try:
+            if expected_status is None:
+                expected_status = [200]
+            content = schema.model_dump_json(exclude_unset=True) if schema is not None else None
+            resp = httpx.request(url=f'{self.config.server_url}{uri}',
+                                 method=method,
+                                 content=content,
+                                 timeout=120)
+            if resp.status_code not in expected_status:
+                table = rich.table.Table(title='ERROR', box=rich.box.ROUNDED, show_header=False)
+                table.add_row('[red]Status:', str(resp.status_code))
+                try:
+                    ex = ExceptionSchema.model_validate_json(resp.content)
+                    table.add_row('[red]Message:', ex.msg)
+                except ValueError:
+                    table.add_row('[red]Message:', fallback_msg)
+                console.print(table)
+                return None
+            return resp
+        except pydantic.ValidationError as ve:
+            table = rich.table.Table(title='Validation Error', box=rich.box.ROUNDED, show_header=False)
+            table.add_row('[red]Status', '422')
+            table.add_row('[red]Validation Problems', 'foo')
             return None
-        return resp
 
     @property
     def config(self) -> Config:

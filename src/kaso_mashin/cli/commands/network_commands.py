@@ -2,6 +2,7 @@ import argparse
 import uuid
 import ipaddress
 
+import pydantic
 import rich.table
 import rich.box
 import rich.columns
@@ -48,9 +49,21 @@ class NetworkCommands(AbstractCommands):
                                            help='The network CIDR')
         network_create_parser.add_argument('--gateway',
                                            dest='gateway',
-                                           type=str,
+                                           type=ipaddress.IPv4Address,
                                            required=True,
                                            help='The network gateway')
+        network_create_parser.add_argument('--dhcp-start',
+                                           dest='dhcp_start',
+                                           type=ipaddress.IPv4Address,
+                                           required=False,
+                                           default=None,
+                                           help='The DHCP start address')
+        network_create_parser.add_argument('--dhcp-end',
+                                           dest='dhcp_end',
+                                           type=ipaddress.IPv4Address,
+                                           required=False,
+                                           default=None,
+                                           help='The DHCP end address')
         network_create_parser.set_defaults(cmd=self.create)
         network_modify_parser = network_subparser.add_parser('modify', help='Modify a network')
         network_modify_parser.add_argument('--uid',
@@ -58,16 +71,36 @@ class NetworkCommands(AbstractCommands):
                                            type=uuid.UUID,
                                            required=True,
                                            help='The network uid')
+        network_modify_parser.add_argument('-n', '--name',
+                                           dest='name',
+                                           type=str,
+                                           required=False,
+                                           default=None,
+                                           help='The network name')
         network_modify_parser.add_argument('--cidr',
                                            dest='cidr',
-                                           type=str,
-                                           required=True,
+                                           type=ipaddress.IPv4Network,
+                                           required=False,
+                                           default=None,
                                            help='The network CIDR')
         network_modify_parser.add_argument('--gateway',
                                            dest='gateway',
-                                           type=str,
-                                           required=True,
+                                           type=ipaddress.IPv4Address,
+                                           required=False,
+                                           default=None,
                                            help='The network gateway')
+        network_modify_parser.add_argument('--dhcp-start',
+                                           dest='dhcp_start',
+                                           type=ipaddress.IPv4Address,
+                                           required=False,
+                                           default=None,
+                                           help='The DHCP start address')
+        network_modify_parser.add_argument('--dhcp-end',
+                                           dest='dhcp_end',
+                                           type=ipaddress.IPv4Address,
+                                           required=False,
+                                           default=None,
+                                           help='The DHCP end address')
         network_modify_parser.set_defaults(cmd=self.modify)
         network_remove_parser = network_subparser.add_parser('remove', help='Remove a network')
         network_remove_parser.add_argument('--uid',
@@ -110,10 +143,12 @@ class NetworkCommands(AbstractCommands):
         schema = NetworkCreateSchema(name=args.name,
                                      kind=args.kind,
                                      cidr=args.cidr,
-                                     gateway=args.gateway)
+                                     gateway=args.gateway,
+                                     dhcp_start=args.dhcp_start,
+                                     dhcp_end=args.dhcp_end)
         resp = self.api_client(uri='/api/networks/',
                                method='POST',
-                               body=schema.model_dump_json(),
+                               schema=schema,
                                expected_status=[201],
                                fallback_msg='Failed to create network')
         if not resp:
@@ -125,10 +160,12 @@ class NetworkCommands(AbstractCommands):
     def modify(self, args: argparse.Namespace) -> int:
         schema = NetworkModifySchema(name=args.name,
                                      cidr=args.cidr,
-                                     gateway=args.gateway)
+                                     gateway=args.gateway,
+                                     dhcp_start=args.dhcp_start,
+                                     dhcp_end=args.dhcp_end)
         resp = self.api_client(uri=f'/api/networks/{args.uid}',
                                method='PUT',
-                               body=schema.model_dump_json(),
+                               schema=schema,
                                expected_status=[200],
                                fallback_msg='Failed to modify network')
         if not resp:

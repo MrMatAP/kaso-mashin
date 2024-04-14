@@ -91,21 +91,21 @@ class InstanceCommands(AbstractCommands):
         instance_remove_parser = instance_subparser.add_parser(name='remove', help='Remove an instance')
         instance_remove_parser.add_argument('--uid',
                                             dest='uid',
-                                            type=str,
+                                            type=uuid.UUID,
                                             required=True,
                                             help='The instance uid')
         instance_remove_parser.set_defaults(cmd=self.remove)
         instance_start_parser = instance_subparser.add_parser(name='start', help='Start an instance')
         instance_start_parser.add_argument('--uid',
                                            dest='uid',
-                                           type=str,
+                                           type=uuid.UUID,
                                            required=True,
                                            help='The instance uid')
         instance_start_parser.set_defaults(cmd=self.start)
         instance_stop_parser = instance_subparser.add_parser(name='stop', help='Stop an instance')
         instance_stop_parser.add_argument('--id',
                                           dest='uid',
-                                          type=str,
+                                          type=uuid.UUID,
                                           required=True,
                                           help='The instance uid')
         instance_stop_parser.set_defaults(cmd=self.stop)
@@ -135,7 +135,7 @@ class InstanceCommands(AbstractCommands):
         return 0
 
     def create(self, args: argparse.Namespace) -> int:
-        create_schema = InstanceCreateSchema(name=args.name,
+        schema = InstanceCreateSchema(name=args.name,
                                              vcpu=args.vcpu,
                                              ram=BinarySizedValue(value=args.ram, scale=args.ram_scale),
                                              os_disk_size=BinarySizedValue(value=args.os_disk, scale=args.os_disk_scale),
@@ -144,7 +144,7 @@ class InstanceCommands(AbstractCommands):
                                              bootstrap_uid=args.bootstrap_uid)
         resp = self.api_client(uri='/api/instances/',
                                method='POST',
-                               body=create_schema.model_dump(),
+                               schema=schema,
                                expected_status=[201],
                                fallback_msg='Failed to create instance')
         if not resp:
@@ -190,7 +190,7 @@ class InstanceCommands(AbstractCommands):
         schema = InstanceModifySchema(state=InstanceState.STARTED)
         resp = self.api_client(uri=f'/api/instances/{args.uid}',
                                method='PUT',
-                               body=schema.model_dump(),
+                               schema=schema,
                                expected_status=[200],
                                fallback_msg='Failed to start instance')
         return 0 if resp else 1
@@ -199,7 +199,7 @@ class InstanceCommands(AbstractCommands):
         schema = InstanceModifySchema(state=InstanceState.STOPPED)
         resp = self.api_client(uri=f'/api/instances/{args.uid}/state',
                                method='PUT',
-                               body=schema.model_dump(),
+                               schema=schema,
                                expected_status=[200],
                                fallback_msg='Failed to start instance')
         return 0 if resp else 1

@@ -77,7 +77,7 @@ class ImageCommands(AbstractCommands):
         image_modify_parser = image_subparser.add_parser(name='modify', help='Modify an image')
         image_modify_parser.add_argument('--uid',
                                          dest='uid',
-                                         type=int,
+                                         type=uuid.UUID,
                                          required=True,
                                          help='The image uid')
         image_modify_parser.add_argument('--min-cpu',
@@ -109,7 +109,7 @@ class ImageCommands(AbstractCommands):
         image_remove_parser = image_subparser.add_parser(name='remove', help='Remove an image')
         image_remove_parser.add_argument('--uid',
                                          dest='uid',
-                                         type=int,
+                                         type=uuid.UUID,
                                          required=True,
                                          help='The image uid')
         image_remove_parser.set_defaults(cmd=self.remove)
@@ -140,16 +140,16 @@ class ImageCommands(AbstractCommands):
         return 0
 
     def create(self, args: argparse.Namespace) -> int:
-        create_schema = ImageCreateSchema(name=args.name,
+        schema = ImageCreateSchema(name=args.name,
                                           url=args.url or Predefined_Images.get(args.predefined),
                                           min_vcpu=args.min_vcpu,
                                           min_ram=BinarySizedValue(value=args.min_ram, scale=args.min_ram_scale),
                                           min_disk=BinarySizedValue(value=args.min_disk, scale=args.min_disk_scale))
         if args.url:
-            create_schema.url = args.url
+            schema.url = args.url
         resp = self.api_client(uri='/api/images/',
                                method='POST',
-                               body=create_schema.model_dump(),
+                               schema=schema,
                                expected_status=[201],
                                fallback_msg='Failed to download image')
         if not resp:
@@ -181,7 +181,7 @@ class ImageCommands(AbstractCommands):
                                    min_disk=BinarySizedValue(value=args.min_disk, scale=args.min_disk_scale))
         resp = self.api_client(uri=f'/api/images/{args.uid}',
                                method='PUT',
-                               body=schema.model_dump(),
+                               schema=schema,
                                expected_status=[200],
                                fallback_msg='Failed to modify image')
         if not resp:
