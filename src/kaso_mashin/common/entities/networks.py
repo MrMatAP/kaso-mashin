@@ -1,8 +1,8 @@
+import typing
 import enum
 import ipaddress
 
-from pydantic import Field
-
+from pydantic import Field, field_serializer
 from sqlalchemy import String, Enum, select
 from sqlalchemy.orm import Mapped, mapped_column
 
@@ -39,6 +39,10 @@ class NetworkListSchema(EntitySchema):
     cidr: ipaddress.IPv4Network = Field(description='The network CIDR',
                                         examples=['10.0.0.0/16', '172.16.2.0/24'])
 
+    @field_serializer('cidr', when_used='json-unless-none')
+    def serialize_cidr(self, cidr: ipaddress.IPv4Network) -> str:
+        return str(cidr)
+
 
 class NetworkCreateSchema(EntitySchema):
     """
@@ -51,14 +55,14 @@ class NetworkCreateSchema(EntitySchema):
                                         examples=['10.0.0.0/16', '172.16.2.0/24'])
     gateway: ipaddress.IPv4Address = Field(description='The network gateway',
                                            examples=['10.0.0.1', '172.16.2.1'])
-    dhcp_start: ipaddress.IPv4Address = Field(description='The dhcp start IPv4 address',
-                                              examples=['172.16.2.10'],
-                                              optional=True,
-                                              default=None)
-    dhcp_end: ipaddress.IPv4Address = Field(description='The dhcp end IPv4 address',
-                                            examples=['172.16.2.254'],
-                                            optional=True,
-                                            default=None)
+    dhcp_start: typing.Optional[ipaddress.IPv4Address] = Field(description='The dhcp start IPv4 address',
+                                                               examples=['172.16.2.10'],
+                                                               optional=True,
+                                                               default=None)
+    dhcp_end: typing.Optional[ipaddress.IPv4Address] = Field(description='The dhcp end IPv4 address',
+                                                             examples=['172.16.2.254'],
+                                                             optional=True,
+                                                             default=None)
 
 
 class NetworkGetSchema(NetworkCreateSchema):
@@ -73,26 +77,26 @@ class NetworkModifySchema(EntitySchema):
     """
     Schema to modify networks
     """
-    name: str = Field(description='The network name',
-                      examples=['foo', 'bar', 'baz'],
-                      optional=True,
-                      default=None)
-    cidr: ipaddress.IPv4Network = Field(description='The network CIDR',
-                                        examples=['10.0.0.0/16', '172.16.2.0/24'],
-                                        optional=True,
-                                        default=None)
-    gateway: ipaddress.IPv4Address = Field(description='The network gateway',
-                                           examples=['10.0.0.1', '172.16.2.1'],
-                                           optional=True,
-                                           default=None)
-    dhcp_start: ipaddress.IPv4Address = Field(description='The dhcp start IPv4 address',
-                                              examples=['172.16.2.10'],
-                                              optional=True,
-                                              default=None)
-    dhcp_end: ipaddress.IPv4Address = Field(description='The dhcp end IPv4 address',
-                                            examples=['172.16.2.254'],
-                                            optional=True,
-                                            default=None)
+    name: typing.Optional[str] = Field(description='The network name',
+                                       examples=['foo', 'bar', 'baz'],
+                                       optional=True,
+                                       default=None)
+    cidr: typing.Optional[ipaddress.IPv4Network] = Field(description='The network CIDR',
+                                                         examples=['10.0.0.0/16', '172.16.2.0/24'],
+                                                         optional=True,
+                                                         default=None)
+    gateway: typing.Optional[ipaddress.IPv4Address] = Field(description='The network gateway',
+                                                            examples=['10.0.0.1', '172.16.2.1'],
+                                                            optional=True,
+                                                            default=None)
+    dhcp_start: typing.Optional[ipaddress.IPv4Address] = Field(description='The dhcp start IPv4 address',
+                                                               examples=['172.16.2.10'],
+                                                               optional=True,
+                                                               default=None)
+    dhcp_end: typing.Optional[ipaddress.IPv4Address] = Field(description='The dhcp end IPv4 address',
+                                                             examples=['172.16.2.254'],
+                                                             optional=True,
+                                                             default=None)
 
 
 class NetworkException(KasoMashinException):

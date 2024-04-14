@@ -43,7 +43,7 @@ class NetworkCommands(AbstractCommands):
                                            help='The network kind')
         network_create_parser.add_argument('--cidr',
                                            dest='cidr',
-                                           type=str,
+                                           type=ipaddress.IPv4Network,
                                            required=True,
                                            help='The network CIDR')
         network_create_parser.add_argument('--gateway',
@@ -109,11 +109,11 @@ class NetworkCommands(AbstractCommands):
     def create(self, args: argparse.Namespace) -> int:
         schema = NetworkCreateSchema(name=args.name,
                                      kind=args.kind,
-                                     cidr=ipaddress.IPv4Network(args.cidr),
-                                     gateway=ipaddress.IPv4Address(args.gateway))
-        resp = self.api_client(uri='/api/networks',
+                                     cidr=args.cidr,
+                                     gateway=args.gateway)
+        resp = self.api_client(uri='/api/networks/',
                                method='POST',
-                               body=schema.model_dump(),
+                               body=schema.model_dump_json(),
                                expected_status=[201],
                                fallback_msg='Failed to create network')
         if not resp:
@@ -128,7 +128,7 @@ class NetworkCommands(AbstractCommands):
                                      gateway=args.gateway)
         resp = self.api_client(uri=f'/api/networks/{args.uid}',
                                method='PUT',
-                               body=schema.model_dump(),
+                               body=schema.model_dump_json(),
                                expected_status=[200],
                                fallback_msg='Failed to modify network')
         if not resp:
@@ -138,7 +138,7 @@ class NetworkCommands(AbstractCommands):
         return 0
 
     def remove(self, args: argparse.Namespace) -> int:
-        resp = self.api_client(uri=f'/api/networks/{args.network_id}',
+        resp = self.api_client(uri=f'/api/networks/{args.uid}',
                                method='DELETE',
                                expected_status=[204, 410],
                                fallback_msg='Failed to remove network')

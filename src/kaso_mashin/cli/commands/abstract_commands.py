@@ -36,7 +36,7 @@ class AbstractCommands(abc.ABC):
 
     def api_client(self,
                    uri: str,
-                   body: typing.Dict | typing.List = None,
+                   body: str = None,
                    method: str = 'GET',
                    expected_status: typing.List = None,
                    fallback_msg: str = 'Something bad and unknown happened...') -> httpx.Response | None:
@@ -58,7 +58,7 @@ class AbstractCommands(abc.ABC):
             expected_status = [200]
         resp = httpx.request(url=f'{self.config.server_url}{uri}',
                              method=method,
-                             json=body,
+                             content=body,
                              timeout=120)
         if resp.status_code not in expected_status:
             table = rich.table.Table(title='ERROR', box=rich.box.ROUNDED, show_header=False)
