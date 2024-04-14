@@ -1,8 +1,11 @@
+import typing
 import enum
 import pathlib
 import subprocess
 
 from pydantic import Field
+import rich.table
+import rich.box
 
 from sqlalchemy import String, Integer, Enum, UUID
 from sqlalchemy.orm import Mapped, mapped_column
@@ -19,7 +22,7 @@ from kaso_mashin.common import (
     BinarySizedValue, BinaryScale
 )
 
-from .images import ImageEntity, ImageGetSchema
+from .images import ImageEntity
 
 
 class DiskFormat(enum.StrEnum):
@@ -28,13 +31,31 @@ class DiskFormat(enum.StrEnum):
     VDI = 'vdi'
 
 
-class DiskListSchema(EntitySchema):
+class DiskListEntrySchema(EntitySchema):
     """
-    Schema to list disks
+    Schema for a disk list
     """
     uid: UniqueIdentifier = Field(description='The unique identifier',
                                   examples=['b430727e-2491-4184-bb4f-c7d6d213e093'])
     name: str = Field(description='The disk name', examples=['root', 'data-1', 'data-2'])
+
+
+class DiskListSchema(EntitySchema):
+    """
+    Schema to list disks
+    """
+    entries: typing.List[DiskListEntrySchema] = Field(description='List of disks',
+                                                      default_factory=list)
+
+    def __rich__(self):
+        table = rich.table.Table(box=rich.box.ROUNDED)
+        table.add_column('[blue]UID')
+        table.add_column('[blue]Kind')
+        table.add_column('[blue]Name')
+        table.add_column('[blue]CIDR')
+        for entry in self.entries:
+            table.add_row(str(entry.uid), entry.name)
+        return table
 
 
 class DiskGetSchema(EntitySchema):

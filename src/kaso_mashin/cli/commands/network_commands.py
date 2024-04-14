@@ -2,22 +2,25 @@ import argparse
 import uuid
 import ipaddress
 
-import rich.table
-import rich.box
-import rich.columns
-
 from kaso_mashin import console
-from kaso_mashin.cli.commands import AbstractCommands
+from kaso_mashin.cli.commands import BaseCommands
+from kaso_mashin.common.config import Config
 from kaso_mashin.common.entities import (
     NetworkListSchema, NetworkGetSchema, NetworkCreateSchema, NetworkModifySchema,
     NetworkKind
 )
 
 
-class NetworkCommands(AbstractCommands):
+class NetworkCommands(BaseCommands[NetworkListSchema, NetworkGetSchema]):
     """
     Implementation of the network command group
     """
+
+    def __init__(self, config: Config):
+        super().__init__(config)
+        self._prefix = '/api/networks'
+        self._list_schema_type = NetworkListSchema
+        self._get_schema_type = NetworkGetSchema
 
     def register_commands(self, parser: argparse.ArgumentParser):
         network_subparser = parser.add_subparsers()
@@ -109,28 +112,6 @@ class NetworkCommands(AbstractCommands):
                                            help='The network uid')
         network_remove_parser.set_defaults(cmd=self.remove)
 
-    def list(self, args: argparse.Namespace) -> int:
-        del args
-        resp = self.api_client(uri='/api/networks/', expected_status=[200])
-        if not resp:
-            return 1
-        networks = [NetworkListSchema.model_validate(network) for network in resp.json()]
-        table = NetworkListSchema.__rich_table()
-        for network in networks:
-            table.add_row(network.__rich_table_row())
-        console.print(table)
-        return 0
-
-    def get(self, args: argparse.Namespace) -> int:
-        resp = self.api_client(uri=f'/api/networks/{args.uid}',
-                               expected_status=[200],
-                               fallback_msg=f'Network with id {args.uid} could not be found')
-        if not resp:
-            return 1
-        network = NetworkGetSchema.model_validate_json(resp.content)
-        console.print(network)
-        return 0
-
     def create(self, args: argparse.Namespace) -> int:
         schema = NetworkCreateSchema(name=args.name,
                                      kind=args.kind,
@@ -138,11 +119,11 @@ class NetworkCommands(AbstractCommands):
                                      gateway=args.gateway,
                                      dhcp_start=args.dhcp_start,
                                      dhcp_end=args.dhcp_end)
-        resp = self.api_client(uri='/api/networks/',
-                               method='POST',
-                               schema=schema,
-                               expected_status=[201],
-                               fallback_msg='Failed to create network')
+        resp = self._api_client(uri='/api/networks/',
+                                method='POST',
+                                schema=schema,
+                                expected_status=[201],
+                                fallback_msg='Failed to create network')
         if not resp:
             return 1
         network = NetworkGetSchema.model_validate_json(resp.content)
@@ -155,26 +136,13 @@ class NetworkCommands(AbstractCommands):
                                      gateway=args.gateway,
                                      dhcp_start=args.dhcp_start,
                                      dhcp_end=args.dhcp_end)
-        resp = self.api_client(uri=f'/api/networks/{args.uid}',
-                               method='PUT',
-                               schema=schema,
-                               expected_status=[200],
-                               fallback_msg='Failed to modify network')
+        resp = self._api_client(uri=f'/api/networks/{args.uid}',
+                                method='PUT',
+                                schema=schema,
+                                expected_status=[200],
+                                fallback_msg='Failed to modify network')
         if not resp:
             return 1
         network = NetworkGetSchema.model_validate_json(resp.content)
         console.print(network)
         return 0
-
-    def remove(self, args: argparse.Namespace) -> int:
-        resp = self.api_client(uri=f'/api/networks/{args.uid}',
-                               method='DELETE',
-                               expected_status=[204, 410],
-                               fallback_msg='Failed to remove network')
-        if not resp:
-            return 1
-        if resp.status_code == 204:
-            console.print(f'Removed network with id {args.uid}')
-        elif resp.status_code == 410:
-            console.print(f'Network with id {args.uid} does not exist')
-        return 0 if resp else 1

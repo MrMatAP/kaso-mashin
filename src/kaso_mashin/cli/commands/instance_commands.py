@@ -8,17 +8,24 @@ import rich.columns
 import rich.progress
 
 from kaso_mashin import console
-from kaso_mashin.cli.commands import AbstractCommands
+from kaso_mashin.cli.commands import BaseCommands
 from kaso_mashin.common.base_types import BinaryScale, BinarySizedValue
+from kaso_mashin.common.config import Config
 from kaso_mashin.common.entities import (
     TaskGetSchema, TaskState, InstanceState,
     InstanceListSchema, InstanceGetSchema, InstanceCreateSchema, InstanceModifySchema)
 
 
-class InstanceCommands(AbstractCommands):
+class InstanceCommands(BaseCommands[InstanceListSchema, InstanceGetSchema]):
     """
     Implementation of instance command group
     """
+
+    def __init__(self, config: Config):
+        super().__init__(config)
+        self._prefix = '/api/instances'
+        self._list_schema_type = InstanceListSchema
+        self._get_schema_type = InstanceGetSchema
 
     def register_commands(self, parser: argparse.ArgumentParser):
         instance_subparser = parser.add_subparsers()
@@ -110,52 +117,28 @@ class InstanceCommands(AbstractCommands):
                                           help='The instance uid')
         instance_stop_parser.set_defaults(cmd=self.stop)
 
-    def list(self, args: argparse.Namespace) -> int:
-        del args
-        resp = self.api_client(uri='/api/instances/', expected_status=[200])
-        if not resp:
-            return 1
-        instances = [InstanceListSchema.model_validate(instance) for instance in resp.json()]
-        table = rich.table.Table(box=rich.box.ROUNDED)
-        table.add_column('[blue]ID')
-        table.add_column('[blue]Name')
-        for instance in instances:
-            table.add_row(str(instance.uid), instance.name)
-        console.print(table)
-        return 0
-
-    def get(self, args: argparse.Namespace) -> int:
-        resp = self.api_client(uri=f'/api/instances/{args.uid}',
-                               expected_status=[200],
-                               fallback_msg=f'Instance with id {args.uid} could not be found')
-        if not resp:
-            return 1
-        instance = InstanceGetSchema.model_validate_json(resp.content)
-        console.print(instance)
-        return 0
-
     def create(self, args: argparse.Namespace) -> int:
         schema = InstanceCreateSchema(name=args.name,
-                                             vcpu=args.vcpu,
-                                             ram=BinarySizedValue(value=args.ram, scale=args.ram_scale),
-                                             os_disk_size=BinarySizedValue(value=args.os_disk, scale=args.os_disk_scale),
-                                             image_uid=args.image_uid,
-                                             network_uid=args.network_uid,
-                                             bootstrap_uid=args.bootstrap_uid)
-        resp = self.api_client(uri='/api/instances/',
-                               method='POST',
-                               schema=schema,
-                               expected_status=[201],
-                               fallback_msg='Failed to create instance')
+                                      vcpu=args.vcpu,
+                                      ram=BinarySizedValue(value=args.ram, scale=args.ram_scale),
+                                      os_disk_size=BinarySizedValue(value=args.os_disk, scale=args.os_disk_scale),
+                                      image_uid=args.image_uid,
+                                      network_uid=args.network_uid,
+                                      bootstrap_uid=args.bootstrap_uid)
+        resp = self._api_client(uri='/api/instances/',
+                                method='POST',
+                                schema=schema,
+                                expected_status=[201],
+                                fallback_msg='Failed to create instance')
         if not resp:
             return 1
         task = TaskGetSchema.model_validate(resp.json())
         with rich.progress.Progress() as progress:
             create_task = progress.add_task(f'[green]Creating instance {args.name}...', total=100)
             while not task.state == TaskState.DONE:
-                resp = self.api_client(uri=f'/api/tasks/{task.uid}',
-                                       expected_status=[200],
-                                       fallback_msg=f'Failed to fetch status for task {task.uid}')
+                resp = self._api_client(uri=f'/api/tasks/{task.uid}',
+                                        expected_status=[200],
+                                        fallback_msg=f'Failed to fetch status for task {task.uid}')
                 if not resp:
                     return 1
                 task = TaskGetSchema.model_validate(resp.json())
@@ -173,33 +156,20 @@ class InstanceCommands(AbstractCommands):
         console.print('[yellow]Not yet implemented')
         return 1
 
-    def remove(self, args: argparse.Namespace) -> int:
-        resp = self.api_client(uri=f'/api/instances/{args.uid}',
-                               method='DELETE',
-                               expected_status=[204, 410],
-                               fallback_msg='Failed to remove instance')
-        if not resp:
-            return 1
-        if resp.status_code == 204:
-            console.print(f'Removed instance with id {args.uid}')
-        elif resp.status_code == 410:
-            console.print(f'Identity with id {args.uid} does not exist')
-        return 0 if resp else 1
-
     def start(self, args: argparse.Namespace) -> int:
         schema = InstanceModifySchema(state=InstanceState.STARTED)
-        resp = self.api_client(uri=f'/api/instances/{args.uid}',
-                               method='PUT',
-                               schema=schema,
-                               expected_status=[200],
-                               fallback_msg='Failed to start instance')
+        resp = self._api_client(uri=f'/api/instances/{args.uid}',
+                                method='PUT',
+                                schema=schema,
+                                expected_status=[200],
+                                fallback_msg='Failed to start instance')
         return 0 if resp else 1
 
     def stop(self, args: argparse.Namespace) -> int:
         schema = InstanceModifySchema(state=InstanceState.STOPPED)
-        resp = self.api_client(uri=f'/api/instances/{args.uid}/state',
-                               method='PUT',
-                               schema=schema,
-                               expected_status=[200],
-                               fallback_msg='Failed to start instance')
+        resp = self._api_client(uri=f'/api/instances/{args.uid}/state',
+                                method='PUT',
+                                schema=schema,
+                                expected_status=[200],
+                                fallback_msg='Failed to start instance')
         return 0 if resp else 1

@@ -1,3 +1,4 @@
+import typing
 import enum
 import re
 import pathlib
@@ -41,13 +42,29 @@ class InstanceState(str, enum.Enum):
 MAC_VENDOR_PREFIX = '00:50:56'
 
 
-class InstanceListSchema(EntitySchema):
+class InstanceListEntrySchema(EntitySchema):
     """
-    Schema to list instances
+    Schema for an instance list
     """
     uid: UniqueIdentifier = Field(description='The unique identifier of the instance',
                                   examples=['b430727e-2491-4184-bb4f-c7d6d213e093'])
     name: str = Field(description='The instance name', examples=['k8s-master', 'your-mom'])
+
+
+class InstanceListSchema(EntitySchema):
+    """
+    Schema to list instances
+    """
+    entries: typing.List[InstanceListEntrySchema] = Field(description='List of instances',
+                                                          default_factory=list)
+
+    def __rich__(self):
+        table = rich.table.Table(box=rich.box.ROUNDED)
+        table.add_column('[blue]UID')
+        table.add_column('[blue]Name')
+        for entry in self.entries:
+            table.add_row(str(entry.uid), entry.name)
+        return table
 
 
 class InstanceCreateSchema(EntitySchema):

@@ -5,12 +5,10 @@ import pytest
 from conftest import seed, BaseTest
 
 from kaso_mashin.common import (
-    UniqueIdentifier, EntityNotFoundException,
-    T_Entity, T_EntityModel,
-    T_EntityGetSchema, T_EntityListSchema)
+    UniqueIdentifier, EntityNotFoundException)
 from kaso_mashin.common.entities import (
     IdentityModel, IdentityEntity,
-    IdentityListSchema, IdentityGetSchema, IdentityModifySchema)
+    IdentityListSchema, IdentityListEntrySchema, IdentityGetSchema, IdentityModifySchema)
 
 
 @pytest.mark.asyncio(scope='session')
@@ -25,7 +23,8 @@ class TestEmptyEntityIdentities:
     async def test_list_api(self, test_context_empty):
         resp = test_context_empty.client.get('/api/identities/')
         assert 200 == resp.status_code
-        assert [] == resp.json()
+        schema = IdentityListSchema.model_validate_json(resp.content)
+        assert [] == schema.entries
 
     async def test_get_by_uid(self, test_context_empty):
         with pytest.raises(EntityNotFoundException) as enfe:
@@ -63,13 +62,13 @@ class TestSeededIdentities(BaseTest[IdentityModel, IdentityEntity, IdentityGetSc
     Test behaviour of Identity entities in a seeded database
     """
 
-    def assert_list_by_model(self, obj: T_EntityListSchema | T_Entity, model: T_EntityModel):
+    def assert_list_by_model(self, obj: IdentityListEntrySchema | IdentityEntity, model: IdentityModel):
         assert obj.uid == UniqueIdentifier(model.uid)
         assert obj.name == model.name
         assert obj.kind == model.kind
         assert obj.gecos == model.gecos
 
-    def assert_get_by_model(self, obj: T_EntityGetSchema | T_Entity, model: T_EntityModel):
+    def assert_get_by_model(self, obj: IdentityGetSchema | IdentityEntity, model: IdentityModel):
         assert obj.uid == UniqueIdentifier(model.uid)
         assert obj.name == model.name
         assert obj.kind == model.kind
@@ -89,12 +88,11 @@ class TestSeededIdentities(BaseTest[IdentityModel, IdentityEntity, IdentityGetSc
     async def test_list_api(self, test_context_seeded):
         resp = test_context_seeded.client.get('/api/identities/')
         assert 200 == resp.status_code
-        schemata = resp.json()
-        assert len(seed.get('identities')) == len(schemata)
-        for entry in schemata:
-            schema = IdentityListSchema.model_validate(entry)
-            model = self.find_match_in_seeds(schema.uid, seed['identities'])
-            self.assert_list_by_model(schema, model)
+        schema = IdentityListSchema.model_validate_json(resp.content)
+        assert len(seed.get('identities')) == len(schema.entries)
+        for entry in schema.entries:
+            model = self.find_match_in_seeds(entry.uid, seed['identities'])
+            self.assert_list_by_model(entry, model)
 
     @pytest.mark.parametrize('identity', seed.get('identities', []))
     async def test_get(self, test_context_seeded, identity):

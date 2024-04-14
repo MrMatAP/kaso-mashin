@@ -3,22 +3,26 @@ import pathlib
 import uuid
 
 import passlib.hash
-import rich.table
-import rich.box
-import rich.tree
 
 from kaso_mashin import console
-from kaso_mashin.cli.commands import AbstractCommands
+from kaso_mashin.cli.commands import BaseCommands
+from kaso_mashin.common.config import Config
 from kaso_mashin.common.entities import (
     IdentityListSchema, IdentityGetSchema, IdentityCreateSchema, IdentityModifySchema,
     IdentityKind
 )
 
 
-class IdentityCommands(AbstractCommands):
+class IdentityCommands(BaseCommands[IdentityListSchema, IdentityGetSchema]):
     """
     Implementation of the identity command group
     """
+
+    def __init__(self, config: Config):
+        super().__init__(config)
+        self._prefix = '/api/identities'
+        self._list_schema_type = IdentityListSchema
+        self._get_schema_type = IdentityGetSchema
 
     def register_commands(self, parser: argparse.ArgumentParser):
         identity_subparser = parser.add_subparsers()
@@ -112,32 +116,6 @@ class IdentityCommands(AbstractCommands):
                                             help='The identity uid to remove')
         identity_remove_parser.set_defaults(cmd=self.remove)
 
-    def list(self, args: argparse.Namespace) -> int:
-        del args
-        resp = self.api_client(uri='/api/identities/', expected_status=[200])
-        if not resp:
-            return 1
-        identities = [IdentityListSchema.model_validate(identity) for identity in resp.json()]
-        table = rich.table.Table(box=rich.box.ROUNDED)
-        table.add_column('[blue]UID')
-        table.add_column('[blue]Name')
-        table.add_column('[blue]Kind')
-        table.add_column('[blue]GECOS')
-        for identity in identities:
-            table.add_row(str(identity.uid), identity.name, identity.kind, identity.gecos)
-        console.print(table)
-        return 0
-
-    def get(self, args: argparse.Namespace) -> int:
-        resp = self.api_client(uri=f'/api/identities/{args.uid}',
-                               expected_status=[200],
-                               fallback_msg=f'Identity with id {args.uid} could not be found')
-        if not resp:
-            return 1
-        identity = IdentityGetSchema.model_validate_json(resp.content)
-        console.print(identity)
-        return 0
-
     def create(self, args: argparse.Namespace) -> int:
         schema = IdentityCreateSchema(name=args.name,
                                       kind=IdentityKind.PUBKEY,
@@ -159,11 +137,11 @@ class IdentityCommands(AbstractCommands):
         else:
             schema.kind = IdentityKind.PASSWORD
             schema.passwd = passlib.hash.sha512_crypt.using(rounds=4096).hash(args.passwd)
-        resp = self.api_client(uri='/api/identities/',
-                               method='POST',
-                               schema=schema,
-                               expected_status=[201],
-                               fallback_msg='Failed to create the identity')
+        resp = self._api_client(uri=f'{self.prefix}/',
+                                method='POST',
+                                schema=schema,
+                                expected_status=[201],
+                                fallback_msg='Failed to create the identity')
         if not resp:
             return 1
         identity = IdentityGetSchema.model_validate_json(resp.content)
@@ -186,26 +164,13 @@ class IdentityCommands(AbstractCommands):
                 schema.pubkey = p.read().strip()
         if args.passwd:
             schema.passwd = passlib.hash.sha512_crypt.using(rounds=4096).hash(args.passwd)
-        resp = self.api_client(uri=f'/api/identities/{args.uid}',
-                               method='PUT',
-                               schema=schema,
-                               expected_status=[200],
-                               fallback_msg='Failed to modify identity')
+        resp = self._api_client(uri=f'{self.prefix}/{args.uid}',
+                                method='PUT',
+                                schema=schema,
+                                expected_status=[200],
+                                fallback_msg='Failed to modify identity')
         if not resp:
             return 1
         identity = IdentityGetSchema.model_validate_json(resp.content)
         console.print(identity)
         return 0
-
-    def remove(self, args: argparse.Namespace) -> int:
-        resp = self.api_client(uri=f'/api/identities/{args.uid}',
-                               method='DELETE',
-                               expected_status=[204, 410],
-                               fallback_msg='Failed to remove identity')
-        if not resp:
-            return 1
-        if resp.status_code == 204:
-            console.print(f'Removed identity with id {args.uid}')
-        elif resp.status_code == 410:
-            console.print(f'Identity with id {args.uid} does not exist')
-        return 0 if resp else 1

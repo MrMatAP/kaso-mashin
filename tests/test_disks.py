@@ -5,12 +5,10 @@ import pytest
 from conftest import seed, BaseTest
 
 from kaso_mashin.common import (
-    UniqueIdentifier, EntityNotFoundException, BinarySizedValue, BinaryScale,
-    T_Entity, T_EntityModel,
-    T_EntityGetSchema, T_EntityListSchema)
+    UniqueIdentifier, EntityNotFoundException, BinarySizedValue, BinaryScale )
 from kaso_mashin.common.entities import (
     DiskModel, DiskEntity,
-    DiskListSchema, DiskGetSchema, DiskModifySchema, DiskFormat)
+    DiskListSchema, DiskListEntrySchema, DiskGetSchema, DiskModifySchema, DiskFormat)
 
 
 @pytest.mark.asyncio(scope='session')
@@ -25,7 +23,8 @@ class TestEmptyDisks:
     async def test_list_api(self, test_context_empty):
         resp = test_context_empty.client.get('/api/disks/')
         assert 200 == resp.status_code
-        assert [] == resp.json()
+        schema = DiskListSchema.model_validate_json(resp.content)
+        assert [] == schema.entries
 
     async def test_get_by_uid(self, test_context_empty):
         with pytest.raises(EntityNotFoundException) as enfe:
@@ -40,11 +39,11 @@ class TestSeededDisks(BaseTest[DiskModel, DiskEntity, DiskGetSchema]):
     Test behaviour of Identity entities in a seeded database
     """
 
-    def assert_list_by_model(self, obj: T_EntityListSchema | T_Entity, model: T_EntityModel):
+    def assert_list_by_model(self, obj: DiskListEntrySchema | DiskEntity, model: DiskModel):
         assert obj.uid == UniqueIdentifier(model.uid)
         assert obj.name == model.name
 
-    def assert_get_by_model(self, obj: T_EntityGetSchema | T_Entity, model: T_EntityModel):
+    def assert_get_by_model(self, obj: DiskGetSchema | DiskEntity, model: DiskModel):
         assert obj.uid == UniqueIdentifier(model.uid)
         assert obj.path == pathlib.Path(model.path)
         assert obj.size.value == model.size
@@ -68,12 +67,11 @@ class TestSeededDisks(BaseTest[DiskModel, DiskEntity, DiskGetSchema]):
     async def test_list_api(self, test_context_seeded):
         resp = test_context_seeded.client.get('/api/disks/')
         assert 200 == resp.status_code
-        schemata = resp.json()
-        assert len(seed.get('disks')) == len(schemata)
-        for entry in schemata:
-            schema = DiskListSchema.model_validate(entry)
-            model = self.find_match_in_seeds(schema.uid, seed['disks'])
-            self.assert_list_by_model(schema, model)
+        schema = DiskListSchema.model_validate_json(resp.content)
+        assert len(seed.get('disks')) == len(schema.entries)
+        for entry in schema.entries:
+            model = self.find_match_in_seeds(entry.uid, seed['disks'])
+            self.assert_list_by_model(entry, model)
 
     @pytest.mark.parametrize('disk', seed.get('disks', []))
     async def test_get(self, test_context_seeded, disk):

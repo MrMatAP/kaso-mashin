@@ -15,7 +15,7 @@
     <option name="ADD_SOURCE_ROOTS" value="true" />
     <EXTENSION ID="PythonCoverageRunConfigurationExtension" runner="coverage.py" />
     <option name="SCRIPT_NAME" value="kaso_mashin.cli.run" />
-    <option name="PARAMETERS" value="network create -n test -k vmnet-host --cidr 172.16.27.0/24 --gateway 172.16.27.1" />
+    <option name="PARAMETERS" value="network create -n test -k vmnet-host --cidr 172.16.27.1/24 --gateway 172.16.27.1" />
     <option name="SHOW_COMMAND_LINE" value="false" />
     <option name="EMULATE_TERMINAL" value="true" />
     <option name="MODULE_MODE" value="true" />

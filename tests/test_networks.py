@@ -5,12 +5,10 @@ import pytest
 from conftest import seed, BaseTest
 
 from kaso_mashin.common import (
-    UniqueIdentifier, EntityNotFoundException,
-    T_Entity, T_EntityModel,
-    T_EntityGetSchema, T_EntityListSchema)
+    UniqueIdentifier, EntityNotFoundException)
 from kaso_mashin.common.entities import (
     NetworkModel, NetworkEntity,
-    NetworkListSchema, NetworkGetSchema, NetworkModifySchema,
+    NetworkListSchema, NetworkListEntrySchema, NetworkGetSchema, NetworkModifySchema,
     DEFAULT_HOST_NETWORK_NAME, DEFAULT_BRIDGED_NETWORK_NAME, DEFAULT_SHARED_NETWORK_NAME)
 
 
@@ -26,7 +24,8 @@ class TestEmptyNetworks:
     async def test_list_api(self, test_context_empty):
         resp = test_context_empty.client.get('/api/networks/')
         assert 200 == resp.status_code
-        assert 3 == len(resp.json()), 'Three base networks are pre-created'
+        schema = NetworkListSchema.model_validate_json(resp.content)
+        assert 3 == len(schema.entries), '3 default networks are precreated'
 
     async def test_get_by_uid(self, test_context_empty):
         with pytest.raises(EntityNotFoundException) as enfe:
@@ -38,13 +37,13 @@ class TestEmptyNetworks:
 @pytest.mark.asyncio(scope='session')
 class TestSeededNetworks(BaseTest[NetworkModel, NetworkEntity, NetworkGetSchema]):
 
-    def assert_list_by_model(self, obj: T_EntityListSchema | T_Entity, model: T_EntityModel):
+    def assert_list_by_model(self, obj: NetworkListEntrySchema | NetworkEntity, model: NetworkModel):
         assert obj.uid == UniqueIdentifier(model.uid)
         assert obj.name == model.name
         assert obj.kind == model.kind
         assert obj.cidr == ipaddress.IPv4Network(model.cidr)
 
-    def assert_get_by_model(self, obj: T_EntityGetSchema | T_Entity, model: T_EntityModel):
+    def assert_get_by_model(self, obj: NetworkGetSchema | NetworkEntity, model: NetworkModel):
         assert obj.uid == UniqueIdentifier(model.uid)
         assert obj.name == model.name
         assert obj.kind == model.kind
@@ -66,14 +65,13 @@ class TestSeededNetworks(BaseTest[NetworkModel, NetworkEntity, NetworkGetSchema]
     async def test_list_api(self, test_context_seeded):
         resp = test_context_seeded.client.get('/api/networks/')
         assert 200 == resp.status_code
-        schemata = resp.json()
-        assert len(seed.get('networks')) + 3 == len(schemata)
-        for entry in schemata:
-            schema = NetworkListSchema.model_validate(entry)
-            if schema.name in [DEFAULT_BRIDGED_NETWORK_NAME, DEFAULT_SHARED_NETWORK_NAME, DEFAULT_HOST_NETWORK_NAME]:
+        schema = NetworkListSchema.model_validate_json(resp.content)
+        assert len(seed.get('networks')) + 3 == len(schema.entries)
+        for entry in schema.entries:
+            if entry.name in [DEFAULT_BRIDGED_NETWORK_NAME, DEFAULT_SHARED_NETWORK_NAME, DEFAULT_HOST_NETWORK_NAME]:
                 continue
-            model = self.find_match_in_seeds(schema.uid, seed['networks'])
-            self.assert_list_by_model(schema, model)
+            model = self.find_match_in_seeds(entry.uid, seed['networks'])
+            self.assert_list_by_model(entry, model)
 
     @pytest.mark.parametrize('network', seed.get('networks', []))
     async def test_get(self, test_context_seeded, network):
@@ -94,4 +92,3 @@ class TestSeededNetworks(BaseTest[NetworkModel, NetworkEntity, NetworkGetSchema]
         entity = await test_context_seeded.runtime.network_repository.get_by_uid(network.uid)
         mod = NetworkModifySchema(name=f'{entity.name} - Modified')
         await entity.modify(mod)
-

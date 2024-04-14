@@ -9,19 +9,21 @@ from kaso_mashin.server.apis import BaseAPI
 from kaso_mashin.server.runtime import Runtime
 from kaso_mashin.common.entities import (
     IdentityEntity,
-    IdentityListSchema, IdentityGetSchema, IdentityCreateSchema, IdentityModifySchema, TaskGetSchema
+    IdentityListSchema, IdentityListEntrySchema, IdentityGetSchema, IdentityCreateSchema, IdentityModifySchema,
+    TaskGetSchema
 )
 
 
-class IdentityAPI(BaseAPI):
+class IdentityAPI(BaseAPI[IdentityListSchema, IdentityListEntrySchema, IdentityGetSchema, IdentityCreateSchema, IdentityModifySchema]):
     """
     The identity API
     """
 
     def __init__(self, runtime: Runtime):
         super().__init__(runtime,
-                         name='Identitiy',
+                         name='Identity',
                          list_schema_type=IdentityListSchema,
+                         list_entry_schema_type=IdentityListEntrySchema,
                          get_schema_type=IdentityGetSchema,
                          create_schema_type=IdentityCreateSchema,
                          modify_schema_type=IdentityModifySchema)

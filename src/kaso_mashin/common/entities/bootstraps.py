@@ -159,14 +159,31 @@ class BootstrapRepository(AsyncRepository[BootstrapEntity, BootstrapModel]):
             return await self._aggregate_root_class.from_model(model)
 
 
-class BootstrapListSchema(EntitySchema):
+class BootstrapListEntrySchema(EntitySchema):
     """
-    Schema to list bootstraps
+    Schema for a bootstrap list
     """
     uid: UniqueIdentifier = Field(description='The unique identifier',
                                   examples=['b430727e-2491-4184-bb4f-c7d6d213e093'])
     name: str = Field(description='The bootstrap name', examples=['k8s-master'])
     kind: BootstrapKind = Field(description='The bootstrap kind', examples=[BootstrapKind.IGNITION])
+
+
+class BootstrapListSchema(EntitySchema):
+    """
+    Schema to list bootstraps
+    """
+    entries: typing.List[BootstrapListEntrySchema] = Field(description='List of bootstraps',
+                                                           default_factory=list)
+
+    def __rich__(self):
+        table = rich.table.Table(box=rich.box.ROUNDED)
+        table.add_column('[blue]UID')
+        table.add_column('[blue]Kind')
+        table.add_column('[blue]Name')
+        for entry in self.entries:
+            table.add_row(str(entry.uid), str(entry.kind.value), entry.name)
+        return table
 
 
 class BootstrapCreateSchema(EntitySchema):

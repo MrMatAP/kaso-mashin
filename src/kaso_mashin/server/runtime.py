@@ -24,6 +24,7 @@ from kaso_mashin.common.entities import (
     BootstrapKind, DEFAULT_K8S_MASTER_TEMPLATE_NAME, DEFAULT_K8S_SLAVE_TEMPLATE_NAME,
     IdentityRepository, IdentityModel, IdentityEntity
 )
+from kaso_mashin.common.services import QEMUService
 
 
 class Runtime:
@@ -47,6 +48,7 @@ class Runtime:
         self._identity_repository = None
         self._uefi_code_path = config.bootstrap_path / 'uefi-code.fd'
         self._uefi_vars_path = config.bootstrap_path / 'uefi-vars.fd'
+        self._qemu_service = QEMUService(self)
 
     async def lifespan_uefi(self):
         client = httpx.AsyncClient(follow_redirects=True, timeout=60)
@@ -143,6 +145,7 @@ class Runtime:
     @contextlib.asynccontextmanager
     async def lifespan(self, app: fastapi.FastAPI):
         del app
+        await self.lifespan_paths()
         self._task_repository = TaskRepository(runtime=self,
                                                session_maker=await self._db.async_sessionmaker,
                                                aggregate_root_class=TaskEntity,
@@ -172,7 +175,6 @@ class Runtime:
                                                        aggregate_root_class=IdentityEntity,
                                                        model_class=IdentityModel)
         await self.lifespan_networks()
-        await self.lifespan_paths()
         await self.lifespan_server()
         await self.lifespan_uefi()
         await self.lifespan_bootstrap()
@@ -205,6 +207,10 @@ class Runtime:
     @property
     def identity_repository(self) -> IdentityRepository:
         return self._identity_repository
+
+    @property
+    def qemu_service(self) -> QEMUService:
+        return self._qemu_service
 
     @property
     def config(self) -> Config:

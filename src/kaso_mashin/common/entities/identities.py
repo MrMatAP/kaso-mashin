@@ -1,3 +1,4 @@
+import typing
 import enum
 import pathlib
 
@@ -31,15 +32,36 @@ class IdentityException(KasoMashinException):
     pass
 
 
-class IdentityListSchema(EntitySchema):
+class IdentityListEntrySchema(EntitySchema):
     """
-    Schema to list identities
+    Schema for a identity list
     """
     uid: UniqueIdentifier = Field(description='The unique identifier',
                                   examples=['b430727e-2491-4184-bb4f-c7d6d213e093'])
     name: str = Field(description='The identity name', examples=['imfeldma'])
     kind: IdentityKind = Field(description='The identity kind')
     gecos: str = Field(description='The identity GECOS')
+
+
+class IdentityListSchema(EntitySchema):
+    """
+    Schema to list identities
+    """
+    entries: typing.List[IdentityListEntrySchema] = Field(description='List of identities',
+                                                          default_factory=list)
+
+    def __rich__(self):
+        table = rich.table.Table(box=rich.box.ROUNDED)
+        table.add_column('[blue]UID')
+        table.add_column('[blue]Kind')
+        table.add_column('[blue]Name')
+        table.add_column('[blue]Gecos')
+        for entry in self.entries:
+            table.add_row(str(entry.uid),
+                          str(entry.kind.value),
+                          entry.name,
+                          entry.gecos)
+        return table
 
 
 class IdentityGetSchema(EntitySchema):

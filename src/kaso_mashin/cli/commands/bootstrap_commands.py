@@ -1,19 +1,23 @@
 import argparse
 import uuid
 
-import rich.table
-import rich.box
-
 from kaso_mashin import console
-from kaso_mashin.cli.commands import AbstractCommands
+from kaso_mashin.cli.commands import BaseCommands
+from kaso_mashin.common.config import Config
 from kaso_mashin.common.entities import (
     BootstrapListSchema, BootstrapGetSchema, BootstrapCreateSchema, BootstrapModifySchema)
 
 
-class BootstrapCommands(AbstractCommands):
+class BootstrapCommands(BaseCommands[BootstrapListSchema, BootstrapGetSchema]):
     """
     Implementation of the bootstrap command group
     """
+
+    def __init__(self, config: Config):
+        super().__init__(config)
+        self._prefix = '/api/bootstraps'
+        self._list_schema_type = BootstrapListSchema
+        self._get_schema_type = BootstrapGetSchema
 
     def register_commands(self, parser: argparse.ArgumentParser):
         bootstrap_subparser = parser.add_subparsers()
@@ -45,40 +49,15 @@ class BootstrapCommands(AbstractCommands):
                                              help='The bootstrap uid')
         bootstrap_remove_parser.set_defaults(cmd=self.remove)
 
-    def list(self, args: argparse.Namespace) -> int:
-        del args
-        resp = self.api_client(uri='/api/bootstraps/',
-                               expected_status=[200])
-        if not resp:
-            return 1
-        bootstraps = [BootstrapListSchema.model_validate(bs) for bs in resp.json()]
-        table = rich.table.Table(box=rich.box.ROUNDED)
-        table.add_column('[blue]ID')
-        table.add_column('[blue]Name')
-        for bootstrap in bootstraps:
-            table.add_row(str(bootstrap.uid), bootstrap.name)
-        console.print(table)
-        return 0
-
-    def get(self, args: argparse.Namespace) -> int:
-        resp = self.api_client(uri=f'/api/bootstraps/{args.uid}',
-                               expected_status=[200],
-                               fallback_msg='Bootstrap not found')
-        if not resp:
-            return 1
-        bootstrap = BootstrapGetSchema.model_validate_json(resp.content)
-        console.print(bootstrap)
-        return 0
-
     def create(self, args: argparse.Namespace) -> int:
         schema = BootstrapCreateSchema(name=args.name,
-                                              kind=args.kind,
-                                              content='<TODO>')
-        resp = self.api_client(uri='/api/bootstraps/',
-                               method='POST',
-                               schema=schema,
-                               expected_status=[201],
-                               fallback_msg='Failed creating bootstrap')
+                                       kind=args.kind,
+                                       content='<TODO>')
+        resp = self._api_client(uri='/api/bootstraps/',
+                                method='POST',
+                                schema=schema,
+                                expected_status=[201],
+                                fallback_msg='Failed creating bootstrap')
         if not resp:
             return 1
         bootstrap = BootstrapGetSchema.model_validate(resp.content)
@@ -89,25 +68,14 @@ class BootstrapCommands(AbstractCommands):
         schema = BootstrapModifySchema(name=args.name,
                                        kind=args.kind,
                                        content='<TODO>')
-        resp = self.api_client(uri=f'/api/bootstraps/{args.uid}',
-                               method='PUT',
-                               schema=schema,
-                               expected_status=[200],
-                               fallback_msg='Failed to modify bootstrap')
+        resp = self._api_client(uri=f'/api/bootstraps/{args.uid}',
+                                method='PUT',
+                                schema=schema,
+                                expected_status=[200],
+                                fallback_msg='Failed to modify bootstrap')
         if not resp:
             return 1
         bootstrap = BootstrapGetSchema.model_validate(resp.content)
         console.print(bootstrap)
 
-    def remove(self, args: argparse.Namespace) -> int:
-        resp = self.api_client(uri=f'/api/bootstraps/{args.uid}',
-                               method='DELETE',
-                               expected_status=[204, 410],
-                               fallback_msg='Failed to remove bootstrap')
-        if not resp:
-            return 1
-        if resp.status_code == 204:
-            console.print(f'Removed bootstrap with id {args.uid}')
-        elif resp.status_code == 404:
-            console.print(f'Bootstrap with id {args.uid} does not exist')
-        return 0
+

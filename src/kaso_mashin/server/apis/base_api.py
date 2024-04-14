@@ -7,14 +7,14 @@ import fastapi
 
 from kaso_mashin.server.runtime import Runtime
 from kaso_mashin.common import (
-    T_EntityListSchema, T_EntityGetSchema, T_EntityCreateSchema, T_EntityModifySchema,
+    T_EntityListSchema, T_EntityListEntrySchema, T_EntityGetSchema, T_EntityCreateSchema, T_EntityModifySchema,
     AsyncRepository, EntityNotFoundException
 )
 from kaso_mashin.common.entities import TaskGetSchema
 from kaso_mashin.common.base_types import ExceptionSchema
 
 
-class BaseAPI(Generic[T_EntityListSchema, T_EntityGetSchema, T_EntityCreateSchema, T_EntityModifySchema], abc.ABC):
+class BaseAPI(Generic[T_EntityListSchema, T_EntityListEntrySchema, T_EntityGetSchema, T_EntityCreateSchema, T_EntityModifySchema], abc.ABC):
     """
     An abstract base class for APIs
     """
@@ -23,6 +23,7 @@ class BaseAPI(Generic[T_EntityListSchema, T_EntityGetSchema, T_EntityCreateSchem
                  runtime: Runtime,
                  name: str,
                  list_schema_type: Type[T_EntityListSchema],
+                 list_entry_schema_type: Type[T_EntityListEntrySchema],
                  get_schema_type: Type[T_EntityGetSchema],
                  create_schema_type: Type[T_EntityCreateSchema],
                  modify_schema_type: Type[T_EntityModifySchema],
@@ -30,6 +31,7 @@ class BaseAPI(Generic[T_EntityListSchema, T_EntityGetSchema, T_EntityCreateSchem
         self._runtime = runtime
         self._name = name
         self._list_schema_type = list_schema_type
+        self._list_entry_schema_type = list_entry_schema_type
         self._get_schema_type = get_schema_type
         self._create_schema_type = create_schema_type
         self._modify_schema_type = modify_schema_type
@@ -91,9 +93,9 @@ class BaseAPI(Generic[T_EntityListSchema, T_EntityGetSchema, T_EntityCreateSchem
         self._logger = logging.getLogger(f'{self.__class__.__module__}.{self.__class__.__name__}')
         self._logger.info(f'Started API Router for {name}')
 
-    async def list(self) -> List[T_EntityListSchema]:
+    async def list(self) -> T_EntityListSchema:
         entities = await self.repository.list()
-        return [self._list_schema_type.model_validate(e) for e in entities]
+        return self._list_schema_type(entries=[self._list_entry_schema_type.model_validate(e) for e in entities])
 
     async def get(self,
                   uid: Annotated[UUID, fastapi.Path(title='Entity UUID',

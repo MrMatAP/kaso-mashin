@@ -6,12 +6,10 @@ from conftest import seed, BaseTest
 
 
 from kaso_mashin.common import (
-    UniqueIdentifier, EntityNotFoundException,
-    T_Entity, T_EntityModel,
-    T_EntityGetSchema, T_EntityListSchema)
+    UniqueIdentifier, EntityNotFoundException)
 from kaso_mashin.common.entities import (
     InstanceModel, InstanceEntity,
-    InstanceListSchema, InstanceGetSchema, InstanceModifySchema)
+    InstanceListSchema, InstanceListEntrySchema, InstanceGetSchema, InstanceModifySchema)
 
 
 @pytest.mark.asyncio(scope='session')
@@ -26,7 +24,8 @@ class TestEmptyInstances:
     async def test_list_api(self, test_context_empty):
         resp = test_context_empty.client.get('/api/instances/')
         assert 200 == resp.status_code
-        assert 0 == len(resp.json())
+        schema = InstanceListSchema.model_validate_json(resp.content)
+        assert [] == schema.entries
 
     async def test_get_by_uid(self, test_context_empty):
         with pytest.raises(EntityNotFoundException) as enfe:
@@ -38,11 +37,11 @@ class TestEmptyInstances:
 @pytest.mark.asyncio(scope='session')
 class TestSeededInstances(BaseTest[InstanceModel, InstanceEntity, InstanceGetSchema]):
 
-    def assert_list_by_model(self, obj: T_EntityListSchema | T_Entity, model: T_EntityModel):
+    def assert_list_by_model(self, obj: InstanceListEntrySchema | InstanceEntity, model: InstanceModel):
         assert obj.uid == UniqueIdentifier(model.uid)
         assert obj.name == model.name
 
-    def assert_get_by_model(self, obj: T_EntityGetSchema | T_Entity, model: T_EntityModel):
+    def assert_get_by_model(self, obj: InstanceGetSchema | InstanceEntity, model: InstanceModel):
         assert obj.uid == UniqueIdentifier(model.uid)
         assert obj.name == model.name
         assert obj.path == pathlib.Path(model.path)
@@ -52,3 +51,4 @@ class TestSeededInstances(BaseTest[InstanceModel, InstanceEntity, InstanceGetSch
         assert obj.mac == model.mac
         # TODO: os_disk and network
         assert obj.bootstrap_file == pathlib.Path(model.bootstrap_file)
+

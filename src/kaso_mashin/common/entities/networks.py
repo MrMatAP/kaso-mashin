@@ -30,9 +30,9 @@ class NetworkKind(str, enum.Enum):
     VMNET_BRIDGED = 'vmnet-bridged'
 
 
-class NetworkListSchema(EntitySchema):
+class NetworkListEntrySchema(EntitySchema):
     """
-    Schema to list networks
+    Schema for a network list
     """
     uid: UniqueIdentifier = Field(description='The unique identifier',
                                   examples=['b430727e-2491-4184-bb4f-c7d6d213e093'])
@@ -42,17 +42,26 @@ class NetworkListSchema(EntitySchema):
     cidr: ipaddress.IPv4Network = Field(description='The network CIDR',
                                         examples=['10.0.0.0/16', '172.16.2.0/24'])
 
-    @staticmethod
-    def __rich_table():
+
+class NetworkListSchema(EntitySchema):
+    """
+    Schema to list networks
+    """
+    entries: typing.List[NetworkListEntrySchema] = Field(description='List of networks',
+                                                         default_factory=list)
+
+    def __rich__(self):
         table = rich.table.Table(box=rich.box.ROUNDED)
         table.add_column('[blue]UID')
         table.add_column('[blue]Kind')
         table.add_column('[blue]Name')
         table.add_column('[blue]CIDR')
+        for entry in self.entries:
+            table.add_row(str(entry.uid),
+                          str(entry.kind.value),
+                          entry.name,
+                          str(entry.cidr))
         return table
-
-    def __rich_table_row(self) -> typing.List[str]:
-        return [str(self.uid), str(self.kind.value), self.name, str(self.cidr)]
 
 
 class NetworkCreateSchema(EntitySchema):
@@ -246,19 +255,19 @@ class NetworkEntity(Entity, AggregateRoot):
     @staticmethod
     async def create(name: str,
                      kind: NetworkKind,
-                     cidr: str,
-                     gateway: str,
-                     dhcp_start: str = None,
-                     dhcp_end: str = None) -> 'NetworkEntity':
+                     cidr: ipaddress.IPv4Network,
+                     gateway: ipaddress.IPv4Address,
+                     dhcp_start: ipaddress.IPv4Address = None,
+                     dhcp_end: ipaddress.IPv4Address = None) -> 'NetworkEntity':
         if dhcp_start is None or dhcp_end is None:
             network = ipaddress.IPv4Network(cidr)
             hosts = list(network.hosts())
-            dhcp_start = hosts[2] or ipaddress.IPv4Address(dhcp_start)
-            dhcp_end = hosts[-1] or ipaddress.IPv4Address(dhcp_end)
+            dhcp_start = hosts[2] or dhcp_start
+            dhcp_end = hosts[-1] or dhcp_end
         network = NetworkEntity(name=name,
                                 kind=kind,
-                                cidr=ipaddress.IPv4Network(cidr),
-                                gateway=ipaddress.IPv4Address(gateway),
+                                cidr=cidr,
+                                gateway=gateway,
                                 dhcp_start=dhcp_start,
                                 dhcp_end=dhcp_end)
         await NetworkEntity.repository.create(network)

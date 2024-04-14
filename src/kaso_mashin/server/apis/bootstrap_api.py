@@ -8,11 +8,11 @@ from kaso_mashin.server.apis import BaseAPI
 from kaso_mashin.server.runtime import Runtime
 from kaso_mashin.common.entities import (
     BootstrapEntity,
-    BootstrapListSchema, BootstrapGetSchema, BootstrapCreateSchema, BootstrapModifySchema
+    BootstrapListSchema, BootstrapListEntrySchema, BootstrapGetSchema, BootstrapCreateSchema, BootstrapModifySchema
 )
 
 
-class BootstrapAPI(BaseAPI[BootstrapListSchema, BootstrapGetSchema, BootstrapCreateSchema, BootstrapModifySchema]):
+class BootstrapAPI(BaseAPI[BootstrapListSchema, BootstrapListEntrySchema, BootstrapGetSchema, BootstrapCreateSchema, BootstrapModifySchema]):
     """
     The Bootstrap API
     """
@@ -21,6 +21,7 @@ class BootstrapAPI(BaseAPI[BootstrapListSchema, BootstrapGetSchema, BootstrapCre
         super().__init__(runtime=runtime,
                          name='Bootstrap Template',
                          list_schema_type=BootstrapListSchema,
+                         list_entry_schema_type=BootstrapListEntrySchema,
                          get_schema_type=BootstrapGetSchema,
                          create_schema_type=BootstrapCreateSchema,
                          modify_schema_type=BootstrapModifySchema)

@@ -9,18 +9,24 @@ import rich.columns
 import rich.progress
 
 from kaso_mashin import console
-from kaso_mashin.cli.commands import AbstractCommands
+from kaso_mashin.cli.commands import BaseCommands
 from kaso_mashin.common.base_types import BinaryScale, BinarySizedValue
 from kaso_mashin.common.entities import (
     TaskGetSchema, TaskState,
     ImageListSchema, ImageGetSchema, ImageCreateSchema, ImageModifySchema)
-from kaso_mashin.common.config import Predefined_Images
+from kaso_mashin.common.config import Predefined_Images, Config
 
 
-class ImageCommands(AbstractCommands):
+class ImageCommands(BaseCommands[ImageListSchema, ImageGetSchema]):
     """
     Implementation of the image command group
     """
+
+    def __init__(self, config: Config):
+        super().__init__(config)
+        self._prefix = '/api/images'
+        self._list_schema_type = ImageListSchema
+        self._get_schema_type = ImageGetSchema
 
     def register_commands(self, parser: argparse.ArgumentParser):
         image_subparser = parser.add_subparsers()
@@ -119,31 +125,6 @@ class ImageCommands(AbstractCommands):
                                          help='The image uid')
         image_remove_parser.set_defaults(cmd=self.remove)
 
-    def list(self, args: argparse.Namespace) -> int:
-        del args
-        resp = self.api_client(uri='/api/images/',
-                               expected_status=[200])
-        if not resp:
-            return 1
-        images = [ImageListSchema.model_validate(img) for img in resp.json()]
-        table = rich.table.Table(box=rich.box.ROUNDED)
-        table.add_column('[blue]ID')
-        table.add_column('[blue]Name')
-        for image in images:
-            table.add_row(str(image.uid), image.name)
-        console.print(table)
-        return 0
-
-    def get(self, args: argparse.Namespace) -> int:
-        resp = self.api_client(uri=f'/api/images/{args.uid}',
-                               expected_status=[200],
-                               fallback_msg='Image not found')
-        if not resp:
-            return 1
-        image = ImageGetSchema.model_validate_json(resp.content)
-        console.print(image)
-        return 0
-
     def create(self, args: argparse.Namespace) -> int:
         schema = ImageCreateSchema(name=args.name,
                                    url=args.url or Predefined_Images.get(args.predefined),
@@ -152,20 +133,20 @@ class ImageCommands(AbstractCommands):
                                    min_disk=BinarySizedValue(value=args.min_disk, scale=args.min_disk_scale))
         if args.url:
             schema.url = args.url
-        resp = self.api_client(uri='/api/images/',
-                               method='POST',
-                               schema=schema,
-                               expected_status=[201],
-                               fallback_msg='Failed to download image')
+        resp = self._api_client(uri='/api/images/',
+                                method='POST',
+                                schema=schema,
+                                expected_status=[201],
+                                fallback_msg='Failed to download image')
         if not resp:
             return 1
         task = TaskGetSchema.model_validate(resp.json())
         with rich.progress.Progress() as progress:
             download_task = progress.add_task(f'[green]Download image {args.name}...', total=100, visible=True)
             while not task.state == TaskState.DONE:
-                resp = self.api_client(uri=f'/api/tasks/{task.uid}',
-                                       expected_status=[200],
-                                       fallback_msg=f'Failed to fetch status for task {task.uid}')
+                resp = self._api_client(uri=f'/api/tasks/{task.uid}',
+                                        expected_status=[200],
+                                        fallback_msg=f'Failed to fetch status for task {task.uid}')
                 if not resp:
                     return 1
                 task = TaskGetSchema.model_validate(resp.json())
@@ -184,26 +165,13 @@ class ImageCommands(AbstractCommands):
         schema = ImageModifySchema(min_vcpu=args.min_cpu or -1,
                                    min_ram=BinarySizedValue(value=args.min_ram, scale=args.min_ram_scale),
                                    min_disk=BinarySizedValue(value=args.min_disk, scale=args.min_disk_scale))
-        resp = self.api_client(uri=f'/api/images/{args.uid}',
-                               method='PUT',
-                               schema=schema,
-                               expected_status=[200],
-                               fallback_msg='Failed to modify image')
+        resp = self._api_client(uri=f'/api/images/{args.uid}',
+                                method='PUT',
+                                schema=schema,
+                                expected_status=[200],
+                                fallback_msg='Failed to modify image')
         if not resp:
             return 1
         image = ImageGetSchema.model_validate_json(resp.content)
         console.print(image)
         return 0
-
-    def remove(self, args: argparse.Namespace) -> int:
-        resp = self.api_client(f'/api/images/{args.uid}',
-                               method='DELETE',
-                               expected_status=[204, 410],
-                               fallback_msg='Failed to remove image')
-        if not resp:
-            return 1
-        if resp.status_code == 204:
-            console.print(f'Removed image with id {args.uid}')
-        elif resp.status_code == 410:
-            console.print(f'Image with id {args.uid} does not exist')
-        return 0 if resp else 1

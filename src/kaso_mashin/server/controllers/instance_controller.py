@@ -62,8 +62,8 @@ class InstanceController(AbstractController):
         model.console_path = model.path.joinpath('console.sock')
         task.progress(1, f'Calculated instance path at {model.path}')
 
-        identities = [self.identity_controller.get(i.identity_id) for i in model.identities]
-        model.identities = identities
+        identities = [self.identity_controller.get(i.identity_id) for i in model.entries]
+        model.entries = identities
         task.progress(2, 'Resolved all provided identities')
 
         self.db.session.add(model)

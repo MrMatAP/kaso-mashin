@@ -2,6 +2,8 @@ import typing
 import enum
 
 from pydantic import Field
+import rich.table
+import rich.box
 from sqlalchemy.ext.asyncio import async_sessionmaker, AsyncSession
 
 from kaso_mashin import KasoMashinException
@@ -23,6 +25,51 @@ class TaskState(str, enum.Enum):
     RUNNING = 'running'
     DONE = 'done'
     FAILED = 'failed'
+
+
+class TaskListEntrySchema(EntitySchema):
+    """
+    Schema for a task list
+    """
+    uid: UniqueIdentifier = Field(description='The unique identifier', examples=['b430727e-2491-4184-bb4f-c7d6d213e093'])
+    name: str = Field(description='Task name', example=['Downloading image'])
+    state: TaskState = Field(description='The current state of the task', examples=[TaskState.RUNNING, TaskState.DONE])
+
+
+class TaskListSchema(EntitySchema):
+    """
+    Schema to list tasks
+    """
+    entries: typing.List[TaskListEntrySchema] = Field(description='List of tasks',
+                                                      default_factory=list)
+
+    def __rich__(self):
+        table = rich.table.Table(box=rich.box.ROUNDED)
+        table.add_column('[blue]UID')
+        table.add_column('[blue]Name')
+        table.add_column('[blue]State')
+        for entry in self.entries:
+            table.add_row(str(entry.uid), entry.name, str(entry.state))
+        return table
+
+
+class TaskGetSchema(TaskListEntrySchema):
+    """
+    Schema to get information about a specific task
+    """
+    msg: str = Field(description='Task status message', examples=['Downloaded 10% of the image'])
+    percent_complete: int = Field(description='Task completion', examples=[12, 100])
+
+    def __rich__(self):
+        table = rich.table.Table(box=rich.box.ROUNDED)
+        table.add_column('Field')
+        table.add_column('Value')
+        table.add_row('[blue]UID', str(self.uid))
+        table.add_row('[blue]Name', self.name)
+        table.add_row('[blue]State', str(self.state))
+        table.add_row('[blue]Message', str(self.msg))
+        table.add_row('[blue]Percent Complete', f'{self.percent_complete} %')
+        return table
 
 
 class TaskException(KasoMashinException):
@@ -161,20 +208,3 @@ class TaskRepository(AsyncRepository[TaskEntity, TaskModel]):
         if uid not in self._identity_map:
             raise EntityNotFoundException(status=400, msg='No such entity')
         del self._identity_map[uid]
-
-
-class TaskListSchema(EntitySchema):
-    """
-    Schema to list tasks
-    """
-    uid: UniqueIdentifier = Field(description='The unique identifier', examples=['b430727e-2491-4184-bb4f-c7d6d213e093'])
-    name: str = Field(description='Task name', example=['Downloading image'])
-    state: TaskState = Field(description='The current state of the task', examples=[TaskState.RUNNING, TaskState.DONE])
-
-
-class TaskGetSchema(TaskListSchema):
-    """
-    Schema to get information about a specific task
-    """
-    msg: str = Field(description='Task status message', examples=['Downloaded 10% of the image'])
-    percent_complete: int = Field(description='Task completion', examples=[12, 100])

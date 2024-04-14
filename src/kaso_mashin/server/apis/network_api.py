@@ -8,11 +8,11 @@ from kaso_mashin.server.apis import BaseAPI
 from kaso_mashin.server.runtime import Runtime
 from kaso_mashin.common.entities import (
     NetworkEntity,
-    NetworkListSchema, NetworkGetSchema, NetworkCreateSchema, NetworkModifySchema
+    NetworkListSchema, NetworkListEntrySchema, NetworkGetSchema, NetworkCreateSchema, NetworkModifySchema
 )
 
 
-class NetworkAPI(BaseAPI[NetworkListSchema, NetworkGetSchema, NetworkCreateSchema, NetworkModifySchema]):
+class NetworkAPI(BaseAPI[NetworkListSchema, NetworkListEntrySchema, NetworkGetSchema, NetworkCreateSchema, NetworkModifySchema]):
     """
     The Network API
     """
@@ -21,6 +21,7 @@ class NetworkAPI(BaseAPI[NetworkListSchema, NetworkGetSchema, NetworkCreateSchem
         super().__init__(runtime=runtime,
                          name='Network',
                          list_schema_type=NetworkListSchema,
+                         list_entry_schema_type=NetworkListEntrySchema,
                          get_schema_type=NetworkGetSchema,
                          create_schema_type=NetworkCreateSchema,
                          modify_schema_type=NetworkGetSchema)

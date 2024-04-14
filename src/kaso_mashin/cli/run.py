@@ -20,11 +20,11 @@ def main(args: typing.Optional[typing.List] = None) -> int:
     """
     logger = logging.getLogger('kaso_mashin')
     config = Config()
-    network_commands = NetworkCommands(config)
-    image_commands = ImageCommands(config)
-    identity_commands = IdentityCommands(config)
-    bootstrap_commands = BootstrapCommands(config)
-    instance_commands = InstanceCommands(config)
+    network_commands = NetworkCommands(config=config)
+    image_commands = ImageCommands(config=config)
+    identity_commands = IdentityCommands(config=config)
+    bootstrap_commands = BootstrapCommands(config=config)
+    instance_commands = InstanceCommands(config=config)
 
     parser = argparse.ArgumentParser(add_help=True, description=f'kaso-mashin - {__version__}')
     parser.add_argument('-d', '--debug', action='store_true', dest='debug', help='Debug')

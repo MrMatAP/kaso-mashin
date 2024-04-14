@@ -9,7 +9,7 @@ from kaso_mashin.server.runtime import Runtime
 from kaso_mashin.common.base_types import ExceptionSchema
 from kaso_mashin.common.ddd_scaffold import EntityNotFoundException, UniqueIdentifier
 from kaso_mashin.common.entities import (
-    InstanceEntity, InstanceListSchema, InstanceGetSchema, InstanceCreateSchema, InstanceModifySchema,
+    InstanceEntity, InstanceListSchema, InstanceListEntrySchema, InstanceGetSchema, InstanceCreateSchema, InstanceModifySchema,
     TaskEntity, TaskGetSchema,
     ImageEntity,
     NetworkEntity,
@@ -17,7 +17,7 @@ from kaso_mashin.common.entities import (
 )
 
 
-class InstanceAPI(BaseAPI[InstanceListSchema, InstanceGetSchema, InstanceCreateSchema, InstanceModifySchema]):
+class InstanceAPI(BaseAPI[InstanceListSchema, InstanceListEntrySchema, InstanceGetSchema, InstanceCreateSchema, InstanceModifySchema]):
     """
     The Instance API
     """
@@ -26,6 +26,7 @@ class InstanceAPI(BaseAPI[InstanceListSchema, InstanceGetSchema, InstanceCreateS
         super().__init__(runtime=runtime,
                          name='Instance',
                          list_schema_type=InstanceListSchema,
+                         list_entry_schema_type=InstanceListEntrySchema,
                          get_schema_type=InstanceGetSchema,
                          create_schema_type=InstanceCreateSchema,
                          modify_schema_type=InstanceModifySchema,

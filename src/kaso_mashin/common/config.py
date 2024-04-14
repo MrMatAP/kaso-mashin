@@ -36,6 +36,7 @@ class Config:
     uefi_code_url: str = dataclasses.field(default='https://stable.release.flatcar-linux.net/arm64-usr/current/flatcar_production_qemu_uefi_efi_code.fd')
     uefi_vars_url: str = dataclasses.field(default='https://stable.release.flatcar-linux.net/arm64-usr/current/flatcar_production_qemu_uefi_efi_vars.fd')
     butane_path: pathlib.Path = dataclasses.field(default=pathlib.Path('/opt/homebrew/bin/butane'))
+    qemu_aarch64_path: pathlib.Path = dataclasses.field(default=pathlib.Path('/opt/homebrew/bin/qemu-system-aarch64'))
 
     def __init__(self, config_file: pathlib.Path = None):
         self._logger = logging.getLogger(f'{self.__class__.__module__}.{self.__class__.__name__}')

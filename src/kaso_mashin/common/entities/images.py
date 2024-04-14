@@ -1,3 +1,4 @@
+import typing
 import pathlib
 import shutil
 
@@ -33,6 +34,86 @@ class ImageException(KasoMashinException):
     Exception for image-related issues
     """
     pass
+
+
+class ImageListEntrySchema(EntitySchema):
+    """
+    Schema for an image list
+    """
+    uid: UniqueIdentifier = Field(description='The unique identifier',
+                                  examples=['b430727e-2491-4184-bb4f-c7d6d213e093'])
+    name: str = Field(description='The image name', examples=['ubuntu', 'flatpack', 'debian'])
+
+
+class ImageListSchema(EntitySchema):
+    """
+    Schema to list images
+    """
+    entries: typing.List[ImageListEntrySchema] = Field(description='List of images',
+                                                       default_factory=list)
+
+    def __rich__(self):
+        table = rich.table.Table(box=rich.box.ROUNDED)
+        table.add_column('[blue]UID')
+        table.add_column('[blue]Name')
+        for entry in self.entries:
+            table.add_row(str(entry.uid), entry.name)
+        return table
+
+
+class ImageCreateSchema(EntitySchema):
+    """
+    Schema to create an image
+    """
+    name: str = Field(description='The image name', examples=['ubuntu', 'flatpack', 'debian'])
+    url: str = Field(description='URL from which the image is sourced',
+                     examples=['https://cloud-images.ubuntu.com/bionic/current/bionic-server-cloudimg-arm64.img'])
+    min_vcpu: int = Field(description='Optional minimum number of CPU vcores to run this image',
+                          default=DEFAULT_MIN_VCPU,
+                          examples=[DEFAULT_MIN_VCPU, 2, 4])
+    min_ram: BinarySizedValue = Field(description='Optional minimum RAM size to run this image',
+                                      default=DEFAULT_MIN_RAM,
+                                      examples=[DEFAULT_MIN_RAM, BinarySizedValue(2, BinaryScale.G)])
+    min_disk: BinarySizedValue = Field(description='Optional minimum disk size to run this image',
+                                       default=DEFAULT_MIN_DISK,
+                                       examples=[DEFAULT_MIN_DISK, BinarySizedValue(10, BinaryScale.G)])
+
+
+class ImageGetSchema(ImageCreateSchema):
+    """
+    Schema to get information about a specific image
+    """
+    uid: UniqueIdentifier = Field(description='The unique identifier',
+                                  examples=['b430727e-2491-4184-bb4f-c7d6d213e093'])
+    path: pathlib.Path = Field(description='Path to the image on the local disk')
+
+    def __rich__(self):
+        table = rich.table.Table(box=rich.box.ROUNDED)
+        table.add_column('Field')
+        table.add_column('Value')
+        table.add_row('[blue]UID', str(self.uid))
+        table.add_row('[blue]Name', self.name)
+        table.add_row('[blue]Path', str(self.path))
+        table.add_row('[blue]Min VCPU', str(self.min_vcpu))
+        table.add_row('[blue]Min RAM', f'{self.min_ram.value} {self.min_ram.scale}')
+        table.add_row('[blue]Min Disk', f'{self.min_disk.value} {self.min_disk.scale}')
+        return table
+
+
+class ImageModifySchema(EntitySchema):
+    """
+    Schema to modify an existing image
+    """
+    min_vcpu: int = Field(description='Optional minimum number of CPU vcores to run this image',
+                          default=DEFAULT_MIN_VCPU,
+                          examples=[DEFAULT_MIN_VCPU, 2, 4])
+    min_ram: BinarySizedValue = Field(description='Optional minimum RAM size to run this image',
+                                      default=DEFAULT_MIN_RAM,
+                                      examples=[DEFAULT_MIN_RAM, BinarySizedValue(2, BinaryScale.G)])
+    min_disk: BinarySizedValue = Field(description='Optional minimum disk size to run this image',
+                                       default=DEFAULT_MIN_DISK,
+                                       examples=[DEFAULT_MIN_DISK, BinarySizedValue(10, BinaryScale.G)])
+
 
 
 class ImageModel(EntityModel):
@@ -209,66 +290,3 @@ class ImageEntity(Entity, AggregateRoot):
 
 class ImageRepository(AsyncRepository[ImageEntity, ImageModel]):
     pass
-
-
-class ImageListSchema(EntitySchema):
-    """
-    Schema to list images
-    """
-    uid: UniqueIdentifier = Field(description='The unique identifier',
-                                  examples=['b430727e-2491-4184-bb4f-c7d6d213e093'])
-    name: str = Field(description='The image name', examples=['ubuntu', 'flatpack', 'debian'])
-
-
-class ImageCreateSchema(EntitySchema):
-    """
-    Schema to create an image
-    """
-    name: str = Field(description='The image name', examples=['ubuntu', 'flatpack', 'debian'])
-    url: str = Field(description='URL from which the image is sourced',
-                     examples=['https://cloud-images.ubuntu.com/bionic/current/bionic-server-cloudimg-arm64.img'])
-    min_vcpu: int = Field(description='Optional minimum number of CPU vcores to run this image',
-                          default=DEFAULT_MIN_VCPU,
-                          examples=[DEFAULT_MIN_VCPU, 2, 4])
-    min_ram: BinarySizedValue = Field(description='Optional minimum RAM size to run this image',
-                                      default=DEFAULT_MIN_RAM,
-                                      examples=[DEFAULT_MIN_RAM, BinarySizedValue(2, BinaryScale.G)])
-    min_disk: BinarySizedValue = Field(description='Optional minimum disk size to run this image',
-                                       default=DEFAULT_MIN_DISK,
-                                       examples=[DEFAULT_MIN_DISK, BinarySizedValue(10, BinaryScale.G)])
-
-
-class ImageGetSchema(ImageCreateSchema):
-    """
-    Schema to get information about a specific image
-    """
-    uid: UniqueIdentifier = Field(description='The unique identifier',
-                                  examples=['b430727e-2491-4184-bb4f-c7d6d213e093'])
-    path: pathlib.Path = Field(description='Path to the image on the local disk')
-
-    def __rich__(self):
-        table = rich.table.Table(box=rich.box.ROUNDED)
-        table.add_column('Field')
-        table.add_column('Value')
-        table.add_row('[blue]UID', str(self.uid))
-        table.add_row('[blue]Name', self.name)
-        table.add_row('[blue]Path', str(self.path))
-        table.add_row('[blue]Min VCPU', str(self.min_vcpu))
-        table.add_row('[blue]Min RAM', f'{self.min_ram.value} {self.min_ram.scale}')
-        table.add_row('[blue]Min Disk', f'{self.min_disk.value} {self.min_disk.scale}')
-        return table
-
-
-class ImageModifySchema(EntitySchema):
-    """
-    Schema to modify an existing image
-    """
-    min_vcpu: int = Field(description='Optional minimum number of CPU vcores to run this image',
-                          default=DEFAULT_MIN_VCPU,
-                          examples=[DEFAULT_MIN_VCPU, 2, 4])
-    min_ram: BinarySizedValue = Field(description='Optional minimum RAM size to run this image',
-                                      default=DEFAULT_MIN_RAM,
-                                      examples=[DEFAULT_MIN_RAM, BinarySizedValue(2, BinaryScale.G)])
-    min_disk: BinarySizedValue = Field(description='Optional minimum disk size to run this image',
-                                       default=DEFAULT_MIN_DISK,
-                                       examples=[DEFAULT_MIN_DISK, BinarySizedValue(10, BinaryScale.G)])

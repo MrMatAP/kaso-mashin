@@ -9,11 +9,11 @@ from kaso_mashin.server.apis import BaseAPI
 from kaso_mashin.server.runtime import Runtime
 from kaso_mashin.common.entities import (
     DiskEntity,
-    DiskListSchema, DiskGetSchema, DiskCreateSchema, DiskModifySchema
+    DiskListSchema, DiskListEntrySchema, DiskGetSchema, DiskCreateSchema, DiskModifySchema
 )
 
 
-class DiskAPI(BaseAPI[DiskListSchema, DiskGetSchema, DiskCreateSchema, DiskModifySchema]):
+class DiskAPI(BaseAPI[DiskListSchema, DiskListEntrySchema, DiskGetSchema, DiskCreateSchema, DiskModifySchema]):
     """
     The Disk API
     """
@@ -22,6 +22,7 @@ class DiskAPI(BaseAPI[DiskListSchema, DiskGetSchema, DiskCreateSchema, DiskModif
         super().__init__(runtime=runtime,
                          name='Disk',
                          list_schema_type=DiskListSchema,
+                         list_entry_schema_type=DiskListEntrySchema,
                          get_schema_type=DiskGetSchema,
                          create_schema_type=DiskCreateSchema,
                          modify_schema_type=DiskModifySchema)
