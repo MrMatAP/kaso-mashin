@@ -2,7 +2,6 @@ import argparse
 import uuid
 import ipaddress
 
-import pydantic
 import rich.table
 import rich.box
 import rich.columns
@@ -116,16 +115,9 @@ class NetworkCommands(AbstractCommands):
         if not resp:
             return 1
         networks = [NetworkListSchema.model_validate(network) for network in resp.json()]
-        table = rich.table.Table(box=rich.box.ROUNDED)
-        table.add_column('[blue]UID')
-        table.add_column('[blue]Kind')
-        table.add_column('[blue]Name')
-        table.add_column('[blue]CIDR')
+        table = NetworkListSchema.__rich_table()
         for network in networks:
-            table.add_row(str(network.uid),
-                          str(network.kind.value),
-                          network.name,
-                          str(network.cidr))
+            table.add_row(network.__rich_table_row())
         console.print(table)
         return 0
 
@@ -136,7 +128,7 @@ class NetworkCommands(AbstractCommands):
         if not resp:
             return 1
         network = NetworkGetSchema.model_validate_json(resp.content)
-        self._print_network(network)
+        console.print(network)
         return 0
 
     def create(self, args: argparse.Namespace) -> int:
@@ -154,7 +146,7 @@ class NetworkCommands(AbstractCommands):
         if not resp:
             return 1
         network = NetworkGetSchema.model_validate_json(resp.content)
-        self._print_network(network)
+        console.print(network)
         return 0
 
     def modify(self, args: argparse.Namespace) -> int:
@@ -171,7 +163,7 @@ class NetworkCommands(AbstractCommands):
         if not resp:
             return 1
         network = NetworkGetSchema.model_validate_json(resp.content)
-        self._print_network(network)
+        console.print(network)
         return 0
 
     def remove(self, args: argparse.Namespace) -> int:
@@ -186,16 +178,3 @@ class NetworkCommands(AbstractCommands):
         elif resp.status_code == 410:
             console.print(f'Network with id {args.uid} does not exist')
         return 0 if resp else 1
-
-    @staticmethod
-    def _print_network(network: NetworkGetSchema):
-        table = rich.table.Table(box=rich.box.ROUNDED)
-        table.add_column('Field')
-        table.add_column('Value')
-        table.add_row('[blue]UID', str(network.uid))
-        table.add_row('[blue]Kind', network.kind)
-        table.add_row('[blue]Name', network.name)
-        table.add_row('[blue]CIDR', str(network.cidr))
-        table.add_row('[blue]Gateway', str(network.gateway))
-        table.add_row('[blue]DHCP Range', f'{network.dhcp_start} - {network.dhcp_end}')
-        console.print(table)

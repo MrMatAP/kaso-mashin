@@ -131,7 +131,7 @@ class InstanceCommands(AbstractCommands):
         if not resp:
             return 1
         instance = InstanceGetSchema.model_validate_json(resp.content)
-        self._print_instance(instance)
+        console.print(instance)
         return 0
 
     def create(self, args: argparse.Namespace) -> int:
@@ -203,23 +203,3 @@ class InstanceCommands(AbstractCommands):
                                expected_status=[200],
                                fallback_msg='Failed to start instance')
         return 0 if resp else 1
-
-    @staticmethod
-    def _print_instance(instance: InstanceGetSchema):
-        table = rich.table.Table(box=rich.box.ROUNDED)
-        table.add_column('Field')
-        table.add_column('Value')
-        table.add_row('[blue]UID', str(instance.uid))
-        table.add_row('[blue]Name', instance.name)
-        table.add_row('[blue]Path', str(instance.path))
-        table.add_row('[blue]VCPUs', str(instance.vcpu))
-        table.add_row('[blue]RAM', f'{instance.ram.value} {instance.ram.scale}')
-        table.add_row('[blue]MAC', instance.mac)
-        table.add_row('[blue]OS Disk UID', str(instance.os_disk.uid))
-        table.add_row('[blue]OS Disk Path', str(instance.os_disk.path))
-        table.add_row('[blue]Network UID', str(instance.network.uid))
-        table.add_row('[blue]Network Name', instance.network.name)
-        table.add_row('[blue]Bootstrap UID', str(instance.bootstrap.uid))
-        table.add_row('[blue]Bootstrap Name', instance.bootstrap.name)
-        table.add_row('[blue]Bootstrap Path', str(instance.bootstrap_file))
-        console.print(table)

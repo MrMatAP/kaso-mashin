@@ -2,6 +2,8 @@ import enum
 import pathlib
 
 from pydantic import Field
+import rich.table
+import rich.box
 
 from sqlalchemy import String, Enum
 from sqlalchemy.orm import Mapped, mapped_column
@@ -52,6 +54,19 @@ class IdentityGetSchema(EntitySchema):
     homedir: pathlib.Path = Field(description='The home directory')
     shell: str = Field(description='The identity shell')
     credential: str = Field(description='The identity credential')
+    
+    def __rich__(self):
+        table = rich.table.Table(box=rich.box.ROUNDED)
+        table.add_column('Field')
+        table.add_column('Value')
+        table.add_row('[blue]UID', str(self.uid))
+        table.add_row('[blue]Name', self.name)
+        table.add_row('[blue]Kind', self.kind)
+        table.add_row('[blue]GECOS', self.gecos or '')
+        table.add_row('[blue]Home Directory', str(self.homedir) or '')
+        table.add_row('[blue]Shell', self.shell or '')
+        table.add_row('[blue]Credential', self.credential or '')
+        return table
 
 
 class IdentityCreateSchema(EntitySchema):

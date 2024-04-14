@@ -2,9 +2,12 @@ import typing
 import enum
 import ipaddress
 
-from pydantic import Field, field_serializer
+from pydantic import Field
 from sqlalchemy import String, Enum, select
 from sqlalchemy.orm import Mapped, mapped_column
+
+import rich.table
+import rich.box
 
 from kaso_mashin import KasoMashinException
 from kaso_mashin.common import (
@@ -39,9 +42,17 @@ class NetworkListSchema(EntitySchema):
     cidr: ipaddress.IPv4Network = Field(description='The network CIDR',
                                         examples=['10.0.0.0/16', '172.16.2.0/24'])
 
-    @field_serializer('cidr', when_used='json-unless-none')
-    def serialize_cidr(self, cidr: ipaddress.IPv4Network) -> str:
-        return str(cidr)
+    @staticmethod
+    def __rich_table():
+        table = rich.table.Table(box=rich.box.ROUNDED)
+        table.add_column('[blue]UID')
+        table.add_column('[blue]Kind')
+        table.add_column('[blue]Name')
+        table.add_column('[blue]CIDR')
+        return table
+
+    def __rich_table_row(self) -> typing.List[str]:
+        return [str(self.uid), str(self.kind.value), self.name, str(self.cidr)]
 
 
 class NetworkCreateSchema(EntitySchema):
@@ -71,6 +82,18 @@ class NetworkGetSchema(NetworkCreateSchema):
     """
     uid: UniqueIdentifier = Field(description='The unique identifier',
                                   examples=['b430727e-2491-4184-bb4f-c7d6d213e093'])
+
+    def __rich__(self):
+        table = rich.table.Table(box=rich.box.ROUNDED)
+        table.add_column('Field')
+        table.add_column('Value')
+        table.add_row('[blue]UID', str(self.uid))
+        table.add_row('[blue]Kind', self.kind)
+        table.add_row('[blue]Name', self.name)
+        table.add_row('[blue]CIDR', str(self.cidr))
+        table.add_row('[blue]Gateway', str(self.gateway))
+        table.add_row('[blue]DHCP Range', f'{self.dhcp_start} - {self.dhcp_end}')
+        return table
 
 
 class NetworkModifySchema(EntitySchema):

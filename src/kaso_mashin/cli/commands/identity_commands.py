@@ -135,7 +135,7 @@ class IdentityCommands(AbstractCommands):
         if not resp:
             return 1
         identity = IdentityGetSchema.model_validate_json(resp.content)
-        self._print_identity(identity)
+        console.print(identity)
         return 0
 
     def create(self, args: argparse.Namespace) -> int:
@@ -194,7 +194,7 @@ class IdentityCommands(AbstractCommands):
         if not resp:
             return 1
         identity = IdentityGetSchema.model_validate_json(resp.content)
-        self._print_identity(identity)
+        console.print(identity)
         return 0
 
     def remove(self, args: argparse.Namespace) -> int:
@@ -209,17 +209,3 @@ class IdentityCommands(AbstractCommands):
         elif resp.status_code == 410:
             console.print(f'Identity with id {args.uid} does not exist')
         return 0 if resp else 1
-
-    @staticmethod
-    def _print_identity(identity: IdentityGetSchema):
-        table = rich.table.Table(box=rich.box.ROUNDED)
-        table.add_column('Field')
-        table.add_column('Value')
-        table.add_row('[blue]UID', str(identity.uid))
-        table.add_row('[blue]Name', identity.name)
-        table.add_row('[blue]Kind', identity.kind)
-        table.add_row('[blue]GECOS', identity.gecos or '')
-        table.add_row('[blue]Home Directory', str(identity.homedir) or '')
-        table.add_row('[blue]Shell', identity.shell or '')
-        table.add_row('[blue]Credential', identity.credential or '')
-        console.print(table)

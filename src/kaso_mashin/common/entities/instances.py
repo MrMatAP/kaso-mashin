@@ -8,6 +8,9 @@ from pydantic import Field
 from sqlalchemy import String, Integer, Enum, UUID
 from sqlalchemy.orm import Mapped, mapped_column
 
+import rich.table
+import rich.box
+
 from kaso_mashin import KasoMashinException
 from kaso_mashin.common import (
     UniqueIdentifier,
@@ -80,6 +83,25 @@ class InstanceGetSchema(EntitySchema):
     network: NetworkGetSchema = Field(description='The network on which to run this instance')
     bootstrap: BootstrapGetSchema = Field(description='The bootstrapper')
     bootstrap_file: pathlib.Path = Field(description='The path to the bootstrap file on the local disk')
+
+    def __rich__(self):
+        table = rich.table.Table(box=rich.box.ROUNDED)
+        table.add_column('Field')
+        table.add_column('Value')
+        table.add_row('[blue]UID', str(self.uid))
+        table.add_row('[blue]Name', self.name)
+        table.add_row('[blue]Path', str(self.path))
+        table.add_row('[blue]VCPUs', str(self.vcpu))
+        table.add_row('[blue]RAM', f'{self.ram.value} {self.ram.scale}')
+        table.add_row('[blue]MAC', self.mac)
+        table.add_row('[blue]OS Disk UID', str(self.os_disk.uid))
+        table.add_row('[blue]OS Disk Path', str(self.os_disk.path))
+        table.add_row('[blue]Network UID', str(self.network.uid))
+        table.add_row('[blue]Network Name', self.network.name)
+        table.add_row('[blue]Bootstrap UID', str(self.bootstrap.uid))
+        table.add_row('[blue]Bootstrap Name', self.bootstrap.name)
+        table.add_row('[blue]Bootstrap Path', str(self.bootstrap_file))
+        return table
 
 
 class InstanceModifySchema(EntitySchema):

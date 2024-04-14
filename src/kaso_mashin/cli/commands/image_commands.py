@@ -83,26 +83,31 @@ class ImageCommands(AbstractCommands):
         image_modify_parser.add_argument('--min-cpu',
                                          dest='min_cpu',
                                          type=int,
+                                         required=False,
                                          default=None,
                                          help='An optional number of minimum vCPUs for this image')
         image_modify_parser.add_argument('--min-ram',
                                          dest='min_ram',
                                          type=int,
+                                         required=False,
                                          default=None,
                                          help='An optional number of minimum RAM (in MB) for this image')
         image_modify_parser.add_argument('--min-ram-scale',
                                          dest='min_ram_scale',
                                          type=BinaryScale,
+                                         required=False,
                                          default=BinaryScale.G,
                                          help='Scale of the minimum RAM specification')
         image_modify_parser.add_argument('--min-disk',
                                          dest='min_disk',
                                          type=int,
+                                         required=False,
                                          default=0,
                                          help='An optional number of minimum disk space for this image')
         image_modify_parser.add_argument('--min-disk-scale',
                                          dest='min_disk_scale',
                                          type=BinaryScale,
+                                         required=False,
                                          default=BinaryScale.G,
                                          help='Scale of the minimum disk space specification')
         image_modify_parser.set_defaults(cmd=self.modify)
@@ -136,15 +141,15 @@ class ImageCommands(AbstractCommands):
         if not resp:
             return 1
         image = ImageGetSchema.model_validate_json(resp.content)
-        self._print_image(image)
+        console.print(image)
         return 0
 
     def create(self, args: argparse.Namespace) -> int:
         schema = ImageCreateSchema(name=args.name,
-                                          url=args.url or Predefined_Images.get(args.predefined),
-                                          min_vcpu=args.min_vcpu,
-                                          min_ram=BinarySizedValue(value=args.min_ram, scale=args.min_ram_scale),
-                                          min_disk=BinarySizedValue(value=args.min_disk, scale=args.min_disk_scale))
+                                   url=args.url or Predefined_Images.get(args.predefined),
+                                   min_vcpu=args.min_vcpu,
+                                   min_ram=BinarySizedValue(value=args.min_ram, scale=args.min_ram_scale),
+                                   min_disk=BinarySizedValue(value=args.min_disk, scale=args.min_disk_scale))
         if args.url:
             schema.url = args.url
         resp = self.api_client(uri='/api/images/',
@@ -187,7 +192,7 @@ class ImageCommands(AbstractCommands):
         if not resp:
             return 1
         image = ImageGetSchema.model_validate_json(resp.content)
-        self._print_image(image)
+        console.print(image)
         return 0
 
     def remove(self, args: argparse.Namespace) -> int:
@@ -202,16 +207,3 @@ class ImageCommands(AbstractCommands):
         elif resp.status_code == 410:
             console.print(f'Image with id {args.uid} does not exist')
         return 0 if resp else 1
-
-    @staticmethod
-    def _print_image(image: ImageGetSchema):
-        table = rich.table.Table(box=rich.box.ROUNDED)
-        table.add_column('Field')
-        table.add_column('Value')
-        table.add_row('[blue]UID', str(image.uid))
-        table.add_row('[blue]Name', image.name)
-        table.add_row('[blue]Path', str(image.path))
-        table.add_row('[blue]Min VCPU', str(image.min_vcpu))
-        table.add_row('[blue]Min RAM', f'{image.min_ram.value} {image.min_ram.scale}')
-        table.add_row('[blue]Min Disk', f'{image.min_disk.value} {image.min_disk.scale}')
-        console.print(table)

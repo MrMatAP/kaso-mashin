@@ -4,6 +4,8 @@ import pathlib
 import subprocess
 
 from pydantic import Field
+import rich.table
+import rich.box
 import jinja2
 import jinja2.meta
 
@@ -186,6 +188,17 @@ class BootstrapGetSchema(EntitySchema):
     kind: BootstrapKind = Field(description='The bootstrap kind', examples=[BootstrapKind.IGNITION])
     content: str = Field(description='The bootstrap content template')
     required_keys: typing.List[str] = Field(description='Required keys to render this bootstrap template')
+
+    def __rich__(self):
+        table = rich.table.Table(box=rich.box.ROUNDED)
+        table.add_column('Field')
+        table.add_column('Value')
+        table.add_row('[blue]UID', str(self.uid))
+        table.add_row('[blue]Name', self.name)
+        table.add_row('[blue]Kind', self.kind)
+        table.add_row('[blue]Required Keys', ','.join(self.required_keys))
+        table.add_row('[blue]Content', self.content)
+        return table
 
 
 class BootstrapModifySchema(EntitySchema):

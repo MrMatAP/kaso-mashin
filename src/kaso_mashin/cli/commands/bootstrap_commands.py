@@ -67,7 +67,7 @@ class BootstrapCommands(AbstractCommands):
         if not resp:
             return 1
         bootstrap = BootstrapGetSchema.model_validate_json(resp.content)
-        self._print_bootstrap(bootstrap)
+        console.print(bootstrap)
         return 0
 
     def create(self, args: argparse.Namespace) -> int:
@@ -82,7 +82,7 @@ class BootstrapCommands(AbstractCommands):
         if not resp:
             return 1
         bootstrap = BootstrapGetSchema.model_validate(resp.content)
-        self._print_bootstrap(bootstrap)
+        console.print(bootstrap)
         return 0
 
     def modify(self, args: argparse.Namespace) -> int:
@@ -97,7 +97,7 @@ class BootstrapCommands(AbstractCommands):
         if not resp:
             return 1
         bootstrap = BootstrapGetSchema.model_validate(resp.content)
-        self._print_bootstrap(bootstrap)
+        console.print(bootstrap)
 
     def remove(self, args: argparse.Namespace) -> int:
         resp = self.api_client(uri=f'/api/bootstraps/{args.uid}',
@@ -111,15 +111,3 @@ class BootstrapCommands(AbstractCommands):
         elif resp.status_code == 404:
             console.print(f'Bootstrap with id {args.uid} does not exist')
         return 0
-
-    @staticmethod
-    def _print_bootstrap(bootstrap: BootstrapGetSchema):
-        table = rich.table.Table(box=rich.box.ROUNDED)
-        table.add_column('Field')
-        table.add_column('Value')
-        table.add_row('[blue]UID', str(bootstrap.uid))
-        table.add_row('[blue]Name', bootstrap.name)
-        table.add_row('[blue]Kind', bootstrap.kind)
-        table.add_row('[blue]Required Keys', ','.join(bootstrap.required_keys))
-        table.add_row('[blue]Content', bootstrap.content)
-        console.print(table)

@@ -4,6 +4,8 @@ import shutil
 import aiofiles
 import httpx
 from pydantic import Field
+import rich.table
+import rich.box
 
 from sqlalchemy import String, Integer, Enum
 from sqlalchemy.orm import Mapped, mapped_column
@@ -243,6 +245,18 @@ class ImageGetSchema(ImageCreateSchema):
     uid: UniqueIdentifier = Field(description='The unique identifier',
                                   examples=['b430727e-2491-4184-bb4f-c7d6d213e093'])
     path: pathlib.Path = Field(description='Path to the image on the local disk')
+
+    def __rich__(self):
+        table = rich.table.Table(box=rich.box.ROUNDED)
+        table.add_column('Field')
+        table.add_column('Value')
+        table.add_row('[blue]UID', str(self.uid))
+        table.add_row('[blue]Name', self.name)
+        table.add_row('[blue]Path', str(self.path))
+        table.add_row('[blue]Min VCPU', str(self.min_vcpu))
+        table.add_row('[blue]Min RAM', f'{self.min_ram.value} {self.min_ram.scale}')
+        table.add_row('[blue]Min Disk', f'{self.min_disk.value} {self.min_disk.scale}')
+        return table
 
 
 class ImageModifySchema(EntitySchema):
