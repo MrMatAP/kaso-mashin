@@ -46,6 +46,7 @@ class InstanceAPI(
             create_schema_type=InstanceCreateSchema,
             modify_schema_type=InstanceModifySchema,
             async_create=True,
+            async_modify=True,
         )
 
     @property

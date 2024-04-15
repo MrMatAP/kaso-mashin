@@ -59,6 +59,10 @@ class InstanceListEntrySchema(EntitySchema):
     name: str = Field(
         description="The instance name", examples=["k8s-master", "your-mom"]
     )
+    state: InstanceState = Field(
+        description="The current state of the instance",
+        examples=[InstanceState.STARTED, InstanceState.STOPPED],
+    )
 
 
 class InstanceListSchema(EntitySchema):
@@ -74,8 +78,9 @@ class InstanceListSchema(EntitySchema):
         table = rich.table.Table(box=rich.box.ROUNDED)
         table.add_column("[blue]UID")
         table.add_column("[blue]Name")
+        table.add_column("[blue]State")
         for entry in self.entries:
-            table.add_row(str(entry.uid), entry.name)
+            table.add_row(str(entry.uid), entry.name, str(entry.state))
         return table
 
 
@@ -160,7 +165,9 @@ class InstanceModifySchema(EntitySchema):
     Schema to modify an existing instance
     """
 
-    state: InstanceState = Field(description="The state of the instance")
+    state: typing.Optional[InstanceState] = Field(
+        description="The state of the instance"
+    )
 
 
 class InstanceException(KasoMashinException):
@@ -273,6 +280,10 @@ class InstanceEntity(Entity, AggregateRoot):
     @property
     def bootstrap_file(self) -> pathlib.Path:
         return self._bootstrap_file
+
+    @property
+    def state(self) -> InstanceState:
+        return self._state
 
     def __eq__(self, other: "InstanceEntity") -> bool:
         return all(
@@ -446,8 +457,11 @@ class InstanceEntity(Entity, AggregateRoot):
         await task.done(msg="Successfully modified")
 
     async def start(self):
-        self._popen = self.runtime.qemu_service.start(self)
-        self._state = InstanceState.STARTED
+        try:
+            self._popen = self.runtime.qemu_service.start_instance(self)
+            self._state = InstanceState.STARTED
+        except Exception as e:
+            pass
 
     async def stop(self):
         if self._popen is None:

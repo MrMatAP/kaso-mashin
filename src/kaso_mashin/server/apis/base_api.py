@@ -43,6 +43,7 @@ class BaseAPI(
         create_schema_type: Type[T_EntityCreateSchema],
         modify_schema_type: Type[T_EntityModifySchema],
         async_create: bool = False,
+        async_modify: bool = False,
     ):
         self._runtime = runtime
         self._name = name
@@ -81,28 +82,16 @@ class BaseAPI(
             status_code=200,
             response_model=get_schema_type,
         )
-        if async_create:
-            self._router.add_api_route(
-                path="/",
-                endpoint=self.create,
-                methods=["POST"],
-                summary=f"Create a {name} entity",
-                description=f"Create a new {name} entity given the provided data",
-                response_description=f"The created {name} entity",
-                status_code=201,
-                response_model=TaskGetSchema,
-            )
-        else:
-            self._router.add_api_route(
-                path="/",
-                endpoint=self.create,
-                methods=["POST"],
-                summary=f"Create a {name} entity",
-                description=f"Create a new {name} entity given the provided data",
-                response_description=f"The created {name} entity",
-                status_code=201,
-                response_model=get_schema_type,
-            )
+        self._router.add_api_route(
+            path="/",
+            endpoint=self.create,
+            methods=["POST"],
+            summary=f"Create a {name} entity",
+            description=f"Create a new {name} entity given the provided data",
+            response_description=f"The created {name} entity",
+            status_code=201,
+            response_model=TaskGetSchema if async_create else get_schema_type,
+        )
         self._router.add_api_route(
             path="/{uid}",
             endpoint=self.modify,
@@ -111,7 +100,7 @@ class BaseAPI(
             description=f"Modify the allowed fields of a {name} entity given its UUID",
             response_description=f"The updated {name} entity",
             status_code=200,
-            response_model=get_schema_type,
+            response_model=TaskGetSchema if async_modify else get_schema_type,
         )
         self._router.add_api_route(
             path="/{uid}",

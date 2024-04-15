@@ -13,8 +13,8 @@ class QEMUService(Service):
 
     def start_instance(self, instance: InstanceEntity) -> subprocess.Popen:
         args = [
-            self._runtime.config.qemu_binary_path,
-            "-n",
+            str(self._runtime.config.qemu_aarch64_path),
+            "-name",
             instance.name,
             "-machine",
             "virt",
@@ -23,25 +23,31 @@ class QEMUService(Service):
             "-accel",
             "hvf",
             "-m",
-            instance.ram.at_scale(BinaryScale.M).value,
+            str(instance.ram.at_scale(BinaryScale.M).value),
             "-smp",
-            instance.vcpu,
+            str(instance.vcpu),
             "-object",
             "rng-random,id=rng0,filename=/dev/urandom",
             "-device",
             "virtio-rng-pci,rng=rng0",
+            "-device",
+            "virtio-gpu-pci",
+            "-device",
+            "nec-usb-xhci,id=usb-bus",
+            "-device",
+            "usb-kbd,bus=usb-bus.0",
             "-netdev",
             f"{instance.network.kind.value},"
             f"id=net0,"
             f"start-address={instance.network.dhcp_start},"
             f"end-address={instance.network.dhcp_end},"
-            f"subnet_mask={instance.network.netmask}",
+            f"subnet-mask={instance.network.netmask}",
             "-device",
-            f"virtio-net-device," f"netdev=net0," f"mac={instance.mac}",
+            f"virtio-net-device,netdev=net0,mac={instance.mac}",
             "-drive",
-            f"if=none,id=blk,file={instance.os_disk.path}",
-            "-device",
-            "virtio-blk-device,drive=blk",
+            f"if=virtio,file={instance.os_disk.path},format=qcow2,index=0,media=disk",
+            "-vnc",
+            "localhost:0,power-control=on"
         ]
         if instance.bootstrap.kind == BootstrapKind.IGNITION:
             args.extend(
@@ -54,7 +60,12 @@ class QEMUService(Service):
                     f"if=pflash,file={instance.uefi_vars},format=raw",
                 ]
             )
-        if instance.bootstrap == BootstrapKind.CLOUD_INIT:
+        if instance.bootstrap.kind == BootstrapKind.CLOUD_INIT:
             raise KasoMashinException(status=500, msg="Bootstrap init not supported")
+
+        # args.extend(["-drive", f"file={instance.os_disk.path},media=disk,if=virtio,format=qcow2,cache=writethrough"])
+        # args.extend(["-display", "cocoa", "-vnc", "to=0,power-control=on", "-device", "virtio-gpu-pci"])
+        #args.extend(["-device", "VGA", "-display", "cocoa", "-vnc", "to=0,power-control=on"])
+        #args.extend(["-display", "vnc=:0", "-vnc", "to=0,power-control=on"])
 
         return subprocess.Popen(args)

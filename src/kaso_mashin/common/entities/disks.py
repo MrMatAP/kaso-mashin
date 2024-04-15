@@ -268,7 +268,7 @@ class DiskEntity(Entity, AggregateRoot):
             args = ["/opt/homebrew/bin/qemu-img", "create", "-f", str(disk_format)]
             if image is not None:
                 args.extend(
-                    ["-F", str(disk_format), "-b", str(image.path), "-o", "compat=v3"]
+                    ["-F", str(disk_format), "-b", str(image.path)]
                 )
             args.extend([str(path), str(size)])
             subprocess.run(args, check=True)
