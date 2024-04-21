@@ -22,7 +22,6 @@ from kaso_mashin.common.base_types import ExceptionSchema
 class BaseAPI(
     Generic[
         T_EntityListSchema,
-        T_EntityListEntrySchema,
         T_EntityGetSchema,
         T_EntityCreateSchema,
         T_EntityModifySchema,
@@ -38,7 +37,6 @@ class BaseAPI(
         runtime: Runtime,
         name: str,
         list_schema_type: Type[T_EntityListSchema],
-        list_entry_schema_type: Type[T_EntityListEntrySchema],
         get_schema_type: Type[T_EntityGetSchema],
         create_schema_type: Type[T_EntityCreateSchema],
         modify_schema_type: Type[T_EntityModifySchema],
@@ -48,7 +46,6 @@ class BaseAPI(
         self._runtime = runtime
         self._name = name
         self._list_schema_type = list_schema_type
-        self._list_entry_schema_type = list_entry_schema_type
         self._get_schema_type = get_schema_type
         self._create_schema_type = create_schema_type
         self._modify_schema_type = modify_schema_type
@@ -122,7 +119,7 @@ class BaseAPI(
     async def list(self) -> T_EntityListSchema:
         entities = await self.repository.list()
         return self._list_schema_type(
-            entries=[self._list_entry_schema_type.model_validate(e) for e in entities]
+            entries=[self._get_schema_type.model_validate(e) for e in entities]
         )
 
     async def get(

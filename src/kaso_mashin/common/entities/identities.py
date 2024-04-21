@@ -33,40 +33,17 @@ class IdentityException(KasoMashinException):
     pass
 
 
-class IdentityListEntrySchema(EntitySchema):
+class IdentityCreateSchema(EntitySchema):
     """
-    Schema for a identity list
+    Schema to create an identity
     """
 
-    uid: UniqueIdentifier = Field(
-        description="The unique identifier",
-        examples=["b430727e-2491-4184-bb4f-c7d6d213e093"],
-    )
     name: str = Field(description="The identity name", examples=["imfeldma"])
     kind: IdentityKind = Field(description="The identity kind")
     gecos: str = Field(description="The identity GECOS")
-
-
-class IdentityListSchema(EntitySchema):
-    """
-    Schema to list identities
-    """
-
-    entries: typing.List[IdentityListEntrySchema] = Field(
-        description="List of identities", default_factory=list
-    )
-
-    def __rich__(self):
-        table = rich.table.Table(box=rich.box.ROUNDED)
-        table.add_column("[blue]UID")
-        table.add_column("[blue]Kind")
-        table.add_column("[blue]Name")
-        table.add_column("[blue]Gecos")
-        for entry in self.entries:
-            table.add_row(
-                str(entry.uid), str(entry.kind.value), entry.name, entry.gecos
-            )
-        return table
+    homedir: pathlib.Path = Field(description="The home directory")
+    shell: str = Field(description="The identity shell")
+    credential: str = Field(description="The identity credential")
 
 
 class IdentityGetSchema(EntitySchema):
@@ -99,17 +76,26 @@ class IdentityGetSchema(EntitySchema):
         return table
 
 
-class IdentityCreateSchema(EntitySchema):
+class IdentityListSchema(EntitySchema):
     """
-    Schema to create an identity
+    Schema to list identities
     """
 
-    name: str = Field(description="The identity name", examples=["imfeldma"])
-    kind: IdentityKind = Field(description="The identity kind")
-    gecos: str = Field(description="The identity GECOS")
-    homedir: pathlib.Path = Field(description="The home directory")
-    shell: str = Field(description="The identity shell")
-    credential: str = Field(description="The identity credential")
+    entries: typing.List[IdentityGetSchema] = Field(
+        description="List of identities", default_factory=list
+    )
+
+    def __rich__(self):
+        table = rich.table.Table(box=rich.box.ROUNDED)
+        table.add_column("[blue]UID")
+        table.add_column("[blue]Kind")
+        table.add_column("[blue]Name")
+        table.add_column("[blue]Gecos")
+        for entry in self.entries:
+            table.add_row(
+                str(entry.uid), str(entry.kind.value), entry.name, entry.gecos
+            )
+        return table
 
 
 class IdentityModifySchema(EntitySchema):

@@ -9,7 +9,6 @@ from kaso_mashin.common.entities import (
     IdentityModel,
     IdentityEntity,
     IdentityListSchema,
-    IdentityListEntrySchema,
     IdentityGetSchema,
     IdentityModifySchema,
 )
@@ -69,7 +68,7 @@ class TestSeededIdentities(BaseTest[IdentityModel, IdentityEntity, IdentityGetSc
     """
 
     def assert_list_by_model(
-        self, obj: IdentityListEntrySchema | IdentityEntity, model: IdentityModel
+        self, obj: IdentityGetSchema | IdentityEntity, model: IdentityModel
     ):
         assert obj.uid == UniqueIdentifier(model.uid)
         assert obj.name == model.name

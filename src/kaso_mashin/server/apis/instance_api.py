@@ -11,7 +11,6 @@ from kaso_mashin.common.ddd_scaffold import EntityNotFoundException, UniqueIdent
 from kaso_mashin.common.entities import (
     InstanceEntity,
     InstanceListSchema,
-    InstanceListEntrySchema,
     InstanceGetSchema,
     InstanceCreateSchema,
     InstanceModifySchema,
@@ -26,7 +25,6 @@ from kaso_mashin.common.entities import (
 class InstanceAPI(
     BaseAPI[
         InstanceListSchema,
-        InstanceListEntrySchema,
         InstanceGetSchema,
         InstanceCreateSchema,
         InstanceModifySchema,
@@ -41,7 +39,6 @@ class InstanceAPI(
             runtime=runtime,
             name="Instance",
             list_schema_type=InstanceListSchema,
-            list_entry_schema_type=InstanceListEntrySchema,
             get_schema_type=InstanceGetSchema,
             create_schema_type=InstanceCreateSchema,
             modify_schema_type=InstanceModifySchema,

@@ -4,7 +4,6 @@ from typing import Annotated
 from uuid import UUID
 
 import fastapi
-from pydantic import ValidationError
 
 from kaso_mashin.common import AsyncRepository
 from kaso_mashin.server.apis import BaseAPI
@@ -13,7 +12,6 @@ from kaso_mashin.common.config import Predefined_Images, ImagePredefinedSchema
 from kaso_mashin.common.entities import (
     ImageEntity,
     ImageListSchema,
-    ImageListEntrySchema,
     ImageGetSchema,
     ImageCreateSchema,
     ImageModifySchema,
@@ -25,7 +23,6 @@ from kaso_mashin.common.entities import (
 class ImageAPI(
     BaseAPI[
         ImageListSchema,
-        ImageListEntrySchema,
         ImageGetSchema,
         ImageCreateSchema,
         ImageModifySchema,
@@ -40,7 +37,6 @@ class ImageAPI(
             runtime=runtime,
             name="Image",
             list_schema_type=ImageListSchema,
-            list_entry_schema_type=ImageListEntrySchema,
             get_schema_type=ImageGetSchema,
             create_schema_type=ImageCreateSchema,
             modify_schema_type=ImageModifySchema,

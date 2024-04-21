@@ -10,7 +10,6 @@ from kaso_mashin.server.runtime import Runtime
 from kaso_mashin.common.entities import (
     IdentityEntity,
     IdentityListSchema,
-    IdentityListEntrySchema,
     IdentityGetSchema,
     IdentityCreateSchema,
     IdentityModifySchema,
@@ -21,7 +20,6 @@ from kaso_mashin.common.entities import (
 class IdentityAPI(
     BaseAPI[
         IdentityListSchema,
-        IdentityListEntrySchema,
         IdentityGetSchema,
         IdentityCreateSchema,
         IdentityModifySchema,
@@ -36,7 +34,6 @@ class IdentityAPI(
             runtime,
             name="Identity",
             list_schema_type=IdentityListSchema,
-            list_entry_schema_type=IdentityListEntrySchema,
             get_schema_type=IdentityGetSchema,
             create_schema_type=IdentityCreateSchema,
             modify_schema_type=IdentityModifySchema,

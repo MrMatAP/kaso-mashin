@@ -32,65 +32,12 @@ class DiskFormat(enum.StrEnum):
     VDI = "vdi"
 
 
-class DiskListEntrySchema(EntitySchema):
+class DiskException(KasoMashinException):
     """
-    Schema for a disk list
-    """
-
-    uid: UniqueIdentifier = Field(
-        description="The unique identifier",
-        examples=["b430727e-2491-4184-bb4f-c7d6d213e093"],
-    )
-    name: str = Field(
-        description="The disk name", examples=["root", "data-1", "data-2"]
-    )
-
-
-class DiskListSchema(EntitySchema):
-    """
-    Schema to list disks
+    Exception for disk-related issues
     """
 
-    entries: typing.List[DiskListEntrySchema] = Field(
-        description="List of disks", default_factory=list
-    )
-
-    def __rich__(self):
-        table = rich.table.Table(box=rich.box.ROUNDED)
-        table.add_column("[blue]UID")
-        table.add_column("[blue]Kind")
-        table.add_column("[blue]Name")
-        table.add_column("[blue]CIDR")
-        for entry in self.entries:
-            table.add_row(str(entry.uid), entry.name)
-        return table
-
-
-class DiskGetSchema(EntitySchema):
-    """
-    Schema to get information about a specific disk
-    """
-
-    uid: UniqueIdentifier = Field(
-        description="The unique identifier",
-        examples=["b430727e-2491-4184-bb4f-c7d6d213e093"],
-    )
-    path: pathlib.Path = Field(
-        description="Path of the disk image on the local filesystem",
-        examples=["/var/kaso/instances/root.qcow2"],
-    )
-    size: BinarySizedValue = Field(
-        description="Disk size", examples=[BinarySizedValue(2, BinaryScale.G)]
-    )
-    disk_format: DiskFormat = Field(
-        description="Disk image file format",
-        examples=[DiskFormat.QCoW2, DiskFormat.Raw],
-    )
-    image_uid: UniqueIdentifier | None = Field(
-        description="The image uid on which this disk is based on",
-        optional=True,
-        default=None,
-    )
+    pass
 
 
 class DiskCreateSchema(EntitySchema):
@@ -115,6 +62,54 @@ class DiskCreateSchema(EntitySchema):
     )
 
 
+class DiskGetSchema(EntitySchema):
+    """
+    Schema to get information about a specific disk
+    """
+
+    uid: UniqueIdentifier = Field(
+        description="The unique identifier",
+        examples=["b430727e-2491-4184-bb4f-c7d6d213e093"],
+    )
+    name: str = Field(description="Disk name", examples=["root", "data-1", "data-2"])
+    path: pathlib.Path = Field(
+        description="Path of the disk image on the local filesystem",
+        examples=["/var/kaso/instances/root.qcow2"],
+    )
+    size: BinarySizedValue = Field(
+        description="Disk size", examples=[BinarySizedValue(2, BinaryScale.G)]
+    )
+    disk_format: DiskFormat = Field(
+        description="Disk image file format",
+        examples=[DiskFormat.QCoW2, DiskFormat.Raw],
+    )
+    image_uid: UniqueIdentifier | None = Field(
+        description="The image uid on which this disk is based on",
+        optional=True,
+        default=None,
+    )
+
+
+class DiskListSchema(EntitySchema):
+    """
+    Schema to list disks
+    """
+
+    entries: typing.List[DiskGetSchema] = Field(
+        description="List of disks", default_factory=list
+    )
+
+    def __rich__(self):
+        table = rich.table.Table(box=rich.box.ROUNDED)
+        table.add_column("[blue]UID")
+        table.add_column("[blue]Kind")
+        table.add_column("[blue]Name")
+        table.add_column("[blue]CIDR")
+        for entry in self.entries:
+            table.add_row(str(entry.uid), entry.name)
+        return table
+
+
 class DiskModifySchema(EntitySchema):
     """
     Schema to modify an existing disk
@@ -126,14 +121,6 @@ class DiskModifySchema(EntitySchema):
         optional=True,
         default=None,
     )
-
-
-class DiskException(KasoMashinException):
-    """
-    Exception for disk-related issues
-    """
-
-    pass
 
 
 class DiskModel(EntityModel):

@@ -31,11 +31,10 @@ class TaskState(str, enum.Enum):
     FAILED = "failed"
 
 
-class TaskListEntrySchema(EntitySchema):
+class TaskGetSchema(EntitySchema):
     """
-    Schema for a task list
+    Schema to get information about a specific task
     """
-
     uid: UniqueIdentifier = Field(
         description="The unique identifier",
         examples=["b430727e-2491-4184-bb4f-c7d6d213e093"],
@@ -45,32 +44,6 @@ class TaskListEntrySchema(EntitySchema):
         description="The current state of the task",
         examples=[TaskState.RUNNING, TaskState.DONE],
     )
-
-
-class TaskListSchema(EntitySchema):
-    """
-    Schema to list tasks
-    """
-
-    entries: typing.List[TaskListEntrySchema] = Field(
-        description="List of tasks", default_factory=list
-    )
-
-    def __rich__(self):
-        table = rich.table.Table(box=rich.box.ROUNDED)
-        table.add_column("[blue]UID")
-        table.add_column("[blue]Name")
-        table.add_column("[blue]State")
-        for entry in self.entries:
-            table.add_row(str(entry.uid), entry.name, str(entry.state))
-        return table
-
-
-class TaskGetSchema(TaskListEntrySchema):
-    """
-    Schema to get information about a specific task
-    """
-
     msg: str = Field(
         description="Task status message", examples=["Downloaded 10% of the image"]
     )
@@ -85,6 +58,25 @@ class TaskGetSchema(TaskListEntrySchema):
         table.add_row("[blue]State", str(self.state))
         table.add_row("[blue]Message", str(self.msg))
         table.add_row("[blue]Percent Complete", f"{self.percent_complete} %")
+        return table
+
+
+class TaskListSchema(EntitySchema):
+    """
+    Schema to list tasks
+    """
+
+    entries: typing.List[TaskGetSchema] = Field(
+        description="List of tasks", default_factory=list
+    )
+
+    def __rich__(self):
+        table = rich.table.Table(box=rich.box.ROUNDED)
+        table.add_column("[blue]UID")
+        table.add_column("[blue]Name")
+        table.add_column("[blue]State")
+        for entry in self.entries:
+            table.add_row(str(entry.uid), entry.name, str(entry.state))
         return table
 
 

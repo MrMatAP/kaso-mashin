@@ -47,41 +47,12 @@ class InstanceState(str, enum.Enum):
 MAC_VENDOR_PREFIX = "00:50:56"
 
 
-class InstanceListEntrySchema(EntitySchema):
+class InstanceException(KasoMashinException):
     """
-    Schema for an instance list
-    """
-
-    uid: UniqueIdentifier = Field(
-        description="The unique identifier of the instance",
-        examples=["b430727e-2491-4184-bb4f-c7d6d213e093"],
-    )
-    name: str = Field(
-        description="The instance name", examples=["k8s-master", "your-mom"]
-    )
-    state: InstanceState = Field(
-        description="The current state of the instance",
-        examples=[InstanceState.STARTED, InstanceState.STOPPED],
-    )
-
-
-class InstanceListSchema(EntitySchema):
-    """
-    Schema to list instances
+    Exception for instance-related issues
     """
 
-    entries: typing.List[InstanceListEntrySchema] = Field(
-        description="List of instances", default_factory=list
-    )
-
-    def __rich__(self):
-        table = rich.table.Table(box=rich.box.ROUNDED)
-        table.add_column("[blue]UID")
-        table.add_column("[blue]Name")
-        table.add_column("[blue]State")
-        for entry in self.entries:
-            table.add_row(str(entry.uid), entry.name, str(entry.state))
-        return table
+    pass
 
 
 class InstanceCreateSchema(EntitySchema):
@@ -160,6 +131,25 @@ class InstanceGetSchema(EntitySchema):
         return table
 
 
+class InstanceListSchema(EntitySchema):
+    """
+    Schema to list instances
+    """
+
+    entries: typing.List[InstanceGetSchema] = Field(
+        description="List of instances", default_factory=list
+    )
+
+    def __rich__(self):
+        table = rich.table.Table(box=rich.box.ROUNDED)
+        table.add_column("[blue]UID")
+        table.add_column("[blue]Name")
+        table.add_column("[blue]State")
+        for entry in self.entries:
+            table.add_row(str(entry.uid), entry.name, str(entry.state))
+        return table
+
+
 class InstanceModifySchema(EntitySchema):
     """
     Schema to modify an existing instance
@@ -168,14 +158,6 @@ class InstanceModifySchema(EntitySchema):
     state: typing.Optional[InstanceState] = Field(
         description="The state of the instance"
     )
-
-
-class InstanceException(KasoMashinException):
-    """
-    Exception for instance-related issues
-    """
-
-    pass
 
 
 class InstanceModel(EntityModel):

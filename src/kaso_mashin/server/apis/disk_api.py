@@ -10,7 +10,6 @@ from kaso_mashin.server.runtime import Runtime
 from kaso_mashin.common.entities import (
     DiskEntity,
     DiskListSchema,
-    DiskListEntrySchema,
     DiskGetSchema,
     DiskCreateSchema,
     DiskModifySchema,
@@ -20,7 +19,6 @@ from kaso_mashin.common.entities import (
 class DiskAPI(
     BaseAPI[
         DiskListSchema,
-        DiskListEntrySchema,
         DiskGetSchema,
         DiskCreateSchema,
         DiskModifySchema,
@@ -35,7 +33,6 @@ class DiskAPI(
             runtime=runtime,
             name="Disk",
             list_schema_type=DiskListSchema,
-            list_entry_schema_type=DiskListEntrySchema,
             get_schema_type=DiskGetSchema,
             create_schema_type=DiskCreateSchema,
             modify_schema_type=DiskModifySchema,

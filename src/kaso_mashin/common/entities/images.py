@@ -38,38 +38,6 @@ class ImageException(KasoMashinException):
     pass
 
 
-class ImageListEntrySchema(EntitySchema):
-    """
-    Schema for an image list
-    """
-
-    uid: UniqueIdentifier = Field(
-        description="The unique identifier",
-        examples=["b430727e-2491-4184-bb4f-c7d6d213e093"],
-    )
-    name: str = Field(
-        description="The image name", examples=["ubuntu", "flatpack", "debian"]
-    )
-
-
-class ImageListSchema(EntitySchema):
-    """
-    Schema to list images
-    """
-
-    entries: typing.List[ImageListEntrySchema] = Field(
-        description="List of images", default_factory=list
-    )
-
-    def __rich__(self):
-        table = rich.table.Table(box=rich.box.ROUNDED)
-        table.add_column("[blue]UID")
-        table.add_column("[blue]Name")
-        for entry in self.entries:
-            table.add_row(str(entry.uid), entry.name)
-        return table
-
-
 class ImageCreateSchema(EntitySchema):
     """
     Schema to create an image
@@ -122,6 +90,24 @@ class ImageGetSchema(ImageCreateSchema):
         table.add_row("[blue]Min VCPU", str(self.min_vcpu))
         table.add_row("[blue]Min RAM", f"{self.min_ram.value} {self.min_ram.scale}")
         table.add_row("[blue]Min Disk", f"{self.min_disk.value} {self.min_disk.scale}")
+        return table
+
+
+class ImageListSchema(EntitySchema):
+    """
+    Schema to list images
+    """
+
+    entries: typing.List[ImageGetSchema] = Field(
+        description="List of images", default_factory=list
+    )
+
+    def __rich__(self):
+        table = rich.table.Table(box=rich.box.ROUNDED)
+        table.add_column("[blue]UID")
+        table.add_column("[blue]Name")
+        for entry in self.entries:
+            table.add_row(str(entry.uid), entry.name)
         return table
 
 

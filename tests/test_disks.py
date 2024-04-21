@@ -14,7 +14,6 @@ from kaso_mashin.common.entities import (
     DiskModel,
     DiskEntity,
     DiskListSchema,
-    DiskListEntrySchema,
     DiskGetSchema,
     DiskModifySchema,
     DiskFormat,
@@ -50,7 +49,7 @@ class TestSeededDisks(BaseTest[DiskModel, DiskEntity, DiskGetSchema]):
     """
 
     def assert_list_by_model(
-        self, obj: DiskListEntrySchema | DiskEntity, model: DiskModel
+        self, obj: DiskGetSchema | DiskEntity, model: DiskModel
     ):
         assert obj.uid == UniqueIdentifier(model.uid)
         assert obj.name == model.name
