@@ -1,9 +1,9 @@
 <script setup lang="ts">
 import { ref } from 'vue'
-import { Instance } from '@/store/instances'
+import { InstanceGetSchema } from '@/store/instances'
 
 defineProps<{
-    instance: Instance
+    instance: InstanceGetSchema
 }>()
 
 let expand = ref()
@@ -12,7 +12,7 @@ let expand = ref()
 <template>
   <v-card class="pa-2 ma-2">
     <template v-slot:title>{{ instance.name }}</template>
-    <template v-slot:subtitle>{{ instance.instance_id }}</template>
+    <template v-slot:subtitle>{{ instance.uid }}</template>
     <v-expand-transition>
       <div v-if="expand">
         <v-list class="bg-transparent" density="compact">

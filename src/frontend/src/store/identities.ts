@@ -4,60 +4,92 @@ import { mande } from "mande";
 const identities = mande('/api/identities/')
 
 export enum IdentityKind {
-  pubkey = 'pubkey',
-  password = "password"
+  PUBKEY = 'pubkey',
+  PASSWORD = "password"
 }
 
-export class Identity {
-  identity_id: number
+export interface IdentityCreateSchema {
   name: string
   kind: IdentityKind
   gecos: string
   homedir: string
   shell: string
-  passwd?: string
-  pubkey?: string
-
-  constructor(identity_id: number, name: string, kind: IdentityKind, gecos: string, homedir: string, shell: string, passwd?: string, pubkey?: string) {
-    this.identity_id = identity_id
-    this.name = name
-    this.kind = kind
-    this.gecos = gecos
-    this.homedir = homedir
-    this.shell = shell
-    this.passwd = passwd
-    this.pubkey = pubkey
-  }
-
-  static defaultIdentity(): Identity {
-    return new Identity(0, '', IdentityKind.pubkey, '', '', '/bin/bash', '', '')
-  }
-
-  static displayKind(kind: IdentityKind): string {
-    switch(kind) {
-      case IdentityKind.password: return 'Password'
-      case IdentityKind.pubkey: return 'SSH Public Key'
-      default: return 'Unknown'
-    }
-  }
+  credential: string
 }
+
+export interface IdentityGetSchema{
+  readonly uid: string
+  name: string
+  kind: IdentityKind
+  gecos: string
+  homedir: string
+  shell: string
+  credential: string
+}
+
+export interface IdentityListSchema {
+  entries: IdentityGetSchema[]
+}
+
+export interface IdentityModifySchema {
+  name?: string
+  kind?: IdentityKind
+  gecos?: string
+  homedir?: string
+  shell?: string
+  credential?: string
+}
+
+
+// export class DefaultIdentity implements IdentityGetSchema {
+//
+//   uid: string;
+//   name: string;
+//   kind: IdentityKind
+//   gecos: string;
+//   homedir: string;
+//   shell: string;
+//   credential: string;
+//
+//   constructor() {
+//     this.uid = ''
+//     this.name = 'login'
+//     this.kind = IdentityKind.pubkey
+//     this.gecos = 'Name'
+//     this.homedir = '/home/login'
+//     this.shell = '/bin/bash'
+//     this.credential = 'ssh-rsa ...'
+//   }
+//
+//   static displayKind(kind: IdentityKind): string {
+//     switch(kind) {
+//       case IdentityKind.password: return 'Password'
+//       case IdentityKind.pubkey: return 'SSH Public Key'
+//       default: return 'Unknown'
+//     }
+//   }
+// }
 
 export const useIdentitiesStore = defineStore('identities', {
   state: () => ({
-    identities: [] as Identity[]
+    identities: [] as IdentityGetSchema[]
   }),
   actions: {
-    async refresh() {
-      this.identities = await identities.get()
+    async list() {
+      let identity_list: IdentityListSchema = await identities.get()
+      this.identities = identity_list.entries
     },
-    async create(identity: Identity) {
-      return identities.post(identity)
+    async get(uid: string): Promise<IdentityGetSchema> {
+      return await identities.get(uid)
     },
-    async modify(identity: Identity) {
-      return identities.put(identity.identity_id, identity)
+    async create(create: IdentityCreateSchema): Promise<IdentityGetSchema> {
+      return await identities.post(create)
     },
-    async remove(identity: Identity) {
-      return identities.delete(identity.identity_id)
+    async modify(uid: string, modify: IdentityModifySchema): Promise<IdentityGetSchema> {
+      return await identities.put(uid, modify)
+    },
+    async remove(uid: string): Promise<void> {
+      return await identities.delete(uid)
     }
   }
 })

@@ -1,14 +1,14 @@
 <script setup lang="ts">
 import {computed, reactive, ref} from 'vue'
 import {DialogKind} from '@/constants'
-import {Identity, IdentityKind} from '@/store/identities'
+import {IdentityGetSchema, IdentityCreateSchema, IdentityModifySchema, IdentityKind, DefaultIdentity} from '@/store/identities'
 
 const props = defineProps<{
   kind: DialogKind,
-  input?: Identity
+  input?: IdentityGetSchema
 }>()
 const emits = defineEmits<{
-  (e: 'accept', output: Identity): void,
+  (e: 'accept', output: IdentityCreateSchema | IdentityModifySchema): void,
   (e: 'cancel'): void
 }>()
 
@@ -32,15 +32,15 @@ const acceptLabel = computed( () => {
 const legalIdentityKinds = computed(() => [
   {
     value: IdentityKind.pubkey,
-    title: Identity.displayKind(IdentityKind.pubkey)
+    title: 'SSH Public Key'
   },
   {
     value: IdentityKind.password,
-    title: Identity.displayKind(IdentityKind.password)
+    title: 'Password'
   }
 ])
 
-let currentItem = reactive(props.input || Identity.defaultIdentity())
+let currentItem = reactive(props.input || new DefaultIdentity)
 let form = ref()
 const rules = {
   required: (value: any) => !!value || 'Required',
@@ -50,7 +50,7 @@ const rules = {
   },
   has_key: () => {
     if(currentItem.kind !== IdentityKind.pubkey) { return true }
-    return currentItem.pubkey !== undefined && currentItem.pubkey.length > 0 || 'You must upload an SSH public key'
+    return currentItem.credential !== undefined && currentItem.credential.length > 0 || 'You must upload an SSH public key'
   }
 }
 
@@ -63,7 +63,7 @@ async function onAccept() {
 }
 
 function onCancel() {
-  currentItem = Identity.defaultIdentity()
+  currentItem = new DefaultIdentity();
   isOpen.value = false
   emits('cancel')
 }
@@ -123,7 +123,7 @@ function onCancel() {
           <v-row>
             <v-col cols="6" sm="6" md="6">
               <v-text-field
-                v-model="currentItem.passwd"
+                v-model="currentItem.credential"
                 type="password"
                 variant="underlined"
                 :rules="[rules.min_2]"
@@ -135,7 +135,7 @@ function onCancel() {
           <v-row>
             <v-col cols="12" sm="12" md="12">
               <v-textarea
-                v-model="currentItem.pubkey"
+                v-model="currentItem.credential"
                 :clearable="true"
                 :rules="[rules.has_key]"
                 :disabled="currentItem.kind === IdentityKind.password || kind === DialogKind.remove"

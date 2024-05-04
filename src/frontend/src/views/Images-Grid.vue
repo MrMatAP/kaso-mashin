@@ -2,15 +2,21 @@
 
 import {useImagesStore} from "@/store/images";
 import ImageCard from "@/components/ImageCard.vue";
+import {onMounted, ref} from "vue";
 
-const imagesStore = useImagesStore()
+const store = useImagesStore()
+const loading = ref(true)
+
+onMounted( () => {
+  store.list().then( () => { loading.value = false })
+})
 </script>
 
 <template>
   <v-container class="fill-height">
     <v-responsive class="fill-height">
       <v-row>
-        <ImageCard v-for="image in imagesStore.images" :key="image.image_id" :image="image"/>
+        <ImageCard v-for="image in store.images" :key="image.uid" :image="image"/>
       </v-row>
     </v-responsive>
   </v-container>

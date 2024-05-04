@@ -1,17 +1,17 @@
 <script setup lang="ts">
 import { onMounted, ref } from 'vue'
-import { Image, useImagesStore } from "@/store/images";
+import {ImageCreateSchema, ImageModifySchema, useImagesStore} from "@/store/images";
 import ExplanationNote from "@/components/ExplanationNote.vue";
-import ImageDialog from "@/components/ImageDialog.vue";
-import {DialogKind} from "@/constants";
+//import ImageDialog from "@/components/ImageDialog.vue";
+//import {DialogKind} from "@/constants";
 
 const imagesStore = useImagesStore()
 const loading = ref(true)
 
 const headers = [
   {
-    key: 'image_id',
-    title: 'Image Id',
+    key: 'uid',
+    title: 'UID',
     sortable: true
   },
   {
@@ -20,12 +20,8 @@ const headers = [
     sortable: true
   },
   {
-    key: 'path',
-    title: 'Path'
-  },
-  {
-    key: 'min_cpu',
-    title: 'Minimal CPUs',
+    key: 'min_vcpu',
+    title: 'Minimal vCPUs',
   },
   {
     key: 'min_ram',
@@ -42,32 +38,44 @@ const headers = [
   }
 ]
 
-function createImage(image: Image) {
-  loading.value = true
-  imagesStore.create(image).then( () => {
-    imagesStore.refresh()
-    loading.value = false
-  })
+function createImage(create: ImageCreateSchema) {
+  console.log('Would create an image')
 }
 
-function modifyImage(image: Image) {
-  loading.value = true
-  imagesStore.modify(image).then( () => {
-    imagesStore.refresh()
-    loading.value = false
-  })
+function modifyImage(modify: ImageModifySchema) {
+  console.log('Would modify an image')
 }
 
-function removeImage(image: Image) {
-  loading.value = true
-  imagesStore.remove(image).then( () => {
-    imagesStore.refresh()
-    loading.value = false
-  })
+function removeImage(uid: string) {
+  console.log('Would remove an image')
 }
+
+// function createImage(create: ImageCreateSchema) {
+//   loading.value = true
+//   imagesStore.create(create).then( () => {
+//     imagesStore.list()
+//     loading.value = false
+//   })
+// }
+//
+// function modifyImage(image: Image) {
+//   loading.value = true
+//   imagesStore.modify(image).then( () => {
+//     imagesStore.list()
+//     loading.value = false
+//   })
+// }
+//
+// function removeImage(image: Image) {
+//   loading.value = true
+//   imagesStore.remove(image).then( () => {
+//     imagesStore.list()
+//     loading.value = false
+//   })
+// }
 
 onMounted( () => {
-  imagesStore.refresh().then( () => { loading.value = false })
+  imagesStore.list().then( () => { loading.value = false })
 })
 </script>
 
@@ -77,7 +85,7 @@ onMounted( () => {
       :headers="headers"
       :items="imagesStore.images"
       :loading="loading"
-      :sort-by="[{ key: 'image_id', order: 'asc'}]">
+      :sort-by="[{ key: 'uid', order: 'asc'}]">
       <template v-slot:top>
         <v-toolbar>
           <v-toolbar-title>Images</v-toolbar-title>
@@ -85,18 +93,18 @@ onMounted( () => {
           <v-spacer></v-spacer>
           <v-btn color="primary" dark class="mb-2">
             Create Image
-            <image-dialog :kind="DialogKind.create" :predefined="imagesStore.predefined_images" @accept="createImage"/>
+<!--            <image-dialog :kind="DialogKind.create" :predefined="imagesStore.predefined_images" @accept="createImage"/>-->
           </v-btn>
         </v-toolbar>
       </template>
       <template v-slot:[`item.actions`]="{item}">
         <v-btn density="compact" :rounded="true" variant="plain">
           <v-icon size="small">mdi-pencil</v-icon>
-          <image-dialog :kind="DialogKind.modify" :input="item" :predefined="imagesStore.predefined_images" @accept="modifyImage"/>
+<!--          <image-dialog :kind="DialogKind.modify" :input="item" :predefined="imagesStore.predefined_images" @accept="modifyImage"/>-->
         </v-btn>
         <v-btn density="compact" :rounded="true" variant="plain">
           <v-icon size="small">mdi-delete</v-icon>
-          <image-dialog :kind="DialogKind.remove" :input="item" :predefined="imagesStore.predefined_images" @accept="removeImage"/>
+<!--          <image-dialog :kind="DialogKind.remove" :input="item" :predefined="imagesStore.predefined_images" @accept="removeImage"/>-->
         </v-btn>
       </template>
       <template v-slot:loading>

@@ -1,12 +1,13 @@
 <script setup lang="ts">
-import { onMounted } from "vue"
+import {onMounted, ref} from "vue"
 import { useInstancesStore } from "@/store/instances";
 import InstanceCard from "@/components/InstanceCard.vue";
 
-const instanceStore = useInstancesStore()
+const store = useInstancesStore()
+const loading = ref(true)
 
 onMounted( () => {
-  instanceStore.refresh()
+  store.list().then( () => { loading.value = false })
 })
 </script>
 
@@ -14,7 +15,7 @@ onMounted( () => {
   <v-container class="fill-height">
     <v-responsive class="fill-height">
       <v-row>
-        <InstanceCard v-for="instance in instanceStore.instances" :key="instance.instance_id" :instance="instance"/>
+        <InstanceCard v-for="instance in store.instances" :key="instance.uid" :instance="instance"/>
       </v-row>
     </v-responsive>
   </v-container>

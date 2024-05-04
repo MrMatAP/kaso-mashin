@@ -1,22 +1,27 @@
 <script setup lang="ts">
 import {onMounted, ref} from 'vue'
-import {Identity, useIdentitiesStore} from '@/store/identities'
+import {
+  IdentityCreateSchema,
+  IdentityGetSchema,
+  IdentityModifySchema,
+  useIdentitiesStore
+} from '@/store/identities'
 import ExplanationNote from "@/components/ExplanationNote.vue";
-import IdentityDialog from "@/components/IdentityDialog.vue";
-import {DialogKind} from "@/constants";
+//import IdentityDialog from "@/components/IdentityDialog.vue";
+//import {DialogKind} from "@/constants";
 
 const identitiesStore = useIdentitiesStore()
 const loading = ref(true)
 
 const headers = [
   {
-    key: 'identity_id',
-    title: 'Identity Id',
+    key: 'uid',
+    title: 'UID',
     sortable: true,
   },
   {
     key: 'name',
-    title: 'Login',
+    title: 'Name (Login)',
     sortable: true
   },
   {
@@ -46,37 +51,34 @@ const headers = [
   }
 ]
 
-function createIdentity(identity: Identity) {
-  console.log('Would now create identity with name ' + identity.name)
+function createIdentity(create: IdentityCreateSchema) {
+  console.log('Would now create identity with name ' + create.name)
   loading.value = true
-  identitiesStore.create(identity).then( () => {
-    identitiesStore.refresh()
+  identitiesStore.create(create).then( () => {
+    identitiesStore.list()
     loading.value = false
   })
 }
 
-function modifyIdentity(identity: Identity) {
-  console.log('Would now modify identity with name ' + identity.name)
+function modifyIdentity(uid: string, modify: IdentityModifySchema) {
+  console.log('Would now modify identity with name ' + modify.name)
   loading.value = true
-  identitiesStore.modify(identity).then( () => {
-    identitiesStore.refresh()
+  identitiesStore.modify(uid, modify).then( () => {
+    identitiesStore.list()
     loading.value = false
   })
 }
 
-function removeIdentity(identity: Identity) {
-  console.log('Would now remove identity with name ' + identity.name)
+function removeIdentity(uid: string) {
   loading.value = true
-  identitiesStore.remove(identity).then( () => {
-    identitiesStore.refresh()
+  identitiesStore.remove(uid).then( () => {
+    identitiesStore.list()
     loading.value = false
   })
 }
 
 onMounted( () => {
-  identitiesStore.refresh().then( () => {
-    loading.value = false
-  })
+  identitiesStore.list().then( () => { loading.value = false })
 })
 </script>
 
@@ -86,7 +88,7 @@ onMounted( () => {
       :headers="headers"
       :items="identitiesStore.identities"
       :loading="loading"
-      :sort-by="[{ key: 'identity_id', order: 'asc'}]">
+      :sort-by="[{ key: 'uid', order: 'asc'}]">
       <template v-slot:top>
         <v-toolbar>
           <v-toolbar-title>Identities</v-toolbar-title>
@@ -94,21 +96,21 @@ onMounted( () => {
           <v-spacer></v-spacer>
           <v-btn color="primary" dark class="mb-2">
             Create Identity
-            <identity-dialog :kind="DialogKind.create" @accept="createIdentity"/>
+<!--            <identity-dialog :kind="DialogKind.create" @accept="createIdentity"/>-->
           </v-btn>
         </v-toolbar>
       </template>
       <template v-slot:[`item.kind`]="{value}">
-        {{ Identity.displayKind(value) }}
+        value
       </template>
       <template v-slot:[`item.actions`]="{ item }">
         <v-btn density="compact" :rounded="true" variant="plain">
           <v-icon size="small">mdi-pencil</v-icon>
-          <identity-dialog :kind="DialogKind.modify" :input="item" @accept="modifyIdentity"/>
+<!--          <identity-dialog :kind="DialogKind.modify" :input="item" @accept="modifyIdentity"/>-->
         </v-btn>
         <v-btn density="compact" :rounded="true" variant="plain">
           <v-icon size="small">mdi-delete</v-icon>
-          <identity-dialog :kind="DialogKind.remove" :input="item" @accept="removeIdentity"/>
+<!--          <identity-dialog :kind="DialogKind.remove" :input="item" @accept="removeIdentity"/>-->
         </v-btn>
       </template>
       <template v-slot:loading>

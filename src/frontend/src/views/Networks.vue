@@ -6,7 +6,7 @@ import NetworkCard from '@/components/NetworkCard.vue'
 const networksStore = useNetworksStore()
 
 onMounted(() => {
-  networksStore.refresh()
+  networksStore.list()
 })
 </script>
 
@@ -14,7 +14,7 @@ onMounted(() => {
   <v-container class="fill-height">
     <v-responsive class="fill-height">
       <v-row>
-        <NetworkCard v-for="net in networksStore.networks" :key="net.network_id" :net="net"/>
+        <NetworkCard v-for="net in networksStore.networks" :key="net.uid" :net="net"/>
       </v-row>
     </v-responsive>
   </v-container>

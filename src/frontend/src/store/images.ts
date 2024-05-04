@@ -1,55 +1,38 @@
-import { defineStore } from 'pinia'
-import { mande } from "mande";
+import {defineStore} from 'pinia'
+import {mande} from "mande";
+import {BinarySizedValue} from "@/base_types";
 
 const images = mande('/api/images/')
-const predefined_images = mande('/api/images/predefined')
+const predefined_images = mande('/api/images/predefined/')
 
-export class Image {
-  image_id: number
-  name: string
-  url?: string
-  path: string
-  min_cpu: number
-  min_ram: number
-  min_space: number
-
-  constructor(image_id: number, name: string, path: string, min_cpu: number, min_ram: number, min_space: number, url?: string) {
-    this.image_id = image_id
-    this.name = name
-    this.path = path
-    this.min_cpu = min_cpu
-    this.min_ram = min_ram
-    this.min_space = min_space
-    this.url = url
-  }
-
-  static defaultImage(): Image {
-    return new Image(0, '', '', 0, 0, 0)
-  }
+export interface ImageCreateSchema {
+  name: string,
+  url: string,
+  min_vcpu: number,
+  min_ram: BinarySizedValue,
+  min_disk: BinarySizedValue
 }
 
-export class ImageCreateSchema {
-  name: string
-  url: string
-  min_cpu?: number
-  min_ram?: number
-  min_space?: number
-
-  constructor(name: string, url: string, min_cpu?: number, min_ram?: number, min_space?: number) {
-    this.name = name
-    this.url = url
-    this.min_cpu = min_cpu
-    this.min_ram = min_ram
-    this.min_space = min_space
-  }
-
-  static fromImage(image: Image): ImageCreateSchema {
-    if(image.url != undefined) {
-      return new ImageCreateSchema(image.name, image.url, image.min_cpu, image.min_ram, image.min_space)
-    }
-    throw new Error('Creating an image requires both name and url')
-  }
+export interface ImageGetSchema {
+  uid: string,
+  path: string,
+  name: string,
+  url: string,
+  min_vcpu: number,
+  min_ram: BinarySizedValue,
+  min_disk: BinarySizedValue
 }
+
+export interface ImageListSchema {
+  entries: ImageGetSchema[]
+}
+
+export interface ImageModifySchema {
+  min_vcpu?: number,
+  min_ram?: BinarySizedValue,
+  min_disk?: BinarySizedValue,
+}
+
 
 export class PredefinedImage {
   name: string
@@ -63,23 +46,14 @@ export class PredefinedImage {
 
 export const useImagesStore = defineStore('images', {
   state: () => ({
-    images: [] as Image[],
+    images: [] as ImageGetSchema[],
     predefined_images: [] as PredefinedImage[]
   }),
   actions: {
-    async refresh() {
-      this.images = await images.get()
-      this.predefined_images = await predefined_images.get()
-    },
-    async create(image: Image) {
-      const new_image = ImageCreateSchema.fromImage(image)
-      return images.post(new_image)
-    },
-    async modify(image: Image) {
-      return images.put(image.image_id, image)
-    },
-    async remove(image: Image) {
-      return images.delete(image.image_id)
+    async list() {
+      let image_list: ImageListSchema = await images.get()
+      this.images = image_list.entries
+      //this.predefined_images = await predefined_images.get()
     }
   }
 })

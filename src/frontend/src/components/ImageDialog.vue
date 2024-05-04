@@ -1,15 +1,15 @@
 <script setup lang="ts">
 import {computed, ref, reactive} from 'vue'
-import {Image, PredefinedImage} from '@/store/images'
+import {ImageCreateSchema, ImageGetSchema, ImageModifySchema, PredefinedImage} from '@/store/images'
 import {DialogKind} from "@/constants";
 
 const props = defineProps<{
   kind: DialogKind,
-  input?: Image,
+  input?: ImageGetSchema,
   predefined: PredefinedImage[]
 }>()
 const emits = defineEmits<{
-  (e: 'accept', output: Image): void
+  (e: 'accept', output: ImageCreateSchema | ImageModifySchema): void
   (e: 'cancel'): void
 }>()
 
@@ -91,7 +91,7 @@ async function onCancel() {
             <v-row>
               <v-col cols="4" sm="4" md="4">
                 <div class="text-caption">Minimum CPUs</div>
-                <v-slider v-model="currentItem.min_cpu"
+                <v-slider v-model="currentItem.min_vcpu"
                           step="1"
                           :max="16"
                           show-ticks="always"
@@ -109,7 +109,7 @@ async function onCancel() {
               </v-col>
               <v-col cols="4" sm="4" md="4">
                 <div class="text-caption">Minimum Space (G)</div>
-                <v-slider v-model="currentItem.min_space"
+                <v-slider v-model="currentItem.min_disk"
                           :step="1"
                           :max="16"
                           show-ticks="always"

@@ -4,31 +4,49 @@ import { mande } from "mande";
 
 const networks = mande('/api/networks/')
 
-export type Network = {
+export enum NetworkKind {
+  VMNET_HOST = "vmnet-host",
+  VMNET_SHARED = "vmnet-shared",
+  VMNET_BRIDGED = "vmnet-bridged"
+}
+
+export interface NetworkCreateSchema {
   name: string
-  kind: string
-  network_id: number
-  host_if?: string
-  host_ip4?: string
-  nm4: string
-  gw4?: string
-  ns4?: string
-  dhcp4_start?: string
-  dhcp4_end?: string
-  host_phone_home_port: number
+  kind: NetworkKind
+  cidr: string
+  gateway: string
+  dhcp_start: string
+  dhcp_end: string
+}
+
+export interface NetworkGetSchema extends NetworkCreateSchema {
+  uid: string
+}
+
+export interface NetworkListSchema {
+  entries: NetworkGetSchema[]
+}
+
+export interface NetworkModifySchema {
+  name?: string
+  cidr?: string
+  gateway?: string
+  dhcp_start?: string
+  dhcp_end?: string
 }
 
 export const useNetworksStore = defineStore('networks', {
   state: () => ({
-    networks: [] as Network[]
+    networks: [] as NetworkGetSchema[]
   }),
   // getters: {
   //   getNetworkById: (state) => {
   //     return (id) => state.networks.find((net) => net.network_id === id)
   // },
   actions: {
-    async refresh() {
-      this.networks = await networks.get()
+    async list() {
+      let network_list: NetworkListSchema = await networks.get()
+      this.networks = network_list.entries
     }
   }
 })
