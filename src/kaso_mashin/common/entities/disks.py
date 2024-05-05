@@ -20,7 +20,7 @@ from kaso_mashin.common import (
     AggregateRoot,
     AsyncRepository,
     BinarySizedValue,
-    BinaryScale,
+    BinaryScale
 )
 
 from .images import ImageEntity
@@ -51,7 +51,7 @@ class DiskCreateSchema(EntitySchema):
         examples=["/var/kaso/instances/root.qcow2"],
     )
     size: BinarySizedValue = Field(
-        description="Disk size", examples=[BinarySizedValue(2, BinaryScale.G)]
+        description="Disk size", examples=[BinarySizedValue(value=2, scale=BinaryScale.G)]
     )
     disk_format: DiskFormat = Field(
         description="Disk image file format",
@@ -77,7 +77,7 @@ class DiskGetSchema(EntitySchema):
         examples=["/var/kaso/instances/root.qcow2"],
     )
     size: BinarySizedValue = Field(
-        description="Disk size", examples=[BinarySizedValue(2, BinaryScale.G)]
+        description="Disk size", examples=[BinarySizedValue(value=2, scale=BinaryScale.G)]
     )
     disk_format: DiskFormat = Field(
         description="Disk image file format",
@@ -117,7 +117,7 @@ class DiskModifySchema(EntitySchema):
 
     size: BinarySizedValue = Field(
         description="Disk size",
-        examples=[BinarySizedValue(2, BinaryScale.G)],
+        examples=[BinarySizedValue(value=2, scale=BinaryScale.G)],
         optional=True,
         default=None,
     )

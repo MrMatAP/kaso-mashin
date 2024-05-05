@@ -65,7 +65,7 @@ class InstanceCreateSchema(EntitySchema):
     )
     vcpu: int = Field(description="Number of virtual CPU cores", examples=[2])
     ram: BinarySizedValue = Field(
-        description="Amount of RAM", examples=[BinarySizedValue(2, BinaryScale.G)]
+        description="Amount of RAM", examples=[BinarySizedValue(value=2, scale=BinaryScale.G)]
     )
     os_disk_size: BinarySizedValue = Field(description="Size of the OS disk")
     image_uid: str = Field(
@@ -97,7 +97,7 @@ class InstanceGetSchema(EntitySchema):
     path: pathlib.Path = Field(description="Path of the instance on the local disk")
     vcpu: int = Field(description="Number of virtual CPU cores", examples=[2])
     ram: BinarySizedValue = Field(
-        description="Amount of RAM", examples=[BinarySizedValue(2, BinaryScale.G)]
+        description="Amount of RAM", examples=[BinarySizedValue(value=2, scale=BinaryScale.G)]
     )
     mac: str = Field(description="Instance MAC address")
     os_disk: DiskGetSchema = Field(

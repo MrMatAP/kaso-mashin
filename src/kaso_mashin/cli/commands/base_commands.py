@@ -10,8 +10,8 @@ import rich.box
 
 from kaso_mashin import console
 from kaso_mashin.common.config import Config
-from kaso_mashin.common.ddd_scaffold import T_EntityListSchema, T_EntityGetSchema
-from kaso_mashin.common.base_types import ExceptionSchema, EntitySchema
+from kaso_mashin.common.base_types import ExceptionSchema
+from kaso_mashin.common import EntitySchema, T_EntityListSchema, T_EntityGetSchema
 
 
 class BaseCommands(typing.Generic[T_EntityListSchema, T_EntityGetSchema], abc.ABC):

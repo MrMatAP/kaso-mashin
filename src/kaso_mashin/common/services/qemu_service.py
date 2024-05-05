@@ -1,7 +1,7 @@
 import subprocess
 
 from kaso_mashin import KasoMashinException
-from kaso_mashin.common.ddd_scaffold import Service
+from kaso_mashin.common import Service
 from kaso_mashin.common.base_types import BinaryScale
 from kaso_mashin.common.entities import InstanceEntity, NetworkKind, BootstrapKind
 

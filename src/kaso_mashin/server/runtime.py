@@ -7,8 +7,6 @@ import fastapi
 import getpass
 import httpx
 import aiofiles
-import ipaddress
-import netifaces
 
 from kaso_mashin.common.config import Config
 from kaso_mashin.server.db import DB
@@ -58,13 +56,13 @@ class Runtime:
         self._owning_user = os.environ.get("SUDO_USER", self._effective_user)
         self._db.owning_user = self._owning_user
         self._server_url = None
-        self._task_repository = None
-        self._disk_repository = None
-        self._image_repository = None
-        self._network_repository = None
-        self._instance_repository = None
-        self._bootstrap_repository = None
-        self._identity_repository = None
+        self._task_repository: TaskRepository | None = None
+        self._disk_repository: DiskRepository | None = None
+        self._image_repository: ImageRepository | None = None
+        self._network_repository: NetworkRepository | None = None
+        self._instance_repository: InstanceRepository | None = None
+        self._bootstrap_repository: BootstrapRepository | None = None
+        self._identity_repository: IdentityRepository | None = None
         self._uefi_code_path = config.bootstrap_path / "uefi-code.fd"
         self._uefi_vars_path = config.bootstrap_path / "uefi-vars.fd"
         self._qemu_service = QEMUService(self)

@@ -43,17 +43,6 @@ class ImageAPI(
             async_create=True,
         )
 
-        self._router.add_api_route(
-            path="/predefined",
-            endpoint=self.list_predefined_images,
-            methods=["GET"],
-            summary="List predefined images",
-            description="List the currently predefined images you can download",
-            response_description="A list of predefined images",
-            status_code=200,
-            responses={200: {"model": typing.List[ImagePredefinedSchema]}},
-        )
-
     @property
     def repository(self) -> AsyncRepository:
         return self._runtime.image_repository
@@ -98,10 +87,3 @@ class ImageAPI(
             min_vcpu=schema.min_vcpu, min_ram=schema.min_ram, min_disk=schema.min_disk
         )
         return ImageGetSchema.model_validate(entity)
-
-    async def list_predefined_images(self):
-        predefined = [
-            ImagePredefinedSchema(name=name, url=url)
-            for name, url in Predefined_Images.items()
-        ]
-        return predefined

@@ -3,11 +3,10 @@ from uuid import UUID
 
 import fastapi
 
-from kaso_mashin.common import AsyncRepository
+from kaso_mashin.common import AsyncRepository, UniqueIdentifier, EntityNotFoundException
 from kaso_mashin.server.apis import BaseAPI
 from kaso_mashin.server.runtime import Runtime
 from kaso_mashin.common.base_types import ExceptionSchema
-from kaso_mashin.common.ddd_scaffold import EntityNotFoundException, UniqueIdentifier
 from kaso_mashin.common.entities import (
     InstanceEntity,
     InstanceListSchema,

@@ -7,7 +7,7 @@ import sqlalchemy.ext.asyncio
 from kaso_mashin import Base
 from kaso_mashin.common.config import Config
 
-from kaso_mashin.common.ddd_scaffold import EntityModel
+from kaso_mashin.common import EntityModel
 
 
 class DB:

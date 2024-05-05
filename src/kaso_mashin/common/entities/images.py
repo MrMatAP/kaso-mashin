@@ -20,7 +20,7 @@ from kaso_mashin.common import (
     AggregateRoot,
     AsyncRepository,
     BinarySizedValue,
-    BinaryScale,
+    BinaryScale
 )
 
 from kaso_mashin.common.entities import TaskEntity
@@ -60,12 +60,12 @@ class ImageCreateSchema(EntitySchema):
     min_ram: BinarySizedValue = Field(
         description="Optional minimum RAM size to run this image",
         default=DEFAULT_MIN_RAM,
-        examples=[DEFAULT_MIN_RAM, BinarySizedValue(2, BinaryScale.G)],
+        examples=[DEFAULT_MIN_RAM, BinarySizedValue(value=2, scale=BinaryScale.G)],
     )
     min_disk: BinarySizedValue = Field(
         description="Optional minimum disk size to run this image",
         default=DEFAULT_MIN_DISK,
-        examples=[DEFAULT_MIN_DISK, BinarySizedValue(10, BinaryScale.G)],
+        examples=[DEFAULT_MIN_DISK, BinarySizedValue(value=10, scale=BinaryScale.G)],
     )
 
 

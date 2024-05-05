@@ -132,10 +132,10 @@ class TaskEntity(Entity, AggregateRoot):
 
     @staticmethod
     async def from_model(model: TaskModel) -> "TaskEntity":
-        pass
+        raise NotImplementedError
 
     async def to_model(self, model: TaskModel | None = None) -> TaskModel:
-        pass
+        raise NotImplementedError
 
     def __eq__(self, other: object) -> bool:
         return all(
@@ -163,7 +163,7 @@ class TaskEntity(Entity, AggregateRoot):
         task = TaskEntity(name=name, msg=msg)
         return await TaskEntity.repository.create(task)
 
-    async def progress(self, percent_complete: int, msg: str = None):
+    async def progress(self, percent_complete: int, msg: str | None = None):
         self._percent_complete = percent_complete
         if msg is not None:
             self._msg = msg
