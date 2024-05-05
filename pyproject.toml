@@ -1,7 +1,7 @@
 [build-system]
 requires = [
-    'setuptools==69.0.2',
-    'wheel==0.42.0'
+    'setuptools==69.5.1',
+    'wheel==0.43.0'
 ]
 build-backend = 'setuptools.build_meta'
 
@@ -32,13 +32,13 @@ dependencies = [
     "aiosqlite==0.20.0",                # MIT
     "sqlalchemy[asyncio]==2.0.29",      # MIT
     "websockets==12.0",                 # BSD 3-Clause
-    "fastapi==0.110.1",                 # MIT
+    "fastapi==0.111.0",                 # MIT
     "uvicorn==0.24.0.post1",            # BSD 3-Clause
-    "httpx==0.25.2",                    # BSD 3-Clause
+    "httpx==0.27.0",                    # BSD 3-Clause
     "aiofiles==23.2.1",                 # Apache 2.0
     "qemu.qmp==0.0.3",                  # LGPLv2+
     "passlib==1.7.4",                   # BSD
-    "aioconsole==0.7.0",                # GPLv3
+    "aioconsole==0.7.1",                # GPLv3
     "jinja2==3.1.3"                     # BSD 3-Clause
 ]
 dynamic = ["version"]
