@@ -1,37 +1,33 @@
 <script setup lang="ts">
 import { ref } from 'vue'
-import {NetworkGetSchema} from '@/store/networks'
+import { NetworkGetSchema } from "@/store/networks";
 
 defineProps<{
-    net: NetworkGetSchema
+    network: NetworkGetSchema
 }>()
-
-let expand = ref()
 </script>
 
 <template>
-  <v-card class="pa-2 ma-2" variant="outlined">
-    <template v-slot:title>{{ net.name }}</template>
-    <template v-slot:subtitle>{{ net.uid }}</template>
-    <v-expand-transition>
-      <div v-if="expand">
-        <v-list class="bg-transparent" density="compact">
-          <v-list-item title="Kind"><template v-slot:append>{{ net.kind }}</template></v-list-item>
-            <v-list-item title="CIDR"><template v-slot:append>{{ net.cidr }}</template></v-list-item>
-            <v-list-item title="Gateway"><template v-slot:append>{{ net.gateway }}</template></v-list-item>
-            <v-list-item title="DHCP4 Range"><template v-slot:append>{{ net.dhcp_start }} - {{ net.dhcp_end }}</template></v-list-item>
-        </v-list>
-      </div>
-    </v-expand-transition>
-    <v-divider/>
-    <v-card-actions>
-      <v-btn @click="expand = !expand">
-        {{ !expand ? 'Details' : 'Close' }}
-      </v-btn>
-    </v-card-actions>
-  </v-card>
+  <q-card class="km-card">
+    <q-card-section horizontal>
+      <q-card-section class="q-pt-xs">
+        <div class="text-caption text-weight-thin">{{ network.uid }}</div>
+        <div class="text-h5 q-mt-sm q-mb-xs">{{ network.name }}</div>
+      </q-card-section>
+    </q-card-section>
+    <q-separator/>
+    <q-markup-table>
+      <tbody>
+        <tr><td class="text-left">Kind</td><td class="text-right">{{ network.kind }}</td></tr>
+        <tr><td class="text-left">CIDR</td><td class="text-right">{{ network.cidr }}</td></tr>
+        <tr><td class="text-left">Gateway</td><td class="text-right">{{ network.gateway }}</td></tr>
+        <tr><td class="text-left">DHCP Range</td><td class="text-right">{{ network.dhcp_start }} - {{ network.dhcp_end }}</td></tr>
+      </tbody>
+    </q-markup-table>
+    <q-separator/>
+    <q-card-actions align="right">
+      <q-btn flat>Modify</q-btn>
+      <q-btn flat>Remove</q-btn>
+    </q-card-actions>
+  </q-card>
 </template>
-
-<style scoped>
-
-</style>

@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import {computed, reactive, ref} from 'vue'
-import {DialogKind} from '@/constants'
 import {IdentityGetSchema, IdentityCreateSchema, IdentityModifySchema, IdentityKind, DefaultIdentity} from '@/store/identities'
+import {DialogKind} from "@/base_types";
 
 const props = defineProps<{
   kind: DialogKind,

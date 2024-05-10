@@ -1,36 +1,32 @@
 <script setup lang="ts">
 import { ref } from 'vue'
-import {ImageGetSchema} from "@/store/images";
+import { ImageGetSchema } from "@/store/images";
 
 defineProps<{
     image: ImageGetSchema
 }>()
-
-let expand = ref()
 </script>
 
 <template>
-  <v-card class="pa-2 ma-2">
-    <template v-slot:title>{{ image.name }}</template>
-    <template v-slot:subtitle>{{ image.uid }}</template>
-    <v-expand-transition>
-      <div v-if="expand">
-        <v-list class="bg-transparent" density="compact">
-          <v-list-item :title="image.min_vcpu" subtitle="Minimum vCPU"/>
-          <v-list-item :title="image.min_ram.value" subtitle="Minimum RAM"/>
-          <v-list-item :title="image.min_disk.value" subtitle="Minimum Space"/>
-        </v-list>
-      </div>
-    </v-expand-transition>
-    <v-divider/>
-    <v-card-actions>
-      <v-btn @click="expand = !expand">
-        {{ !expand ? 'Details' : 'Close' }}
-      </v-btn>
-    </v-card-actions>
-  </v-card>
+  <q-card class="km-card">
+    <q-card-section horizontal>
+      <q-card-section class="q-pt-xs">
+        <div class="text-caption text-weight-thin">{{ image.uid }}</div>
+        <div class="text-h5 q-mt-sm q-mb-xs">{{ image.name }}</div>
+      </q-card-section>
+    </q-card-section>
+    <q-separator/>
+    <q-markup-table>
+      <tbody>
+        <tr><td class="text-left">Minimum vCPU</td><td class="text-right">{{ image.min_vcpu }}</td></tr>
+        <tr><td class="text-left">Minimum RAM</td><td class="text-right">{{ image.min_ram.value }}</td></tr>
+        <tr><td class="text-left">Minimum Disk Space</td><td class="text-right">{{ image.min_disk.value }}</td></tr>
+      </tbody>
+    </q-markup-table>
+    <q-separator/>
+    <q-card-actions align="right">
+      <q-btn flat>Modify</q-btn>
+      <q-btn flat>Remove</q-btn>
+    </q-card-actions>
+  </q-card>
 </template>
-
-<style scoped>
-
-</style>

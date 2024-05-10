@@ -1,7 +1,8 @@
 <script setup lang="ts">
 import {computed, ref, reactive} from 'vue'
 import {ImageCreateSchema, ImageGetSchema, ImageModifySchema, PredefinedImage} from '@/store/images'
-import {DialogKind} from "@/constants";
+
+import {DialogKind} from "@/base_types";
 
 const props = defineProps<{
   kind: DialogKind,

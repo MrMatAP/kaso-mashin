@@ -8,38 +8,43 @@ const routes = [
     children: [
       {
         path: '/',
-        name: 'Home',
-        // route level code-splitting
-        // this generates a separate chunk (Home-[hash].js) for this route
-        // which is lazy-loaded when the route is visited.
-        component: () => import('@/views/Home.vue'),
+        component: () => import('@/pages/Landing.vue'),
       },
       {
         path: '/instances',
         name: 'Instances',
-        component: () => import('@/views/Instances.vue')
+        component: () => import('@/pages/Instances.vue'),
+      },
+      {
+        path: '/instances/:uid',
+        component: () => import('@/pages/InstanceDetail.vue')
       },
       {
         path: '/identities',
         name: 'Identities',
-        component: () => import('@/views/Identities.vue')
+        component: () => import('@/pages/Identities.vue'),
+      },
+      {
+        path: '/identities/:uid',
+        name: 'IdentityDetail',
+        component: () => import('@/pages/IdentityDetail.vue')
+      },
+      {
+        path: '/identities/?create',
+        name: 'IdentitiesCreate',
+        component: () => import('@/pages/IdentityDetail.vue'),
       },
       {
         path: '/networks',
         name: 'Networks',
-        component: () => import('@/views/Networks.vue')
+        component: () => import('@/pages/Networks.vue'),
       },
       {
         path: '/images',
         name: 'Images',
-        component: () => import('@/views/Images.vue')
-      },
-      {
-        path: '/images-grid',
-        name: 'Images-Grid',
-        component: () => import('@/views/Images-Grid.vue')
+        component: () => import('@/pages/Images.vue')
       }
-    ],
+    ]
   },
 ]
 

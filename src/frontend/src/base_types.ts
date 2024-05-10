@@ -12,3 +12,9 @@ export interface BinarySizedValue {
   value: number,
   scale: BinaryScale
 }
+
+export enum DialogKind {
+    create,
+    modify,
+    remove
+}

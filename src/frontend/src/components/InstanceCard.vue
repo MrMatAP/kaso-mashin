@@ -1,37 +1,41 @@
 <script setup lang="ts">
 import { ref } from 'vue'
 import { InstanceGetSchema } from '@/store/instances'
+import {IdentityModifySchema} from "@/store/identities";
 
 defineProps<{
     instance: InstanceGetSchema
 }>()
+const emits = defineEmits<{
+  (e: 'details'): void,
+  (e: 'modify', output: IdentityModifySchema): void,
+  (e: 'cancel'): void
+}>()
 
-let expand = ref()
+async function onDetails(e) {
+  emit('')
+}
 </script>
 
 <template>
-  <v-card class="pa-2 ma-2">
-    <template v-slot:title>{{ instance.name }}</template>
-    <template v-slot:subtitle>{{ instance.uid }}</template>
-    <v-expand-transition>
-      <div v-if="expand">
-        <v-list class="bg-transparent" density="compact">
-          <v-list-item>
-            <template v-slot:title>{{instance.mac}}</template>
-            <template v-slot:subtitle>MAC</template>
-          </v-list-item>
-        </v-list>
-      </div>
-    </v-expand-transition>
-    <v-divider/>
-    <v-card-actions>
-      <v-btn @click="expand = !expand">
-        {{ !expand ? 'Details' : 'Close' }}
-      </v-btn>
-    </v-card-actions>
-  </v-card>
+  <q-card class="km-card">
+    <q-card-section horizontal>
+      <q-card-section class="q-pt-xs">
+        <div class="text-caption text-weight-thin">{{ instance.uid }}</div>
+        <div class="text-h5 q-mt-sm q-mb-xs">{{ instance.name }}</div>
+      </q-card-section>
+    </q-card-section>
+    <q-separator/>
+    <q-markup-table>
+      <tbody>
+      <tr><td class="text-left">MAC</td><td class="text-right">{{ instance.mac }}</td></tr>
+      </tbody>
+    </q-markup-table>
+    <q-separator/>
+    <q-card-actions align="right">
+      <q-btn flat @click="onDetails">Details</q-btn>
+      <q-btn flat @click="onModify">Modify</q-btn>
+      <q-btn flat @click="onRemove">Remove</q-btn>
+    </q-card-actions>
+  </q-card>
 </template>
-
-<style scoped>
-
-</style>

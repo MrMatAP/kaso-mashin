@@ -1,6 +1,7 @@
 import { defineStore } from 'pinia'
 import { mande } from "mande";
 import {BinarySizedValue} from "@/base_types";
+import {IdentityGetSchema} from "@/store/identities";
 
 const instances = mande('/api/instances/')
 
@@ -54,6 +55,9 @@ export const useInstancesStore = defineStore('instances', {
     async list() {
       let instance_list: InstanceListSchema = await instances.get()
       this.instances = instance_list.entries
-    }
+    },
+    async get(uid: string): Promise<InstanceGetSchema> {
+      return await instances.get(uid)
+    },
   }
 })
