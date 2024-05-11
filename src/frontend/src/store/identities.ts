@@ -8,36 +8,45 @@ export enum IdentityKind {
   PASSWORD = "password"
 }
 
-export interface IdentityCreateSchema {
-  name: string
-  kind: IdentityKind
-  gecos: string
-  homedir: string
-  shell: string
-  credential: string
-}
-
-export interface IdentityGetSchema{
-  readonly uid: string
-  name: string
-  kind: IdentityKind
-  gecos: string
-  homedir: string
-  shell: string
-  credential: string
-}
-
 export interface IdentityListSchema {
   entries: IdentityGetSchema[]
 }
 
-export interface IdentityModifySchema {
-  name?: string
-  kind?: IdentityKind
-  gecos?: string
-  homedir?: string
-  shell?: string
-  credential?: string
+export class IdentityGetSchema {
+  readonly uid: string = ''
+  name: string = ''
+  kind: IdentityKind = IdentityKind.PUBKEY
+  gecos: string = ''
+  homedir: string = ''
+  shell: string = ''
+  credential: string = ''
+}
+
+export class IdentityCreateSchema {
+  name: string = ''
+  kind: IdentityKind = IdentityKind.PUBKEY
+  gecos: string = ''
+  homedir: string = ''
+  shell: string = ''
+  credential: string = ''
+}
+
+export class IdentityModifySchema {
+  name: string
+  kind: IdentityKind
+  gecos: string
+  homedir: string
+  shell: string
+  credential: string
+
+  constructor(original: IdentityGetSchema) {
+    this.name = original.name
+    this.kind = original.kind
+    this.gecos = original.gecos
+    this.homedir = original.homedir
+    this.shell = original.shell
+    this.credential = original.credential
+  }
 }
 
 export const useIdentitiesStore = defineStore('identities', {

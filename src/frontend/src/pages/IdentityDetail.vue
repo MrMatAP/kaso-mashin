@@ -1,12 +1,12 @@
 <script setup lang="ts">
-import {onMounted, ref, reactive, Ref} from 'vue';
-import {useRouter, useRoute} from 'vue-router';
+import {onMounted, ref, Ref} from 'vue';
+import {useRoute, useRouter} from 'vue-router';
 import {
-  IdentityModifySchema,
-  IdentityKind,
-  useIdentitiesStore,
+  IdentityCreateSchema,
   IdentityGetSchema,
-  IdentityCreateSchema
+  IdentityKind,
+  IdentityModifySchema,
+  useIdentitiesStore
 } from "@/store/identities";
 
 const store = useIdentitiesStore();
@@ -24,12 +24,22 @@ const isPwd = ref(true)
 const editForm = ref(null)
 
 const uid: Ref<string> = ref('')
-let original: IdentityGetSchema = reactive({} as IdentityGetSchema)
-let model: IdentityCreateSchema | IdentityModifySchema = reactive({})
+const original: Ref<IdentityGetSchema> = ref({} as IdentityGetSchema)
+const model: Ref<IdentityGetSchema | IdentityCreateSchema | IdentityModifySchema> = ref({} as IdentityCreateSchema)
+
+async function onBack() {
+  await router.push({'name': 'Identities'})
+}
 
 async function onCancel() {
-  resetModel()
-  title.value = 'Identity: ' + model.name
+  if(model.value instanceof IdentityCreateSchema) {
+    await onBack()
+    return
+  }
+  model.value = original.value
+  pubkeyCredential.value = (model.value.kind === IdentityKind.PUBKEY) ? model.value.credential : ''
+  pwCredential.value = (model.value.kind === IdentityKind.PASSWORD) ? model.value.credential : ''
+  title.value = 'Identity: ' + model.value.name
   readonly.value = true
 }
 
@@ -42,32 +52,26 @@ async function onRemove() {
 }
 
 async function onEdit() {
-  title.value = 'Modify Identity: ' + model.name
+  title.value = 'Modify Identity: ' + model.value.name
+  model.value = new IdentityModifySchema(original.value)
+  pubkeyCredential.value = (model.value.kind === IdentityKind.PUBKEY) ? model.value.credential : ''
+  pwCredential.value = (model.value.kind === IdentityKind.PASSWORD) ? model.value.credential : ''
   readonly.value = false
-  editForm.focus()
 }
 
-async function onModify() {
+async function onSubmit() {
   readonly.value = true
-  model.credential = (model.kind === IdentityKind.PUBKEY) ? pubkeyCredential.value : pwCredential.value
-  store.modify(uid.value, model).then(() => {
-    readonly.value = false
-    router.push({'name': 'Identities'})
-  })
-}
-
-async function onBack() {
-  await router.push({'name': 'Identities'})
-}
-
-function resetModel() {
-  model = Object.assign(model, original)
-  if(model.kind === IdentityKind.PUBKEY) {
-    pubkeyCredential.value = model.credential
-    pwCredential.value = ''
+  model.value.credential = (model.value.kind === IdentityKind.PUBKEY) ? pubkeyCredential.value : pwCredential.value
+  if(model.value instanceof IdentityCreateSchema) {
+    store.create(model.value).then( () => {
+      readonly.value = false
+      router.push({ 'name': 'Identities' })
+    })
   } else {
-    pubkeyCredential.value = ''
-    pwCredential.value = model.credential
+    store.modify(uid.value, model.value).then(() => {
+      readonly.value = false
+      router.push({'name': 'Identities'})
+    })
   }
 }
 
@@ -76,14 +80,14 @@ onMounted( async () => {
     // We're showing or editing an existing identity
     readonly.value = true
     uid.value = route.params.uid as string
-    original = await store.get(uid.value)
-    resetModel()
-    title.value = 'Identity: ' + model.name
+    original.value = await store.get(uid.value)
+    model.value = original.value
+    title.value = 'Identity: ' + model.value.name
   } else {
     // We're creating a new identity
-    model = {kind: IdentityKind.PUBKEY}
-    title.value = 'Create Identity'
     readonly.value = false
+    model.value = new IdentityCreateSchema()
+    title.value = 'Create Identity'
   }
 })
 </script>
@@ -101,7 +105,7 @@ onMounted( async () => {
     </q-card>
   </q-dialog>
 
-  <q-form ref="editForm" autofocus @submit.prevent="onModify" style="max-width: 600px;">
+  <q-form ref="editForm" autofocus @submit.prevent="onSubmit" style="max-width: 600px;">
     <div class="row nowrap">
       <q-btn flat icon="arrow_back_ios" @click="onBack"></q-btn>
       <h4>{{ title }}</h4>
@@ -124,7 +128,6 @@ onMounted( async () => {
                  :hint="readonly ? '' : 'A unique name for the identity'"
                  :clearable="!readonly"
                  :readonly="readonly"
-                 :rules="[val => !!val || 'Login name is required']"
                  v-model="model.name"/>
       </div>
       <div class="col-xs-12 col-sm-4 col-md-4 col-lg-4 col-xl-4">
@@ -222,7 +225,7 @@ onMounted( async () => {
              @click="onCancel"/>
       <q-btn flat
              padding="lg"
-             label="Modify"
+             :label="(model instanceof IdentityCreateSchema) ? 'Create' : 'Modify'"
              type="submit"
              color="primary"
              v-show="!readonly"

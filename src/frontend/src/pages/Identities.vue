@@ -7,19 +7,6 @@ import {useIdentitiesStore} from "@/store/identities";
 const router = useRouter()
 const store = useIdentitiesStore()
 const loading = ref(true)
-const confirmRemove = ref(false)
-
-async function onModify(uid: string) {
-  await router.push({ name: 'IdentitiesModify', params: { uid: uid }})
-}
-
-async function onRemove(uid: string) {
-
-}
-
-async function onRemoveConfirmed(uid: string) {
-  await store.remove(uid)
-}
 
 async function onSelected(uid: string) {
   await router.push({ name: 'IdentityDetail', params: { uid: uid}})
@@ -38,9 +25,7 @@ onMounted( () => {
     <IdentityCard v-for="identity in store.identities"
                   :key="identity.uid"
                   :identity="identity"
-                  @onSelected="onSelected"
-                  @onModify="onModify"
-                  @onRemove="confirmRemove = true"/>
+                  @onSelected="onSelected"/>
 
     <q-card class="km-new-card">
       <q-card-section class="absolute-center" >

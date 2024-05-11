@@ -40,21 +40,33 @@ async function onToggleDrawer() {
       <q-scroll-area class="fit">
         <q-list padding>
           <q-item v-ripple clickable :to="{ name: 'Instances' }">
+            <q-item-section avatar>
+              <q-icon name="developer_board"/>
+            </q-item-section>
             <q-item-section>
               <q-item-label>Instances</q-item-label>
             </q-item-section>
           </q-item>
           <q-item v-ripple clickable :to="{ name: 'Identities' }">
+            <q-item-section avatar>
+              <q-icon name="fingerprint"/>
+            </q-item-section>
             <q-item-section>
               <q-item-label>Identities</q-item-label>
             </q-item-section>
           </q-item>
           <q-item v-ripple clickable :to="{ name: 'Networks' }">
+            <q-item-section avatar>
+              <q-icon name="settings_ethernet"/>
+            </q-item-section>
             <q-item-section>
               <q-item-label>Networks</q-item-label>
             </q-item-section>
           </q-item>
           <q-item v-ripple clickable :to="{ name: 'Images' }">
+            <q-item-section avatar>
+              <q-icon name="work_outline"/>
+            </q-item-section>
             <q-item-section>
               <q-item-label>Images</q-item-label>
             </q-item-section>
