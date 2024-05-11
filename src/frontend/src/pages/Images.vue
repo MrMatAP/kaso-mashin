@@ -1,13 +1,15 @@
 <script setup lang="ts">
-import { useImagesStore } from "@/store/images";
-import ImageCard from "@/components/ImageCard.vue";
 import { onMounted, ref } from "vue";
+import { useRouter } from "vue-router";
+import ImageCard from "@/components/ImageCard.vue";
+import { useImagesStore } from "@/store/images";
 
+const router = useRouter();
 const store = useImagesStore();
 const loading = ref(true);
 
-async function onAdd() {
-  console.log("Will create new element");
+async function onSelected(uid: string) {
+  await router.push({ name: "ImageDetail", params: { uid: uid } });
 }
 
 onMounted(() => {
@@ -18,12 +20,26 @@ onMounted(() => {
 </script>
 
 <template>
+  <div class="row nowrap">
+    <h4>Images</h4>
+  </div>
   <div class="q-pa-md row items-start q-gutter-md">
-    <ImageCard v-for="image in store.images" :key="image.uid" :image="image" />
+    <ImageCard
+      v-for="image in store.images"
+      :key="image.uid"
+      :image="image"
+      @onSelected="onSelected"
+    />
 
-    <q-card class="km-new-card" @click="onAdd">
+    <q-card class="km-new-card">
       <q-card-section class="absolute-center">
-        <q-btn flat round color="primary" icon="add" />
+        <q-btn
+          flat
+          round
+          color="primary"
+          icon="add"
+          :to="{ name: 'ImagesCreate' }"
+        />
       </q-card-section>
     </q-card>
     <q-inner-loading :showing="loading">

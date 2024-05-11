@@ -20,18 +20,45 @@ except ImportError:
 from kaso_mashin import __version__, KasoMashinException
 
 
-Predefined_Images = {
-    "ubuntu-bionic": "https://cloud-images.ubuntu.com/bionic/current/bionic-server-cloudimg-arm64.img",
-    "ubuntu-focal": "https://cloud-images.ubuntu.com/focal/current/focal-server-cloudimg-arm64.img",
-    "ubuntu-jammy": "https://cloud-images.ubuntu.com/jammy/current/jammy-server-cloudimg-arm64.img",
-    "ubuntu-kinetic": "https://cloud-images.ubuntu.com/kinetic/current/kinetic-server-cloudimg-arm64.img",
-    "ubuntu-lunar": "https://cloud-images.ubuntu.com/lunar/current/lunar-server-cloudimg-arm64.img",
-    "ubuntu-mantic": "https://cloud-images.ubuntu.com/mantic/current/mantic-server-cloudimg-arm64.img",
-    "freebsd-14": "https://download.freebsd.org/ftp/snapshots/VM-IMAGES/14.0-CURRENT/amd64/Latest/"
-                  "FreeBSD-14.0-CURRENT-amd64.qcow2.xz",
-    "flatcar-arm64": "https://stable.release.flatcar-linux.net/arm64-usr/current/flatcar_production_qemu_uefi_image.img",
-    "flatcar-amd64": "https://stable.release.flatcar-linux.net/amd64-usr/current/flatcar_production_qemu_image.img",
-}
+Predefined_Images = [
+    {
+        "name": "ubuntu-bionic",
+        "url": "https://cloud-images.ubuntu.com/bionic/current/bionic-server-cloudimg-arm64.img"
+    },
+    {
+        "name": "ubuntu-focal",
+        "url": "https://cloud-images.ubuntu.com/focal/current/focal-server-cloudimg-arm64.img"
+    },
+    {
+        "name": "ubuntu-jammy",
+        "url": "https://cloud-images.ubuntu.com/jammy/current/jammy-server-cloudimg-arm64.img"
+    },
+    {
+        "name": "ubuntu-kinetic",
+        "url": "https://cloud-images.ubuntu.com/kinetic/current/kinetic-server-cloudimg-arm64.img"
+    },
+    {
+        "name": "ubuntu-lunar",
+        "url": "https://cloud-images.ubuntu.com/lunar/current/lunar-server-cloudimg-arm64.img"
+    },
+    {
+        "name": "ubuntu-mantic",
+        "url": "https://cloud-images.ubuntu.com/mantic/current/mantic-server-cloudimg-arm64.img"
+    },
+    {
+        "name": "freebsd-14",
+        "url": "https://download.freebsd.org/ftp/snapshots/VM-IMAGES/14.0-CURRENT/amd64/Latest/"
+               "FreeBSD-14.0-CURRENT-amd64.qcow2.xz"
+    },
+    {
+        "name": "flatcar-arm64",
+        "url": "https://stable.release.flatcar-linux.net/arm64-usr/current/flatcar_production_qemu_uefi_image.img"
+    },
+    {
+        "name": "flatcar-amd64",
+        "url": "https://stable.release.flatcar-linux.net/amd64-usr/current/flatcar_production_qemu_image.img"
+    }
+]
 
 
 @dataclasses.dataclass(init=False)
@@ -74,7 +101,7 @@ class Config:
     qemu_aarch64_path: pathlib.Path = dataclasses.field(
         default=pathlib.Path("/opt/homebrew/bin/qemu-system-aarch64")
     )
-    predefined_images: typing.Dict[str, str] = dataclasses.field(default_factory=dict)
+    predefined_images: typing.List[typing.Dict[str, str]] = dataclasses.field(default_factory=list)
 
     def __init__(self, config_file: typing.Optional[pathlib.Path] = None):
         self._logger = logging.getLogger(
@@ -143,21 +170,6 @@ class Config:
         """
         return f"http://{self.default_server_host}:{self.default_server_port}"
 
-
-class ImagePredefinedSchema(EntitySchema):
-    """
-    Output schema to get a list of predefined images
-    """
-
-    name: str = pydantic.Field(description="The image name", examples=["ubuntu-jammy"])
-    url: str = pydantic.Field(
-        description="The image URL",
-        examples=[
-            "https://cloud-images.ubuntu.com/jammy/current/jammy-server-cloudimg-arm64.img"
-        ],
-    )
-
-
 class ConfigSchema(EntitySchema):
     """
     Configuration Schema
@@ -184,6 +196,6 @@ class ConfigSchema(EntitySchema):
     uefi_vars_url: str = pydantic.Field(description='URL to the UEFI vars')
     butane_path: pathlib.Path = pydantic.Field(description='Path the local butane installation')
     qemu_aarch64_path: pathlib.Path = pydantic.Field(description='Path to the local qemu-aarch64 installation')
-    predefined_images: typing.Dict[str, str] = pydantic.Field(
+    predefined_images: typing.List[typing.Dict[str, str]] = pydantic.Field(
         description="List of predefined images", default=[]
     )

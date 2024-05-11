@@ -8,7 +8,6 @@ import fastapi
 from kaso_mashin.common import AsyncRepository
 from kaso_mashin.server.apis import BaseAPI
 from kaso_mashin.server.runtime import Runtime
-from kaso_mashin.common.config import Predefined_Images, ImagePredefinedSchema
 from kaso_mashin.common.entities import (
     ImageEntity,
     ImageListSchema,

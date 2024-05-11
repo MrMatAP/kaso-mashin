@@ -1,14 +1,20 @@
 <script setup lang="ts">
-import { ref } from "vue";
 import { ImageGetSchema } from "@/store/images";
 
 defineProps<{
   image: ImageGetSchema;
 }>();
+defineEmits<{
+  (e: "onSelected", uid: string): void;
+}>();
 </script>
 
 <template>
-  <q-card class="km-card">
+  <q-card
+    v-ripple
+    class="km-card cursor-pointer q-hoverable"
+    @click="$emit('onSelected', image.uid)"
+  >
     <q-card-section horizontal>
       <q-card-section class="q-pt-xs">
         <div class="text-caption text-weight-thin">{{ image.uid }}</div>
@@ -32,10 +38,5 @@ defineProps<{
         </tr>
       </tbody>
     </q-markup-table>
-    <q-separator />
-    <q-card-actions align="right">
-      <q-btn flat>Modify</q-btn>
-      <q-btn flat>Remove</q-btn>
-    </q-card-actions>
   </q-card>
 </template>

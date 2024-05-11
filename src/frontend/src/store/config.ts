@@ -24,7 +24,7 @@ export interface ConfigSchema {
   uefi_vars_url: string;
   butane_path: string;
   qemu_aarch64_path: string;
-  predefined_images: Map<string, string>;
+  predefined_images: Map<string, string>[];
 }
 
 export const useConfigStore = defineStore("app", {
@@ -32,8 +32,9 @@ export const useConfigStore = defineStore("app", {
     config: {} as ConfigSchema,
   }),
   actions: {
-    async get() {
+    async get(): Promise<ConfigSchema> {
       this.config = await config.get();
+      return this.config;
     },
   },
 });

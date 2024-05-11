@@ -1,4 +1,3 @@
-// Utilities
 import { defineStore } from "pinia";
 import { mande } from "mande";
 
@@ -18,19 +17,19 @@ export class NetworkGetSchema {
   readonly uid: string = "";
   name: string = "";
   kind: NetworkKind = NetworkKind.VMNET_SHARED;
-  cidr: string = '';
-  gateway: string = '';
-  dhcp_start: string = '';
-  dhcp_end: string = '';
+  cidr: string = "";
+  gateway: string = "";
+  dhcp_start: string = "";
+  dhcp_end: string = "";
 }
 
 export class NetworkCreateSchema {
-  name: string = '';
+  name: string = "";
   kind: NetworkKind = NetworkKind.VMNET_SHARED;
-  cidr: string = '';
-  gateway: string = '';
-  dhcp_start: string = '';
-  dhcp_end: string = '';
+  cidr: string = "";
+  gateway: string = "";
+  dhcp_start: string = "";
+  dhcp_end: string = "";
 }
 
 export class NetworkModifySchema {
@@ -64,11 +63,14 @@ export const useNetworksStore = defineStore("networks", {
     async create(create: NetworkCreateSchema): Promise<NetworkGetSchema> {
       return await networks.post(create);
     },
-    async modify(uid: string, modify: NetworkModifySchema): Promise<NetworkGetSchema> {
+    async modify(
+      uid: string,
+      modify: NetworkModifySchema,
+    ): Promise<NetworkGetSchema> {
       return await networks.put(uid, modify);
     },
     async remove(uid: string): Promise<void> {
       return await networks.delete(uid);
-    }
+    },
   },
 });

@@ -8,9 +8,14 @@ export enum BinaryScale {
   E = "Exabytes",
 }
 
-export interface BinarySizedValue {
+export class BinarySizedValue {
   value: number;
   scale: BinaryScale;
+
+  constructor(value: number = 0, scale: BinaryScale = BinaryScale.G) {
+    this.value = value;
+    this.scale = scale;
+  }
 }
 
 export enum DialogKind {

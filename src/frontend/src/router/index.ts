@@ -47,12 +47,22 @@ const routes = [
       {
         path: "/networks/?create",
         name: "NetworksCreate",
-        component: () => import("@/pages/NetworkDetail.vue")
+        component: () => import("@/pages/NetworkDetail.vue"),
       },
       {
         path: "/images",
         name: "Images",
         component: () => import("@/pages/Images.vue"),
+      },
+      {
+        path: "/images/:uid",
+        name: "ImageDetail",
+        component: () => import("@/pages/ImageDetail.vue"),
+      },
+      {
+        path: "/images/?create",
+        name: "ImagesCreate",
+        component: () => import("@/pages/ImageDetail.vue"),
       },
     ],
   },

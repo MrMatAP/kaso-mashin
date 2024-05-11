@@ -1,58 +1,67 @@
 import { defineStore } from "pinia";
 import { mande } from "mande";
 import { BinarySizedValue } from "@/base_types";
+import { TaskGetSchema } from "@/store/tasks";
 
 const images = mande("/api/images/");
-const predefined_images = mande("/api/images/predefined/");
-
-export interface ImageCreateSchema {
-  name: string;
-  url: string;
-  min_vcpu: number;
-  min_ram: BinarySizedValue;
-  min_disk: BinarySizedValue;
-}
-
-export interface ImageGetSchema {
-  uid: string;
-  path: string;
-  name: string;
-  url: string;
-  min_vcpu: number;
-  min_ram: BinarySizedValue;
-  min_disk: BinarySizedValue;
-}
 
 export interface ImageListSchema {
   entries: ImageGetSchema[];
 }
 
-export interface ImageModifySchema {
-  min_vcpu?: number;
-  min_ram?: BinarySizedValue;
-  min_disk?: BinarySizedValue;
+export class ImageGetSchema {
+  readonly uid: string = "";
+  name: string = "";
+  path: string = "";
+  url: string = "";
+  min_vcpu: number = 0;
+  min_ram: BinarySizedValue = new BinarySizedValue();
+  min_disk: BinarySizedValue = new BinarySizedValue();
 }
 
-export class PredefinedImage {
-  name: string;
-  url: string;
+export class ImageCreateSchema {
+  name: string = "";
+  url: string = "";
+  min_vcpu: number = 0;
+  min_ram: BinarySizedValue = new BinarySizedValue();
+  min_disk: BinarySizedValue = new BinarySizedValue();
+}
 
-  constructor(name: string, url: string) {
-    this.name = name;
-    this.url = url;
+export class ImageModifySchema {
+  min_vcpu: number = 0;
+  min_ram: BinarySizedValue = new BinarySizedValue();
+  min_disk: BinarySizedValue = new BinarySizedValue();
+
+  constructor(original: ImageGetSchema) {
+    this.min_vcpu = original.min_vcpu;
+    this.min_ram = original.min_ram;
+    this.min_disk = original.min_disk;
   }
 }
 
 export const useImagesStore = defineStore("images", {
   state: () => ({
     images: [] as ImageGetSchema[],
-    predefined_images: [] as PredefinedImage[],
   }),
   actions: {
     async list() {
       let image_list: ImageListSchema = await images.get();
       this.images = image_list.entries;
-      //this.predefined_images = await predefined_images.get()
+    },
+    async get(uid: string): Promise<ImageGetSchema> {
+      return await images.get(uid);
+    },
+    async create(create: ImageCreateSchema): Promise<TaskGetSchema> {
+      return await images.post(create);
+    },
+    async modify(
+      uid: string,
+      modify: ImageModifySchema,
+    ): Promise<ImageGetSchema> {
+      return await images.put(uid, modify);
+    },
+    async remove(uid: string): Promise<void> {
+      return await images.delete(uid);
     },
   },
 });
