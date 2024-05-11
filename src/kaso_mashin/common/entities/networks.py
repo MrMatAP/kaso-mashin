@@ -305,6 +305,10 @@ class NetworkEntity(Entity, AggregateRoot):
             self._cidr = schema.cidr
         if schema.gateway is not None:
             self._gateway = schema.gateway
+        if schema.dhcp_start is not None:
+            self._dhcp_start = schema.dhcp_start
+        if schema.dhcp_end is not None:
+            self._dhcp_end = schema.dhcp_end
         return await self.repository.modify(self)
 
     async def remove(self):
