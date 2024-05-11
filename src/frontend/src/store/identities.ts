@@ -1,74 +1,77 @@
-import { defineStore } from 'pinia'
+import { defineStore } from "pinia";
 import { mande } from "mande";
 
-const identities = mande('/api/identities/')
+const identities = mande("/api/identities/");
 
 export enum IdentityKind {
-  PUBKEY = 'pubkey',
-  PASSWORD = "password"
+  PUBKEY = "pubkey",
+  PASSWORD = "password",
 }
 
 export interface IdentityListSchema {
-  entries: IdentityGetSchema[]
+  entries: IdentityGetSchema[];
 }
 
 export class IdentityGetSchema {
-  readonly uid: string = ''
-  name: string = ''
-  kind: IdentityKind = IdentityKind.PUBKEY
-  gecos: string = ''
-  homedir: string = ''
-  shell: string = ''
-  credential: string = ''
+  readonly uid: string = "";
+  name: string = "";
+  kind: IdentityKind = IdentityKind.PUBKEY;
+  gecos: string = "";
+  homedir: string = "";
+  shell: string = "";
+  credential: string = "";
 }
 
 export class IdentityCreateSchema {
-  name: string = ''
-  kind: IdentityKind = IdentityKind.PUBKEY
-  gecos: string = ''
-  homedir: string = ''
-  shell: string = ''
-  credential: string = ''
+  name: string = "";
+  kind: IdentityKind = IdentityKind.PUBKEY;
+  gecos: string = "";
+  homedir: string = "";
+  shell: string = "";
+  credential: string = "";
 }
 
 export class IdentityModifySchema {
-  name: string
-  kind: IdentityKind
-  gecos: string
-  homedir: string
-  shell: string
-  credential: string
+  name: string;
+  kind: IdentityKind;
+  gecos: string;
+  homedir: string;
+  shell: string;
+  credential: string;
 
   constructor(original: IdentityGetSchema) {
-    this.name = original.name
-    this.kind = original.kind
-    this.gecos = original.gecos
-    this.homedir = original.homedir
-    this.shell = original.shell
-    this.credential = original.credential
+    this.name = original.name;
+    this.kind = original.kind;
+    this.gecos = original.gecos;
+    this.homedir = original.homedir;
+    this.shell = original.shell;
+    this.credential = original.credential;
   }
 }
 
-export const useIdentitiesStore = defineStore('identities', {
+export const useIdentitiesStore = defineStore("identities", {
   state: () => ({
-    identities: [] as IdentityGetSchema[]
+    identities: [] as IdentityGetSchema[],
   }),
   actions: {
     async list() {
-      let identity_list: IdentityListSchema = await identities.get()
-      this.identities = identity_list.entries
+      let identity_list: IdentityListSchema = await identities.get();
+      this.identities = identity_list.entries;
     },
     async get(uid: string): Promise<IdentityGetSchema> {
-      return await identities.get(uid)
+      return await identities.get(uid);
     },
     async create(create: IdentityCreateSchema): Promise<IdentityGetSchema> {
-      return await identities.post(create)
+      return await identities.post(create);
     },
-    async modify(uid: string, modify: IdentityModifySchema): Promise<IdentityGetSchema> {
-      return await identities.put(uid, modify)
+    async modify(
+      uid: string,
+      modify: IdentityModifySchema,
+    ): Promise<IdentityGetSchema> {
+      return await identities.put(uid, modify);
     },
     async remove(uid: string): Promise<void> {
-      return await identities.delete(uid)
-    }
-  }
-})
+      return await identities.delete(uid);
+    },
+  },
+});

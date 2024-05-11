@@ -1,12 +1,12 @@
 <script lang="ts" setup>
-import {ref} from 'vue'
-import {useConfigStore} from '@/store/config'
+import { ref } from "vue";
+import { useConfigStore } from "@/store/config";
 
-const store = useConfigStore()
-const drawerOpen = ref(false)
+const store = useConfigStore();
+const drawerOpen = ref(false);
 
 async function onToggleDrawer() {
-  drawerOpen.value = ! drawerOpen.value
+  drawerOpen.value = !drawerOpen.value;
 }
 </script>
 
@@ -14,21 +14,28 @@ async function onToggleDrawer() {
   <q-layout>
     <q-header elevated height-hint="58" class="bg-white text-grey-8 q-py-xs">
       <q-toolbar>
-        <q-btn flat dense round @click="onToggleDrawer" aria-label="Menu" icon="menu"/>
+        <q-btn
+          flat
+          dense
+          round
+          @click="onToggleDrawer"
+          aria-label="Menu"
+          icon="menu"
+        />
         <q-btn flat no-caps no-wrap v-if="$q.screen.gt.xs">
-          <q-toolbar-title shrink class="text-weight-bold">Kaso :: Mashin - {{ store.config.version }}</q-toolbar-title>
+          <q-toolbar-title shrink class="text-weight-bold"
+            >Kaso :: Mashin - {{ store.config.version }}</q-toolbar-title
+          >
         </q-btn>
-        <q-space/>
+        <q-space />
         <div class="q-gutter-sm row items-center no-wrap">
           <q-btn round dense flat color="grey-8" icon="notifications">
-            <q-badge color="red" text-color="white" floating>
-              2
-            </q-badge>
+            <q-badge color="red" text-color="white" floating> 2 </q-badge>
             <q-tooltip>Notifications</q-tooltip>
           </q-btn>
           <q-btn round flat>
             <q-avatar size="26px">
-              <img src="https://cdn.quasar.dev/img/boy-avatar.png">
+              <img src="https://cdn.quasar.dev/img/boy-avatar.png" />
             </q-avatar>
             <q-tooltip>Account</q-tooltip>
           </q-btn>
@@ -36,12 +43,18 @@ async function onToggleDrawer() {
       </q-toolbar>
     </q-header>
 
-    <q-drawer :v-model="drawerOpen" show-if-above bordered class="bg-grey-2" :width="240">
+    <q-drawer
+      :v-model="drawerOpen"
+      show-if-above
+      bordered
+      class="bg-grey-2"
+      :width="240"
+    >
       <q-scroll-area class="fit">
         <q-list padding>
           <q-item v-ripple clickable :to="{ name: 'Instances' }">
             <q-item-section avatar>
-              <q-icon name="developer_board"/>
+              <q-icon name="developer_board" />
             </q-item-section>
             <q-item-section>
               <q-item-label>Instances</q-item-label>
@@ -49,7 +62,7 @@ async function onToggleDrawer() {
           </q-item>
           <q-item v-ripple clickable :to="{ name: 'Identities' }">
             <q-item-section avatar>
-              <q-icon name="fingerprint"/>
+              <q-icon name="fingerprint" />
             </q-item-section>
             <q-item-section>
               <q-item-label>Identities</q-item-label>
@@ -57,7 +70,7 @@ async function onToggleDrawer() {
           </q-item>
           <q-item v-ripple clickable :to="{ name: 'Networks' }">
             <q-item-section avatar>
-              <q-icon name="settings_ethernet"/>
+              <q-icon name="settings_ethernet" />
             </q-item-section>
             <q-item-section>
               <q-item-label>Networks</q-item-label>
@@ -65,7 +78,7 @@ async function onToggleDrawer() {
           </q-item>
           <q-item v-ripple clickable :to="{ name: 'Images' }">
             <q-item-section avatar>
-              <q-icon name="work_outline"/>
+              <q-icon name="work_outline" />
             </q-item-section>
             <q-item-section>
               <q-item-label>Images</q-item-label>
@@ -75,7 +88,6 @@ async function onToggleDrawer() {
         </q-list>
       </q-scroll-area>
     </q-drawer>
-
 
     <q-page-container>
       <div id="content">

@@ -1,13 +1,16 @@
 <script lang="ts" setup>
-import {onMounted, ref} from 'vue'
-import {ConfigSchema, useConfigStore} from '@/store/config'
+import { onMounted, ref } from "vue";
+import { ConfigSchema, useConfigStore } from "@/store/config";
 
-const store = useConfigStore()
-const loading = ref(true)
+const store = useConfigStore();
+const loading = ref(true);
 
-onMounted( () => { store.get().then( () => { loading.value = false } )} )
+onMounted(() => {
+  store.get().then(() => {
+    loading.value = false;
+  });
+});
 </script>
-
 
 <template>
   <v-container class="fill-height">

@@ -1,10 +1,10 @@
 <script setup lang="ts">
-import { ref } from 'vue'
+import { ref } from "vue";
 import { ImageGetSchema } from "@/store/images";
 
 defineProps<{
-    image: ImageGetSchema
-}>()
+  image: ImageGetSchema;
+}>();
 </script>
 
 <template>
@@ -15,15 +15,24 @@ defineProps<{
         <div class="text-h5 q-mt-sm q-mb-xs">{{ image.name }}</div>
       </q-card-section>
     </q-card-section>
-    <q-separator/>
+    <q-separator />
     <q-markup-table>
       <tbody>
-        <tr><td class="text-left">Minimum vCPU</td><td class="text-right">{{ image.min_vcpu }}</td></tr>
-        <tr><td class="text-left">Minimum RAM</td><td class="text-right">{{ image.min_ram.value }}</td></tr>
-        <tr><td class="text-left">Minimum Disk Space</td><td class="text-right">{{ image.min_disk.value }}</td></tr>
+        <tr>
+          <td class="text-left">Minimum vCPU</td>
+          <td class="text-right">{{ image.min_vcpu }}</td>
+        </tr>
+        <tr>
+          <td class="text-left">Minimum RAM</td>
+          <td class="text-right">{{ image.min_ram.value }}</td>
+        </tr>
+        <tr>
+          <td class="text-left">Minimum Disk Space</td>
+          <td class="text-right">{{ image.min_disk.value }}</td>
+        </tr>
       </tbody>
     </q-markup-table>
-    <q-separator/>
+    <q-separator />
     <q-card-actions align="right">
       <q-btn flat>Modify</q-btn>
       <q-btn flat>Remove</q-btn>

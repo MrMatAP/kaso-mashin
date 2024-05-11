@@ -1,56 +1,56 @@
 // Composables
-import { createRouter, createWebHistory } from 'vue-router'
+import { createRouter, createWebHistory } from "vue-router";
 
 const routes = [
   {
-    path: '/',
-    component: () => import('@/layouts/default/Default.vue'),
+    path: "/",
+    component: () => import("@/layouts/default/Default.vue"),
     children: [
       {
-        path: '/',
-        component: () => import('@/pages/Landing.vue'),
+        path: "/",
+        component: () => import("@/pages/Landing.vue"),
       },
       {
-        path: '/instances',
-        name: 'Instances',
-        component: () => import('@/pages/Instances.vue'),
+        path: "/instances",
+        name: "Instances",
+        component: () => import("@/pages/Instances.vue"),
       },
       {
-        path: '/instances/:uid',
-        component: () => import('@/pages/InstanceDetail.vue')
+        path: "/instances/:uid",
+        component: () => import("@/pages/InstanceDetail.vue"),
       },
       {
-        path: '/identities',
-        name: 'Identities',
-        component: () => import('@/pages/Identities.vue'),
+        path: "/identities",
+        name: "Identities",
+        component: () => import("@/pages/Identities.vue"),
       },
       {
-        path: '/identities/:uid',
-        name: 'IdentityDetail',
-        component: () => import('@/pages/IdentityDetail.vue')
+        path: "/identities/:uid",
+        name: "IdentityDetail",
+        component: () => import("@/pages/IdentityDetail.vue"),
       },
       {
-        path: '/identities/?create',
-        name: 'IdentitiesCreate',
-        component: () => import('@/pages/IdentityDetail.vue'),
+        path: "/identities/?create",
+        name: "IdentitiesCreate",
+        component: () => import("@/pages/IdentityDetail.vue"),
       },
       {
-        path: '/networks',
-        name: 'Networks',
-        component: () => import('@/pages/Networks.vue'),
+        path: "/networks",
+        name: "Networks",
+        component: () => import("@/pages/Networks.vue"),
       },
       {
-        path: '/images',
-        name: 'Images',
-        component: () => import('@/pages/Images.vue')
-      }
-    ]
+        path: "/images",
+        name: "Images",
+        component: () => import("@/pages/Images.vue"),
+      },
+    ],
   },
-]
+];
 
 const router = createRouter({
   history: createWebHistory(process.env.BASE_URL),
   routes,
-})
+});
 
-export default router
+export default router;

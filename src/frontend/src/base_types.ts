@@ -5,16 +5,16 @@ export enum BinaryScale {
   G = "Gigabytes",
   T = "Terabytes",
   P = "Petabytes",
-  E = "Exabytes"
+  E = "Exabytes",
 }
 
 export interface BinarySizedValue {
-  value: number,
-  scale: BinaryScale
+  value: number;
+  scale: BinaryScale;
 }
 
 export enum DialogKind {
-    create,
-    modify,
-    remove
+  create,
+  modify,
+  remove,
 }
