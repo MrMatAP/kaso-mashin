@@ -1,5 +1,4 @@
 <script setup lang="ts">
-import { ref } from "vue";
 import { NetworkGetSchema } from "@/store/networks";
 
 defineProps<{
@@ -11,7 +10,10 @@ defineEmits<{
 </script>
 
 <template>
-  <q-card class="km-card">
+  <q-card
+    v-ripple
+    class="km-card cursor-pointer q-hoverable"
+    @click="$emit('onSelected', network.uid)">
     <q-card-section horizontal>
       <q-card-section class="q-pt-xs">
         <div class="text-caption text-weight-thin">{{ network.uid }}</div>
@@ -41,10 +43,5 @@ defineEmits<{
         </tr>
       </tbody>
     </q-markup-table>
-    <q-separator />
-    <q-card-actions align="right">
-      <q-btn flat>Modify</q-btn>
-      <q-btn flat>Remove</q-btn>
-    </q-card-actions>
   </q-card>
 </template>

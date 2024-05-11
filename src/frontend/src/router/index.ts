@@ -40,6 +40,16 @@ const routes = [
         component: () => import("@/pages/Networks.vue"),
       },
       {
+        path: "/networks/:uid",
+        name: "NetworkDetail",
+        component: () => import("@/pages/NetworkDetail.vue"),
+      },
+      {
+        path: "/networks/?create",
+        name: "NetworksCreate",
+        component: () => import("@/pages/NetworkDetail.vue")
+      },
+      {
         path: "/images",
         name: "Images",
         component: () => import("@/pages/Images.vue"),

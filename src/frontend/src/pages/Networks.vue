@@ -9,7 +9,7 @@ const store = useNetworksStore();
 const loading = ref(true);
 
 async function onSelected(uid: string) {
-  await router.push({ name: "IdentityDetail", params: { uid: uid } });
+  await router.push({ name: "NetworkDetail", params: { uid: uid } });
 }
 
 onMounted(() => {
