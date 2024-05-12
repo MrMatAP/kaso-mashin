@@ -4,6 +4,11 @@ import { mande } from "mande";
 
 const config = mande("/api/config/");
 
+export interface PredefinedImageSchema {
+  name: string;
+  url: string;
+}
+
 export interface ConfigSchema {
   version: string;
   path: string;
@@ -24,7 +29,7 @@ export interface ConfigSchema {
   uefi_vars_url: string;
   butane_path: string;
   qemu_aarch64_path: string;
-  predefined_images: Map<string, string>[];
+  predefined_images: PredefinedImageSchema[];
 }
 
 export const useConfigStore = defineStore("app", {

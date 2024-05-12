@@ -82,7 +82,5 @@ class ImageAPI(
         background_tasks: fastapi.BackgroundTasks,
     ) -> ImageGetSchema:
         entity: ImageEntity = await self._runtime.image_repository.get_by_uid(uid)
-        await entity.modify(
-            min_vcpu=schema.min_vcpu, min_ram=schema.min_ram, min_disk=schema.min_disk
-        )
+        await entity.modify(schema)
         return ImageGetSchema.model_validate(entity)

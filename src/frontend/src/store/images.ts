@@ -28,11 +28,13 @@ export class ImageCreateSchema {
 }
 
 export class ImageModifySchema {
+  name: string = "";
   min_vcpu: number = 0;
   min_ram: BinarySizedValue = new BinarySizedValue();
   min_disk: BinarySizedValue = new BinarySizedValue();
 
   constructor(original: ImageGetSchema) {
+    this.name = original.name;
     this.min_vcpu = original.min_vcpu;
     this.min_ram = original.min_ram;
     this.min_disk = original.min_disk;

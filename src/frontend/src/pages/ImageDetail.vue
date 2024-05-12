@@ -8,7 +8,12 @@ import {
   useImagesStore,
 } from "@/store/images";
 import { TaskGetSchema, useTasksStore } from "@/store/tasks";
-import { ConfigSchema, useConfigStore } from "@/store/config";
+import {
+  ConfigSchema,
+  PredefinedImageSchema,
+  useConfigStore,
+} from "@/store/config";
+import { BinaryScale } from "@/base_types";
 
 const store = useImagesStore();
 const tasksStore = useTasksStore();
@@ -24,12 +29,14 @@ const title: Ref<string> = ref("Image Detail");
 const editForm = ref(null);
 
 const config: Ref<ConfigSchema> = ref({} as ConfigSchema);
-const predefined_urls: Ref<Map<string, string>> = ref(new Map());
-const predefined_url: Ref<String> = ref("");
+const predefined_images: Ref<PredefinedImageSchema[]> = ref(
+  [] as PredefinedImageSchema[],
+);
+const predefined_image: Ref<PredefinedImageSchema | null> = ref(null);
 const uid: Ref<string> = ref("");
 const original: Ref<ImageGetSchema> = ref({} as ImageGetSchema);
 const model: Ref<ImageGetSchema | ImageCreateSchema | ImageModifySchema> = ref(
-  {} as ImageCreateSchema,
+  new ImageCreateSchema(),
 );
 
 async function onBack() {
@@ -63,8 +70,9 @@ async function onEdit() {
 async function onSubmit() {
   readonly.value = true;
   if (model.value instanceof ImageCreateSchema) {
-    store.create(model.value).then(() => {
+    store.create(model.value).then((task) => {
       readonly.value = false;
+      console.dir(task);
       onBack();
     });
   } else {
@@ -76,6 +84,9 @@ async function onSubmit() {
 }
 
 onMounted(async () => {
+  config.value = await configStore.get();
+  predefined_images.value = config.value.predefined_images;
+
   if ("uid" in route.params) {
     // We're showing or editing an existing identity
     readonly.value = true;
@@ -88,9 +99,6 @@ onMounted(async () => {
     readonly.value = false;
     model.value = new ImageCreateSchema();
     title.value = "Create Image";
-    config.value = await configStore.get();
-    predefined_urls.value = config.value.predefined_images;
-    console.log(predefined_urls.value);
   }
 });
 </script>
@@ -150,11 +158,12 @@ onMounted(async () => {
       </div>
     </div>
     <div class="row q-col-gutter-x-md q-col-gutter-y-md">
-      <div class="col-xs-12 col-sm-6 col-md-6 col-lg-6 col-xl-6">
+      <div class="col-xs-12 col-sm-12 col-md-12 col-lg-12 col-xl-12">
         <q-input
           name="path"
           label="Path"
           tabindex="2"
+          v-show="model instanceof ImageGetSchema"
           :hint="readonly ? '' : 'The image path on local disk'"
           :clearable="!readonly"
           :readonly="readonly"
@@ -164,24 +173,16 @@ onMounted(async () => {
     </div>
     <div class="row q-col-gutter-x-md q-col-gutter-y-md">
       <div class="col-xs-12 col-sm-6 col-md-6 col-lg-6 col-xl-6">
-        <q-input
-          name="url"
-          label="URL"
-          tabindex="3"
-          :hint="readonly ? '' : 'Image URL'"
-          :clearable="!readonly"
-          :readonly="readonly"
-          v-model="model.url"
-        />
-      </div>
-      <div class="col-xs-12 col-sm-6 col-md-6 col-lg-6 col-xl-6">
         <q-select
           name="predefined"
           label="Predefined Image URLs"
-          tabindex="4"
+          clearable
+          tabindex="3"
+          emit-value
+          map-options
           :hint="readonly ? '' : 'Predefined image URLs'"
           :readonly="readonly"
-          :options="config.predefined_images"
+          :options="predefined_images"
           option-label="name"
           option-value="url"
           v-model="model.url"
@@ -189,37 +190,105 @@ onMounted(async () => {
       </div>
     </div>
     <div class="row q-col-gutter-x-md q-col-gutter-y-md">
-      <div class="col-xs-12 col-sm-4 col-md-4 col-lg-4 col-xl-4">
+      <div class="col-xs-12 col-sm-12 col-md-12 col-lg-12 col-xl-12">
         <q-input
+          name="url"
+          label="Custom Image URL"
+          tabindex="4"
+          :hint="readonly ? '' : 'Image URL'"
+          :clearable="!readonly"
+          :readonly="readonly || !predefined_image"
+          v-model="model.url"
+        />
+      </div>
+    </div>
+    <div
+      class="row q-col-gutter-x-md q-col-gutter-y-xl"
+      style="padding-top: 30px"
+    >
+      <div class="col-xs-12 col-sm-12 col-md-12 col-lg-12 col-xl-12">
+        <q-slider
           name="min_vcpu"
-          label="Minimum vCPUs"
+          label
+          label-always
+          markers
+          snap
           tabindex="4"
           :hint="readonly ? '' : 'Minimum vCPUs'"
-          :clearable="!readonly"
           :readonly="readonly"
+          :min="0"
+          :step="1"
+          :max="10"
+          :label-value="'Minimum vCPUs: ' + model.min_vcpu"
           v-model="model.min_vcpu"
         />
       </div>
-      <div class="col-xs-12 col-sm-4 col-md-4 col-lg-4 col-xl-4">
-        <q-input
-          name="min_ram"
-          label="Minimum RAM"
+    </div>
+    <div
+      class="row q-col-gutter-x-md q-col-gutter-y-md"
+      style="padding-top: 30px"
+    >
+      <div class="col-xs-8 col-sm-8 col-md-8 col-lg-8 col-xl-8">
+        <q-slider
+          name="min_ram_value"
+          label
+          label-always
+          markers
+          snap
           tabindex="5"
           :hint="readonly ? '' : 'Minimum RAM'"
-          :clearable="!readonly"
           :readonly="readonly"
-          v-model="model.min_ram"
+          :min="0"
+          :step="1"
+          :max="16"
+          :label-value="
+            'Minimum RAM: ' + model.min_ram.value + ' ' + model.min_ram.scale
+          "
+          v-model="model.min_ram.value"
         />
       </div>
-      <div class="col-xs-12 col-sm-4 col-md-4 col-lg-4 col-xl-4">
-        <q-input
-          name="min_disk"
-          label="Minimum Disk"
-          tabindex="5"
-          :hint="readonly ? '' : 'Minimum Disk'"
-          :clearable="!readonly"
+      <div class="col-xs-4 col-sm-4 col-md-4 col-lg-4 col-xl-4">
+        <q-select
+          name="min_ram_scale"
+          label="Scale"
+          tabindex="6"
           :readonly="readonly"
-          v-model="model.min_disk"
+          :options="Object.values(BinaryScale)"
+          v-model="model.min_ram.scale"
+        />
+      </div>
+    </div>
+    <div
+      class="row q-col-gutter-x-md q-col-gutter-y-md"
+      style="padding-top: 30px"
+    >
+      <div class="col-xs-8 col-sm-8 col-md-8 col-lg-8 col-xl-8">
+        <q-slider
+          name="min_disk_value"
+          label
+          label-always
+          markers
+          snap
+          tabindex="5"
+          :hint="readonly ? '' : 'Minimum Disk size'"
+          :readonly="readonly"
+          :min="0"
+          :step="1"
+          :max="16"
+          :label-value="
+            'Minimum Disk: ' + model.min_disk.value + ' ' + model.min_disk.scale
+          "
+          v-model="model.min_disk.value"
+        />
+      </div>
+      <div class="col-xs-4 col-sm-4 col-md-4 col-lg-4 col-xl-4">
+        <q-select
+          name="min_disk_scale"
+          label="Scale"
+          tabindex="6"
+          :readonly="readonly"
+          :options="Object.values(BinaryScale)"
+          v-model="model.min_disk.scale"
         />
       </div>
     </div>

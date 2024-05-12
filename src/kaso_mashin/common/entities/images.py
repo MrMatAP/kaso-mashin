@@ -115,18 +115,20 @@ class ImageModifySchema(EntitySchema):
     """
     Schema to modify an existing image
     """
-
-    min_vcpu: int = Field(
+    name: typing.Optional[str] = Field(
+        description="The image name", examples=["ubuntu", "flatpack", "debian"]
+    )
+    min_vcpu: typing.Optional[int] = Field(
         description="Optional minimum number of CPU vcores to run this image",
         default=DEFAULT_MIN_VCPU,
         examples=[DEFAULT_MIN_VCPU, 2, 4],
     )
-    min_ram: BinarySizedValue = Field(
+    min_ram: typing.Optional[BinarySizedValue] = Field(
         description="Optional minimum RAM size to run this image",
         default=DEFAULT_MIN_RAM,
         examples=[DEFAULT_MIN_RAM, BinarySizedValue(2, BinaryScale.G)],
     )
-    min_disk: BinarySizedValue = Field(
+    min_disk: typing.Optional[BinarySizedValue] = Field(
         description="Optional minimum disk size to run this image",
         default=DEFAULT_MIN_DISK,
         examples=[DEFAULT_MIN_DISK, BinarySizedValue(10, BinaryScale.G)],
@@ -319,15 +321,11 @@ class ImageEntity(Entity, AggregateRoot):
                 status=500, msg=f"Exception occurred while downloading {e}"
             )
 
-    async def modify(
-        self,
-        min_vcpu: int = DEFAULT_MIN_VCPU,
-        min_ram: BinarySizedValue = DEFAULT_MIN_RAM,
-        min_disk: BinarySizedValue = DEFAULT_MIN_DISK,
-    ):
-        self._min_vcpu = min_vcpu
-        self._min_ram = min_ram
-        self._min_disk = min_disk
+    async def modify(self, schema: ImageModifySchema):
+        self._name = schema.name
+        self._min_vcpu = schema.min_vcpu
+        self._min_ram = schema.min_ram
+        self._min_disk = schema.min_disk
         await self.repository.modify(self)
 
     async def remove(self):
