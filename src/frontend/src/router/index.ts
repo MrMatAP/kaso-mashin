@@ -17,6 +17,12 @@ const routes = [
       },
       {
         path: "/instances/:uid",
+        name: "InstanceDetail",
+        component: () => import("@/pages/InstanceDetail.vue"),
+      },
+      {
+        path: "/instances/?create",
+        name: "InstancesCreate",
         component: () => import("@/pages/InstanceDetail.vue"),
       },
       {

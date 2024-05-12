@@ -25,6 +25,10 @@ export const useTasksStore = defineStore("images", {
   state: () => ({
     tasks: [] as TaskGetSchema[],
   }),
+  getters: {
+    pendingNumber: (state) =>
+      state.tasks.filter((task) => task.state === TaskState.RUNNING).length,
+  },
   actions: {
     async list() {
       let task_list: TaskListSchema = await tasks.get();

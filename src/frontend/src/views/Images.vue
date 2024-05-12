@@ -6,8 +6,6 @@ import {
   useImagesStore,
 } from "@/store/images";
 import ExplanationNote from "@/components/ExplanationNote.vue";
-//import ImageDialog from "@/components/ImageDialog.vue";
-//import {DialogKind} from "@/constants";
 
 const imagesStore = useImagesStore();
 const loading = ref(true);

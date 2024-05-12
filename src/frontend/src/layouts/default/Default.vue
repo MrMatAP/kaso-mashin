@@ -1,8 +1,10 @@
 <script lang="ts" setup>
 import { ref } from "vue";
 import { useConfigStore } from "@/store/config";
+import { useTasksStore } from "@/store/tasks";
 
-const store = useConfigStore();
+const configStore = useConfigStore();
+const tasksStore = useTasksStore();
 const drawerOpen = ref(false);
 
 async function onToggleDrawer() {
@@ -24,14 +26,35 @@ async function onToggleDrawer() {
         />
         <q-btn flat no-caps no-wrap v-if="$q.screen.gt.xs">
           <q-toolbar-title shrink class="text-weight-bold"
-            >Kaso :: Mashin - {{ store.config.version }}</q-toolbar-title
+            >Kaso :: Mashin - {{ configStore.config.version }}</q-toolbar-title
           >
         </q-btn>
         <q-space />
         <div class="q-gutter-sm row items-center no-wrap">
           <q-btn round dense flat color="grey-8" icon="notifications">
-            <q-badge color="red" text-color="white" floating> 2 </q-badge>
-            <q-tooltip>Notifications</q-tooltip>
+            <q-badge
+              color="red"
+              text-color="white"
+              floating
+              v-show="tasksStore.pendingNumber > 0"
+            >
+              {{ tasksStore.pendingNumber }}
+            </q-badge>
+            <q-tooltip>Tasks</q-tooltip>
+            <q-menu>
+              <q-list style="min-width: 100px">
+                <q-item v-close-popup v-for="task in tasksStore.tasks">
+                  <q-item-section>
+                    <q-item-label>{{ task.name }}</q-item-label>
+                    <q-item-label caption>{{ task.msg }}</q-item-label>
+                  </q-item-section>
+                  <q-item-section side top>
+                    <q-item-label caption>{{ task.state }}</q-item-label>
+                    <q-item-label>{{ task.percent_complete }}</q-item-label>
+                  </q-item-section>
+                </q-item>
+              </q-list>
+            </q-menu>
           </q-btn>
           <q-btn round flat>
             <q-avatar size="26px">

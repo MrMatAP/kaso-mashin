@@ -15,7 +15,7 @@ import {
 } from "@/store/config";
 import { BinaryScale } from "@/base_types";
 
-const store = useImagesStore();
+const imagesStore = useImagesStore();
 const tasksStore = useTasksStore();
 const configStore = useConfigStore();
 const router = useRouter();
@@ -55,7 +55,7 @@ async function onCancel() {
 
 async function onRemove() {
   busy.value = true;
-  store.remove(uid.value).then(() => {
+  imagesStore.remove(uid.value).then(() => {
     busy.value = false;
     onBack();
   });
@@ -70,13 +70,13 @@ async function onEdit() {
 async function onSubmit() {
   readonly.value = true;
   if (model.value instanceof ImageCreateSchema) {
-    store.create(model.value).then((task) => {
+    imagesStore.create(model.value).then((task) => {
       readonly.value = false;
       console.dir(task);
       onBack();
     });
   } else {
-    store.modify(uid.value, model.value).then(() => {
+    imagesStore.modify(uid.value, model.value).then(() => {
       readonly.value = false;
       onBack();
     });
@@ -91,7 +91,7 @@ onMounted(async () => {
     // We're showing or editing an existing identity
     readonly.value = true;
     uid.value = route.params.uid as string;
-    original.value = await store.get(uid.value);
+    original.value = await imagesStore.get(uid.value);
     model.value = original.value;
     title.value = "Image: " + model.value.name;
   } else {

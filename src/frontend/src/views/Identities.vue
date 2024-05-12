@@ -7,8 +7,6 @@ import {
   useIdentitiesStore,
 } from "@/store/identities";
 import ExplanationNote from "@/components/ExplanationNote.vue";
-//import IdentityDialog from "@/components/IdentityDialog.vue";
-//import {DialogKind} from "@/constants";
 
 const identitiesStore = useIdentitiesStore();
 const loading = ref(true);

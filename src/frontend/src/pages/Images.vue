@@ -5,7 +5,7 @@ import ImageCard from "@/components/ImageCard.vue";
 import { useImagesStore } from "@/store/images";
 
 const router = useRouter();
-const store = useImagesStore();
+const imagesStore = useImagesStore();
 const loading = ref(true);
 
 async function onSelected(uid: string) {
@@ -13,7 +13,7 @@ async function onSelected(uid: string) {
 }
 
 onMounted(() => {
-  store.list().then(() => {
+  imagesStore.list().then(() => {
     loading.value = false;
   });
 });
@@ -25,7 +25,7 @@ onMounted(() => {
   </div>
   <div class="q-pa-md row items-start q-gutter-md">
     <ImageCard
-      v-for="image in store.images"
+      v-for="image in imagesStore.images"
       :key="image.uid"
       :image="image"
       @onSelected="onSelected"
