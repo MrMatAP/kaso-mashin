@@ -5,7 +5,8 @@ from kaso_mashin.server.apis import AbstractAPI
 from kaso_mashin.server.runtime import Runtime
 from kaso_mashin.common.model import (
     ExceptionSchema, TaskSchema,
-    ImageModel, ImageSchema, ImageCreateSchema, ImageModifySchema )
+    Predefined_Images,
+    ImageModel, ImageSchema, ImageCreateSchema, ImageModifySchema, ImagePredefinedSchema)
 
 
 class ImageAPI(AbstractAPI):
@@ -20,6 +21,12 @@ class ImageAPI(AbstractAPI):
             responses={
                 404: {'model': ExceptionSchema, 'description': 'Image not found'},
                 400: {'model': ExceptionSchema, 'description': 'Incorrect input'}})
+        self._router.add_api_route('/predefined', self.list_predefined_images, methods=['GET'],
+                                   summary='List predefined images',
+                                   description='List the currently predefined images you can download',
+                                   response_description='A list of predefined images',
+                                   status_code=200,
+                                   responses={200: {'model': typing.List[ImagePredefinedSchema]}})
         self._router.add_api_route('/', self.list_images, methods=['GET'],
                                    summary='List images',
                                    description='List all known images. You can optionally filter the list by the'
@@ -76,7 +83,13 @@ class ImageAPI(AbstractAPI):
 
     async def create_image(self, schema: ImageCreateSchema, background_tasks: fastapi.BackgroundTasks):
         task = self.task_controller.create(name=f'Download image {schema.name} from URL {schema.url}')
-        background_tasks.add_task(self.image_controller.create, name=schema.name, url=schema.url, task=task)
+        background_tasks.add_task(self.image_controller.create,
+                                  name=schema.name,
+                                  url=schema.url,
+                                  min_cpu=schema.min_cpu,
+                                  min_ram=schema.min_ram,
+                                  min_space=schema.min_space,
+                                  task=task)
         return task
 
     async def modify_image(self,
@@ -95,3 +108,7 @@ class ImageAPI(AbstractAPI):
         gone = self.image_controller.remove(image_id)
         response.status_code = 410 if gone else 204
         return response
+
+    async def list_predefined_images(self):
+        predefined = [ImagePredefinedSchema(name=name, url=url) for name, url in Predefined_Images.items()]
+        return predefined

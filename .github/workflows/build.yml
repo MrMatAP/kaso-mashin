@@ -67,6 +67,11 @@ jobs:
 
     - name: Build
       run: |
+        cd ${GITHUB_WORKSPACE}/src/frontend
+        npm install
+        npm run package
+
+        cd ${GITHUB_WORKSPACE}
         pip install --user -r dev-requirements.txt
         pylint --rcfile ${GITHUB_WORKSPACE}/.pylintrc ${GITHUB_WORKSPACE}/src/kaso_mashin --exit-zero
         python -m build --wheel -n

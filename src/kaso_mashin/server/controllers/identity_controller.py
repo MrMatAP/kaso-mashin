@@ -13,6 +13,11 @@ class IdentityController(AbstractController):
     """
 
     def list(self) -> typing.List[IdentityModel]:
+        """
+        Return all known identities
+        Returns:
+            A potentially empty list of all known identities
+        """
         return list(self.db.session.scalars(sqlalchemy.select(IdentityModel)).all())
 
     def get(self, identity_id: int | None = None, name: str | None = None) -> IdentityModel | None:
@@ -37,6 +42,14 @@ class IdentityController(AbstractController):
         return identity or None
 
     def create(self, model: IdentityModel) -> IdentityModel:
+        """
+        Create a new identity
+        Args:
+            model: The identity model
+
+        Returns:
+
+        """
         try:
             self.db.session.add(model)
             self.db.session.commit()
