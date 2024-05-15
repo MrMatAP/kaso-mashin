@@ -1,9 +1,9 @@
 <script setup lang="ts">
 import { ref } from 'vue'
-import { Instance } from '@/store/instances'
+import {Image} from "@/store/images";
 
 defineProps<{
-    instance: Instance
+    image: Image
 }>()
 
 let expand = ref()
@@ -11,15 +11,14 @@ let expand = ref()
 
 <template>
   <v-card class="pa-2 ma-2">
-    <template v-slot:title>{{ instance.name }}</template>
-    <template v-slot:subtitle>{{ instance.instance_id }}</template>
+    <template v-slot:title>{{ image.name }}</template>
+    <template v-slot:subtitle>{{ image.image_id }}</template>
     <v-expand-transition>
       <div v-if="expand">
         <v-list class="bg-transparent" density="compact">
-          <v-list-item>
-            <template v-slot:title>{{instance.mac}}</template>
-            <template v-slot:subtitle>MAC</template>
-          </v-list-item>
+          <v-list-item :title="image.min_cpu" subtitle="Minimum CPU"/>
+          <v-list-item :title="image.min_ram" subtitle="Minimum RAM"/>
+          <v-list-item :title="image.min_space" subtitle="Minimum Space"/>
         </v-list>
       </div>
     </v-expand-transition>

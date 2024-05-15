@@ -33,6 +33,11 @@ const routes = [
         path: '/images',
         name: 'Images',
         component: () => import('@/views/Images.vue')
+      },
+      {
+        path: '/images-grid',
+        name: 'Images-Grid',
+        component: () => import('@/views/Images-Grid.vue')
       }
     ],
   },

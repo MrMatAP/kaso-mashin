@@ -14,9 +14,7 @@ onMounted( () => {
   <v-container class="fill-height">
     <v-responsive class="fill-height">
       <v-row>
-        <v-col v-for="instance in instanceStore.instances">
-          <InstanceCard :instance="instance"/>
-        </v-col>
+        <InstanceCard v-for="instance in instanceStore.instances" :key="instance.instance_id" :instance="instance"/>
       </v-row>
     </v-responsive>
   </v-container>
