@@ -1,6 +1,12 @@
 import { defineStore } from "pinia";
 import { mande } from "mande";
-import { BinarySizedValue } from "@/base_types";
+import {
+  BinarySizedValue,
+  Entity,
+  EditableEntity,
+  CreatableEntity,
+} from "@/base_types";
+import { TaskState } from "@/store/tasks";
 
 const instances = mande("/api/instances/");
 
@@ -15,10 +21,9 @@ export interface InstanceListSchema {
   entries: InstanceGetSchema[];
 }
 
-export class InstanceGetSchema {
-  readonly uid: number = "";
-  name: string = "";
+export class InstanceGetSchema extends Entity {
   path: string = "";
+  state: InstanceState = InstanceState.STOPPED;
   vcpu: number = 0;
   ram: BinarySizedValue = new BinarySizedValue();
   mac: string = "";
@@ -28,8 +33,7 @@ export class InstanceGetSchema {
   bootstrap_file: string = "";
 }
 
-export class InstanceCreateSchema {
-  name: string = "";
+export class InstanceCreateSchema extends CreatableEntity {
   vcpu: number = 0;
   ram: BinarySizedValue = new BinarySizedValue();
   os_disk_size: BinarySizedValue = new BinarySizedValue();
@@ -38,12 +42,11 @@ export class InstanceCreateSchema {
   bootstrap_uid: string = "";
 }
 
-export class InstanceModifySchema {
-  name: string = "";
+export class InstanceModifySchema extends EditableEntity<InstanceGetSchema> {
   state: InstanceState = InstanceState.STOPPED;
 
   constructor(original: InstanceGetSchema) {
-    this.name = original.name;
+    super(original);
     this.state = original.state;
   }
 }

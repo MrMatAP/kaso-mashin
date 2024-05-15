@@ -19,12 +19,12 @@ const pendingConfirmation: Ref<boolean> = ref(false);
 
 const title: Ref<string> = ref("Network Detail");
 const editForm = ref(null);
+const empty = ref("");
 
 const uid: Ref<string> = ref("");
 const original: Ref<NetworkGetSchema> = ref({} as NetworkGetSchema);
-const model: Ref<
-  NetworkGetSchema | NetworkCreateSchema | NetworkModifySchema
-> = ref({} as NetworkCreateSchema);
+const model: Ref<NetworkGetSchema | NetworkCreateSchema | NetworkModifySchema> =
+  ref({} as NetworkCreateSchema);
 
 async function onBack() {
   await router.push({ name: "Networks" });
@@ -59,12 +59,12 @@ async function onSubmit() {
   if (model.value instanceof NetworkCreateSchema) {
     store.create(model.value).then(() => {
       readonly.value = false;
-      onBack()
+      onBack();
     });
   } else {
     store.modify(uid.value, model.value).then(() => {
       readonly.value = false;
-      onBack()
+      onBack();
     });
   }
 }
@@ -146,11 +146,19 @@ onMounted(async () => {
           name="kind"
           label="Kind"
           tabindex="1"
-          v-show="model instanceof NetworkGetSchema || model instanceof NetworkCreateSchema"
           :hint="readonly ? '' : 'Network kind'"
           :readonly="readonly"
           :options="Object.values(NetworkKind)"
-          v-model="model.kind"
+          v-show="
+            model instanceof NetworkGetSchema ||
+            model instanceof NetworkCreateSchema
+          "
+          v-model="
+            model instanceof NetworkGetSchema ||
+            model instanceof NetworkCreateSchema
+              ? model.kind
+              : empty
+          "
         />
       </div>
     </div>
@@ -171,11 +179,7 @@ onMounted(async () => {
           name="gateway"
           label="Gateway Address"
           tabindex="3"
-          :hint="
-            readonly
-              ? ''
-              : 'Network gateway address'
-          "
+          :hint="readonly ? '' : 'Network gateway address'"
           :clearable="!readonly"
           :readonly="readonly"
           v-model="model.gateway"

@@ -1,5 +1,6 @@
 import { defineStore } from "pinia";
 import { mande } from "mande";
+import { Entity } from "@/base_types";
 
 const tasks = mande("/api/tasks/");
 
@@ -13,9 +14,7 @@ export interface TaskListSchema {
   entries: TaskGetSchema[];
 }
 
-export class TaskGetSchema {
-  readonly uid: string = "";
-  name: string = "";
+export class TaskGetSchema extends Entity {
   state: TaskState = TaskState.RUNNING;
   msg: string = "";
   percent_complete: number = 0;

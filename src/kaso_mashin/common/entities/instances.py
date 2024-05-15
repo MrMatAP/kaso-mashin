@@ -94,6 +94,9 @@ class InstanceGetSchema(EntitySchema):
     name: str = Field(
         description="The instance name", examples=["k8s-master", "your-mom"]
     )
+    state: InstanceState = Field(
+        description='The instance state', examples=[InstanceState.STOPPED, InstanceState.STARTED]
+    )
     path: pathlib.Path = Field(description="Path of the instance on the local disk")
     vcpu: int = Field(description="Number of virtual CPU cores", examples=[2])
     ram: BinarySizedValue = Field(
@@ -117,6 +120,7 @@ class InstanceGetSchema(EntitySchema):
         table.add_column("Value")
         table.add_row("[blue]UID", str(self.uid))
         table.add_row("[blue]Name", self.name)
+        table.add_row('[blue]State', str(self.state))
         table.add_row("[blue]Path", str(self.path))
         table.add_row("[blue]VCPUs", str(self.vcpu))
         table.add_row("[blue]RAM", f"{self.ram.value} {self.ram.scale}")

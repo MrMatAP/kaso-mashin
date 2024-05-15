@@ -5,7 +5,7 @@
     "useDefineForClassFields": true,
     "allowSyntheticDefaultImports": true,
     "composite": true,
-    "module": "es6",
+    "module": "es2022",
     "moduleResolution": "bundler",
     "strict": true,
     "jsx": "preserve",

@@ -20,12 +20,16 @@ const pendingConfirmation: Ref<boolean> = ref(false);
 
 const title: Ref<string> = ref("Instance Detail");
 const editForm = ref(null);
+const empty = ref("");
 
 const uid: Ref<string> = ref("");
 const original: Ref<InstanceGetSchema> = ref({} as InstanceGetSchema);
 const model: Ref<
   InstanceGetSchema | InstanceCreateSchema | InstanceModifySchema
 > = ref(new InstanceCreateSchema());
+const viewModel: Ref<InstanceGetSchema> = ref(new InstanceGetSchema())
+const editModel: Ref<InstanceModifySchema> = ref(new InstanceModifySchema(viewModel.value))
+const createModel: Ref<InstanceCreateSchema> = ref(new InstanceCreateSchema())
 
 async function onBack() {
   await router.push({ name: "Instances" });
@@ -150,12 +154,14 @@ onMounted(async () => {
           name="path"
           label="Path"
           tabindex="2"
-          v-show="model instanceof InstanceGetSchema"
           :hint="readonly ? '' : 'The instance path on local disk'"
           :clearable="!readonly"
           :readonly="readonly"
-          v-model="model.path"
+          v-show="model instanceof InstanceGetSchema"
+          v-model="viewModel.path"
         />
+        <!-- TODO -->
+        <!--          v-model="model instanceof InstanceGetSchema ? model.path : empty"-->
       </div>
     </div>
     <div class="row q-gutter-xl justify-end">

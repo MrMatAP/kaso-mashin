@@ -18,8 +18,19 @@ export class BinarySizedValue {
   }
 }
 
-export enum DialogKind {
-  create,
-  modify,
-  remove,
+export abstract class Entity {
+  readonly uid: string = "";
+  name: string = "";
+}
+
+export abstract class EditableEntity<T extends Entity> {
+  name: string;
+
+  protected constructor(original: T) {
+    this.name = original.name;
+  }
+}
+
+export abstract class CreatableEntity {
+  name: string = "";
 }

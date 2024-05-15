@@ -1,6 +1,8 @@
 import { defineStore } from "pinia";
 import { mande } from "mande";
 
+import { Entity, EditableEntity, CreatableEntity } from "@/base_types";
+
 const identities = mande("/api/identities/");
 
 export enum IdentityKind {
@@ -12,9 +14,7 @@ export interface IdentityListSchema {
   entries: IdentityGetSchema[];
 }
 
-export class IdentityGetSchema {
-  readonly uid: string = "";
-  name: string = "";
+export class IdentityGetSchema extends Entity {
   kind: IdentityKind = IdentityKind.PUBKEY;
   gecos: string = "";
   homedir: string = "";
@@ -22,8 +22,7 @@ export class IdentityGetSchema {
   credential: string = "";
 }
 
-export class IdentityCreateSchema {
-  name: string = "";
+export class IdentityCreateSchema extends CreatableEntity {
   kind: IdentityKind = IdentityKind.PUBKEY;
   gecos: string = "";
   homedir: string = "";
@@ -31,8 +30,7 @@ export class IdentityCreateSchema {
   credential: string = "";
 }
 
-export class IdentityModifySchema {
-  name: string;
+export class IdentityModifySchema extends EditableEntity<IdentityGetSchema> {
   kind: IdentityKind;
   gecos: string;
   homedir: string;
@@ -40,7 +38,7 @@ export class IdentityModifySchema {
   credential: string;
 
   constructor(original: IdentityGetSchema) {
-    this.name = original.name;
+    super(original);
     this.kind = original.kind;
     this.gecos = original.gecos;
     this.homedir = original.homedir;

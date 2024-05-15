@@ -27,6 +27,7 @@ const pendingConfirmation: Ref<boolean> = ref(false);
 
 const title: Ref<string> = ref("Image Detail");
 const editForm = ref(null);
+const empty = ref("");
 
 const config: Ref<ConfigSchema> = ref({} as ConfigSchema);
 const predefined_images: Ref<PredefinedImageSchema[]> = ref(
@@ -163,11 +164,11 @@ onMounted(async () => {
           name="path"
           label="Path"
           tabindex="2"
-          v-show="model instanceof ImageGetSchema"
           :hint="readonly ? '' : 'The image path on local disk'"
           :clearable="!readonly"
           :readonly="readonly"
-          v-model="model.path"
+          v-show="model instanceof ImageGetSchema"
+          v-model="model instanceof ImageGetSchema ? model.path : empty"
         />
       </div>
     </div>
@@ -185,7 +186,8 @@ onMounted(async () => {
           :options="predefined_images"
           option-label="name"
           option-value="url"
-          v-model="model.url"
+          v-show="model instanceof ImageCreateSchema"
+          v-model="model instanceof ImageCreateSchema ? model.url : empty"
         />
       </div>
     </div>
@@ -198,7 +200,18 @@ onMounted(async () => {
           :hint="readonly ? '' : 'Image URL'"
           :clearable="!readonly"
           :readonly="readonly || !predefined_image"
-          v-model="model.url"
+          v-show="
+            model instanceof ImageGetSchema ||
+            model instanceof ImageCreateSchema
+              ? model.url
+              : empty
+          "
+          v-model="
+            model instanceof ImageGetSchema ||
+            model instanceof ImageCreateSchema
+              ? model.url
+              : empty
+          "
         />
       </div>
     </div>

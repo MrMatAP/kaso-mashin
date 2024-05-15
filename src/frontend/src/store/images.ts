@@ -1,6 +1,11 @@
 import { defineStore } from "pinia";
 import { mande } from "mande";
-import { BinarySizedValue } from "@/base_types";
+import {
+  BinarySizedValue,
+  Entity,
+  EditableEntity,
+  CreatableEntity,
+} from "@/base_types";
 import { TaskGetSchema } from "@/store/tasks";
 
 const images = mande("/api/images/");
@@ -9,9 +14,7 @@ export interface ImageListSchema {
   entries: ImageGetSchema[];
 }
 
-export class ImageGetSchema {
-  readonly uid: string = "";
-  name: string = "";
+export class ImageGetSchema extends Entity {
   path: string = "";
   url: string = "";
   min_vcpu: number = 0;
@@ -19,22 +22,20 @@ export class ImageGetSchema {
   min_disk: BinarySizedValue = new BinarySizedValue();
 }
 
-export class ImageCreateSchema {
-  name: string = "";
+export class ImageCreateSchema extends CreatableEntity {
   url: string = "";
   min_vcpu: number = 0;
   min_ram: BinarySizedValue = new BinarySizedValue();
   min_disk: BinarySizedValue = new BinarySizedValue();
 }
 
-export class ImageModifySchema {
-  name: string = "";
+export class ImageModifySchema extends EditableEntity<ImageGetSchema> {
   min_vcpu: number = 0;
   min_ram: BinarySizedValue = new BinarySizedValue();
   min_disk: BinarySizedValue = new BinarySizedValue();
 
   constructor(original: ImageGetSchema) {
-    this.name = original.name;
+    super(original);
     this.min_vcpu = original.min_vcpu;
     this.min_ram = original.min_ram;
     this.min_disk = original.min_disk;

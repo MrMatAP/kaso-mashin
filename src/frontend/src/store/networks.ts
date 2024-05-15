@@ -1,5 +1,6 @@
 import { defineStore } from "pinia";
 import { mande } from "mande";
+import { Entity, EditableEntity, CreatableEntity } from "@/base_types";
 
 const networks = mande("/api/networks/");
 
@@ -13,9 +14,7 @@ export interface NetworkListSchema {
   entries: NetworkGetSchema[];
 }
 
-export class NetworkGetSchema {
-  readonly uid: string = "";
-  name: string = "";
+export class NetworkGetSchema extends Entity {
   kind: NetworkKind = NetworkKind.VMNET_SHARED;
   cidr: string = "";
   gateway: string = "";
@@ -23,8 +22,7 @@ export class NetworkGetSchema {
   dhcp_end: string = "";
 }
 
-export class NetworkCreateSchema {
-  name: string = "";
+export class NetworkCreateSchema extends CreatableEntity {
   kind: NetworkKind = NetworkKind.VMNET_SHARED;
   cidr: string = "";
   gateway: string = "";
@@ -32,15 +30,14 @@ export class NetworkCreateSchema {
   dhcp_end: string = "";
 }
 
-export class NetworkModifySchema {
-  name: string;
+export class NetworkModifySchema extends EditableEntity<NetworkGetSchema> {
   cidr: string;
   gateway: string;
   dhcp_start: string;
   dhcp_end: string;
 
   constructor(original: NetworkGetSchema) {
-    this.name = original.name;
+    super(original);
     this.cidr = original.cidr;
     this.gateway = original.gateway;
     this.dhcp_start = original.dhcp_start;
