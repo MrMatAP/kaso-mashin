@@ -1,6 +1,6 @@
 import { defineStore } from "pinia";
 import { mande } from "mande";
-import { Entity, EntityNotFoundExceptionSchema, ExceptionSchema } from "@/base_types";
+import { Entity, EntityNotFoundExceptionSchema } from "@/base_types";
 
 const taskAPI = mande("/api/tasks/");
 

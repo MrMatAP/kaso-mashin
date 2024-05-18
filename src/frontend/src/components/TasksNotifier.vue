@@ -1,7 +1,7 @@
 <script setup lang="ts">
-import { ref, Ref, onMounted } from 'vue';
-import { useInterval, useQuasar } from 'quasar';
-import { TaskGetSchema, useTaskStore } from "@/store/tasks";
+import { onMounted, Ref, ref } from "vue";
+import { useInterval, useQuasar } from "quasar";
+import { TaskGetSchema, TaskState, useTaskStore } from "@/store/tasks";
 import { EntityNotFoundExceptionSchema } from "@/base_types";
 
 const $q = useQuasar();
@@ -14,14 +14,22 @@ async function updatePendingTasks() {
   try {
     for(const task of taskStore.pendingTasks) {
       let pendingTask = await taskStore.get(task.uid)
-      pendingTasks.value.push(pendingTask)
+      if(pendingTask.state === TaskState.FAILED) {
+        $q.notify({ message: pendingTask.msg, type: "error", icon: 'error'});
+      } else if(pendingTask.state === TaskState.DONE) {
+        $q.notify({ message: pendingTask.msg });
+        console.dir(pendingTask)
+      } else {
+        pendingTasks.value.push(pendingTask)
+      }
     }
   } catch(e) {
     $q.notify({ message: (e as EntityNotFoundExceptionSchema).msg, icon: 'error' })
   }
 }
 
-onMounted( () => {
+onMounted( async () => {
+  await taskStore.list()
   registerInterval(async () => updatePendingTasks, 3000)
 })
 </script>

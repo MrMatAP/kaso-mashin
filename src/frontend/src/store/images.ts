@@ -4,7 +4,7 @@ import {
   BinarySizedValue,
   Entity,
   ModifiableEntity,
-  CreatableEntity,
+  CreatableEntity, EntityNotFoundExceptionSchema, EntityInvariantExceptionSchema
 } from "@/base_types";
 import { TaskGetSchema } from "@/store/tasks";
 
@@ -45,8 +45,16 @@ export class ImageModifySchema extends ModifiableEntity<ImageGetSchema> {
 export const useImageStore = defineStore("images", {
   state: () => ({
     images: [] as ImageGetSchema[],
-    pendingImages: [] as ImageCreateSchema[],
+    pendingImages: new Map<string, ImageCreateSchema>(),
   }),
+  getters: {
+    getIndexByUid: (state) => {
+      return (uid: string) => state.images.findIndex((image) => image.uid === uid);
+    },
+    getImageByUid: (state) => {
+      return (uid: string) => state.images.find((image) => image.uid === uid);
+    }
+  },
   actions: {
     async list(): Promise<ImageGetSchema[]> {
       let image_list: ImageListSchema = await imageAPI.get();
@@ -54,16 +62,46 @@ export const useImageStore = defineStore("images", {
       return this.images;
     },
     async get(uid: string): Promise<ImageGetSchema> {
-      return await imageAPI.get(uid);
+      try {
+        let image = await imageAPI.get<ImageGetSchema>(uid);
+        let index = this.getIndexByUid(uid)
+        if(index !== -1) {
+          this.images[index] = image
+        } else {
+          this.images.push(image);
+        }
+        return image
+      } catch(error: any) {
+        throw new EntityNotFoundExceptionSchema(error.body.status, error.body.msg)
+      }
     },
     async create(create: ImageCreateSchema): Promise<TaskGetSchema> {
-      return await imageAPI.post(create);
+      try {
+        let task = await imageAPI.post<TaskGetSchema>(create)
+        this.pendingImages.set(task.uid, create)
+        return task
+      } catch(error: any) {
+        throw new EntityInvariantExceptionSchema(error.body.status, error.body.msg);
+      }
     },
     async modify(uid: string, modify: ImageModifySchema): Promise<ImageGetSchema> {
-      return await imageAPI.put(uid, modify);
+      try {
+        let update = await imageAPI.put<ImageGetSchema>(uid, modify);
+        let index = this.getIndexByUid(uid)
+        this.images[index] = update
+        return update
+      } catch(error: any) {
+        throw new EntityInvariantExceptionSchema(error.body.status, error.body.msg);
+      }
     },
     async remove(uid: string): Promise<void> {
-      return await imageAPI.delete(uid);
+      try {
+        await imageAPI.delete(uid);
+        let index = this.getIndexByUid(uid)
+        this.images.splice(index, 1);
+      } catch(error: any) {
+        throw new EntityInvariantExceptionSchema(error.body.status, error.body.msg)
+      }
     },
   },
 });
