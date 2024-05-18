@@ -145,10 +145,10 @@ class IdentityEntity(Entity, AggregateRoot):
         self,
         name: str,
         kind: IdentityKind = IdentityKind.PUBKEY,
-        gecos: str = None,
-        homedir: pathlib.Path = None,
+        gecos: str | None = None,
+        homedir: pathlib.Path | None = None,
         shell: str = "/bin/bash",
-        credential: str = None,
+        credential: str | None = None,
     ):
         super().__init__()
         self._name = name

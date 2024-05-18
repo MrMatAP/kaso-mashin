@@ -105,7 +105,7 @@ class BaseCommands(typing.Generic[T_EntityListSchema, T_EntityGetSchema], abc.AB
     def _api_client(
         self,
         uri: str,
-        schema: EntitySchema = None,
+        schema: EntitySchema | None = None,
         method: str = "GET",
         expected_status: typing.Optional[typing.List] = None,
         fallback_msg: str = "Something bad and unknown happened...",

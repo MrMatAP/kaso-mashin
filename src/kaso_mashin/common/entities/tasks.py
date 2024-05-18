@@ -169,7 +169,7 @@ class TaskEntity(Entity, AggregateRoot):
             self._msg = msg
         await self.repository.modify(self)
 
-    async def done(self, msg: str, outcome: Entity = None):
+    async def done(self, msg: str, outcome: Entity | None = None):
         self._percent_complete = 100
         self._msg = msg
         self._outcome = outcome

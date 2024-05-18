@@ -279,8 +279,8 @@ class NetworkEntity(Entity, AggregateRoot):
         kind: NetworkKind,
         cidr: ipaddress.IPv4Network,
         gateway: ipaddress.IPv4Address,
-        dhcp_start: ipaddress.IPv4Address = None,
-        dhcp_end: ipaddress.IPv4Address = None,
+        dhcp_start: ipaddress.IPv4Address | None = None,
+        dhcp_end: ipaddress.IPv4Address | None = None,
     ) -> "NetworkEntity":
         if dhcp_start is None or dhcp_end is None:
             network = ipaddress.IPv4Network(cidr)

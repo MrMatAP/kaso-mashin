@@ -51,6 +51,14 @@ export const useIdentityStore = defineStore("identities", {
   state: () => ({
     identities: [] as IdentityGetSchema[],
   }),
+  getters: {
+    getIndexByUid: (state) => {
+      return (uid: string) => state.identities.findIndex((identity) => identity.uid === uid);
+    },
+    getIdentityByUid: (state) => {
+      return (uid: string) => state.identities.find((identity) => identity.uid === uid);
+    }
+  },
   actions: {
     async list() {
       let identity_list: IdentityListSchema = await identities.get();

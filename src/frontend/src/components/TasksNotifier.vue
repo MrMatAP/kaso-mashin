@@ -18,7 +18,6 @@ async function updatePendingTasks() {
         $q.notify({ message: pendingTask.msg, type: "error", icon: 'error'});
       } else if(pendingTask.state === TaskState.DONE) {
         $q.notify({ message: pendingTask.msg });
-        console.dir(pendingTask)
       } else {
         pendingTasks.value.push(pendingTask)
       }
