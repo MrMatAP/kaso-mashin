@@ -1,9 +1,9 @@
 <script setup lang="ts">
-import { useImagesStore } from "@/store/images";
+import { useImageStore } from "@/store/images";
 import ImageCard from "@/components/ImageCard.vue";
 import { onMounted, ref } from "vue";
 
-const store = useImagesStore();
+const store = useImageStore();
 const loading = ref(true);
 
 onMounted(() => {

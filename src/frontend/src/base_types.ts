@@ -23,7 +23,7 @@ export abstract class Entity {
   name: string = "";
 }
 
-export abstract class EditableEntity<T extends Entity> {
+export abstract class ModifiableEntity<T extends Entity> {
   name: string;
 
   protected constructor(original: T) {

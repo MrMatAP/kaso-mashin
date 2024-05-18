@@ -5,7 +5,7 @@ import {
   ImageGetSchema,
   ImageCreateSchema,
   ImageModifySchema,
-  useImagesStore,
+  useImageStore,
 } from "@/store/images";
 import { TaskGetSchema, useTasksStore } from "@/store/tasks";
 import {
@@ -14,20 +14,22 @@ import {
   useConfigStore,
 } from "@/store/config";
 import { BinaryScale } from "@/base_types";
+import RemoveConfirmation from "@/components/RemoveConfirmation.vue";
 
-const imagesStore = useImagesStore();
-const tasksStore = useTasksStore();
+const imageStore = useImageStore();
+const taskStore = useTasksStore();
 const configStore = useConfigStore();
 const router = useRouter();
 const route = useRoute();
 
-const readonly: Ref<boolean> = ref(true);
+const readMode: Ref<boolean> = ref(true);
+const modifyMode: Ref<boolean> = ref(false)
+const createMode: Ref<boolean> = ref(false)
 const busy: Ref<boolean> = ref(false);
 const pendingConfirmation: Ref<boolean> = ref(false);
+const editForm = ref(null);
 
 const title: Ref<string> = ref("Image Detail");
-const editForm = ref(null);
-const empty = ref("");
 
 const config: Ref<ConfigSchema> = ref({} as ConfigSchema);
 const predefined_images: Ref<PredefinedImageSchema[]> = ref(
@@ -36,27 +38,27 @@ const predefined_images: Ref<PredefinedImageSchema[]> = ref(
 const predefined_image: Ref<PredefinedImageSchema | null> = ref(null);
 const uid: Ref<string> = ref("");
 const original: Ref<ImageGetSchema> = ref({} as ImageGetSchema);
-const model: Ref<ImageGetSchema | ImageCreateSchema | ImageModifySchema> = ref(
-  new ImageCreateSchema(),
-);
+const model: Ref<any> = ref(new ImageGetSchema())
 
 async function onBack() {
   await router.push({ name: "Images" });
 }
 
 async function onCancel() {
-  if (model.value instanceof ImageCreateSchema) {
+  if (createMode.value) {
+    createMode.value = false;
     await onBack();
     return;
   }
   model.value = original.value;
   title.value = "Image: " + model.value.name;
-  readonly.value = true;
+  readMode.value = true;
+  modifyMode.value = false;
 }
 
 async function onRemove() {
   busy.value = true;
-  imagesStore.remove(uid.value).then(() => {
+  imageStore.remove(uid.value).then(() => {
     busy.value = false;
     onBack();
   });
@@ -65,20 +67,23 @@ async function onRemove() {
 async function onEdit() {
   title.value = "Modify Image: " + model.value.name;
   model.value = new ImageModifySchema(original.value);
-  readonly.value = false;
+  readMode.value = false;
+  modifyMode.value = true;
 }
 
 async function onSubmit() {
-  readonly.value = true;
-  if (model.value instanceof ImageCreateSchema) {
-    imagesStore.create(model.value).then((task) => {
-      readonly.value = false;
+  readMode.value = true;
+  if (createMode.value) {
+    imageStore.create(model.value).then((task) => {
+      readMode.value = false;
       console.dir(task);
       onBack();
     });
+    await
+      taskStore.list()
   } else {
-    imagesStore.modify(uid.value, model.value).then(() => {
-      readonly.value = false;
+    imageStore.modify(uid.value, model.value).then(() => {
+      readMode.value = false;
       onBack();
     });
   }
@@ -90,38 +95,27 @@ onMounted(async () => {
 
   if ("uid" in route.params) {
     // We're showing or editing an existing identity
-    readonly.value = true;
+    readMode.value = false;
+    modifyMode.value = true;
+    createMode.value = false;
     uid.value = route.params.uid as string;
-    original.value = await imagesStore.get(uid.value);
-    model.value = original.value;
+    model.value = await imageStore.get(uid.value);
     title.value = "Image: " + model.value.name;
   } else {
     // We're creating a new identity
-    readonly.value = false;
-    model.value = new ImageCreateSchema();
+    readMode.value = false;
+    modifyMode.value = false;
+    createMode.value = true;
+    model.value = new ImageCreateSchema()
     title.value = "Create Image";
   }
 });
 </script>
 
 <template>
-  <q-dialog v-model="pendingConfirmation" persistent>
-    <q-card>
-      <q-card-section class="row items-center">
-        <span class="q-ml-sm">Are you sure you want to remove this image?</span>
-      </q-card-section>
-      <q-card-actions align="right">
-        <q-btn flat label="Cancel" color="primary" v-close-popup />
-        <q-btn
-          flat
-          label="Remove"
-          color="primary"
-          v-close-popup
-          @click="onRemove"
-        />
-      </q-card-actions>
-    </q-card>
-  </q-dialog>
+  <RemoveConfirmation :active="pendingConfirmation"
+                       entityName="image"
+                       @remove="onRemove"/>
 
   <q-form
     ref="editForm"
@@ -139,7 +133,7 @@ onMounted(async () => {
           name="uid"
           label="UID"
           readonly
-          v-show="uid"
+          v-show="readMode || modifyMode"
           :model-value="uid"
         />
       </div>
@@ -151,9 +145,9 @@ onMounted(async () => {
           label="Name"
           tabindex="0"
           autofocus
-          :hint="readonly ? '' : 'A unique name for the image'"
-          :clearable="!readonly"
-          :readonly="readonly"
+          :hint="readMode ? '' : 'A unique name for the image'"
+          :clearable="modifyMode || createMode"
+          :readonly="readMode"
           v-model="model.name"
         />
       </div>
@@ -164,11 +158,11 @@ onMounted(async () => {
           name="path"
           label="Path"
           tabindex="2"
-          :hint="readonly ? '' : 'The image path on local disk'"
-          :clearable="!readonly"
-          :readonly="readonly"
-          v-show="model instanceof ImageGetSchema"
-          v-model="model instanceof ImageGetSchema ? model.path : empty"
+          :hint="readMode ? '' : 'The image path on local disk'"
+          :clearable="modifyMode"
+          :readonly="readMode"
+          v-show="readMode"
+          v-model="model.path"
         />
       </div>
     </div>
@@ -181,13 +175,13 @@ onMounted(async () => {
           tabindex="3"
           emit-value
           map-options
-          :hint="readonly ? '' : 'Predefined image URLs'"
-          :readonly="readonly"
+          :hint="readMode ? '' : 'Predefined image URLs'"
+          :readonly="readMode"
           :options="predefined_images"
           option-label="name"
           option-value="url"
-          v-show="model instanceof ImageCreateSchema"
-          v-model="model instanceof ImageCreateSchema ? model.url : empty"
+          v-show="createMode"
+          v-model="model.url"
         />
       </div>
     </div>
@@ -197,21 +191,11 @@ onMounted(async () => {
           name="url"
           label="Custom Image URL"
           tabindex="4"
-          :hint="readonly ? '' : 'Image URL'"
-          :clearable="!readonly"
-          :readonly="readonly || !predefined_image"
-          v-show="
-            model instanceof ImageGetSchema ||
-            model instanceof ImageCreateSchema
-              ? model.url
-              : empty
-          "
-          v-model="
-            model instanceof ImageGetSchema ||
-            model instanceof ImageCreateSchema
-              ? model.url
-              : empty
-          "
+          :hint="readMode ? '' : 'Image URL'"
+          :clearable="createMode"
+          :readonly="readMode || !predefined_image"
+          v-show="createMode || readMode"
+          v-model="model.url"
         />
       </div>
     </div>
@@ -227,8 +211,8 @@ onMounted(async () => {
           markers
           snap
           tabindex="4"
-          :hint="readonly ? '' : 'Minimum vCPUs'"
-          :readonly="readonly"
+          :hint="readMode ? '' : 'Minimum vCPUs'"
+          :readonly="readMode"
           :min="0"
           :step="1"
           :max="10"
@@ -249,8 +233,8 @@ onMounted(async () => {
           markers
           snap
           tabindex="5"
-          :hint="readonly ? '' : 'Minimum RAM'"
-          :readonly="readonly"
+          :hint="readMode ? '' : 'Minimum RAM'"
+          :readonly="readMode"
           :min="0"
           :step="1"
           :max="16"
@@ -265,7 +249,7 @@ onMounted(async () => {
           name="min_ram_scale"
           label="Scale"
           tabindex="6"
-          :readonly="readonly"
+          :readonly="readMode"
           :options="Object.values(BinaryScale)"
           v-model="model.min_ram.scale"
         />
@@ -283,8 +267,8 @@ onMounted(async () => {
           markers
           snap
           tabindex="5"
-          :hint="readonly ? '' : 'Minimum Disk size'"
-          :readonly="readonly"
+          :hint="readMode ? '' : 'Minimum Disk size'"
+          :readonly="readMode"
           :min="0"
           :step="1"
           :max="16"
@@ -299,7 +283,7 @@ onMounted(async () => {
           name="min_disk_scale"
           label="Scale"
           tabindex="6"
-          :readonly="readonly"
+          :readonly="readMode"
           :options="Object.values(BinaryScale)"
           v-model="model.min_disk.scale"
         />
@@ -311,7 +295,7 @@ onMounted(async () => {
         padding="lg"
         label="Edit"
         color="primary"
-        v-show="readonly"
+        v-show="readMode"
         @click="onEdit"
       />
       <q-btn
@@ -319,7 +303,7 @@ onMounted(async () => {
         padding="lg"
         label="Remove"
         color="primary"
-        v-show="readonly"
+        v-show="readMode"
         @click="pendingConfirmation = true"
       />
       <q-btn
@@ -327,16 +311,16 @@ onMounted(async () => {
         padding="lg"
         label="Cancel"
         color="secondary"
-        v-show="!readonly"
+        v-show="!readMode"
         @click="onCancel"
       />
       <q-btn
         flat
         padding="lg"
-        :label="model instanceof ImageCreateSchema ? 'Create' : 'Modify'"
+        :label="createMode ? 'Create' : 'Modify'"
         type="submit"
         color="primary"
-        v-show="!readonly"
+        v-show="!readMode"
         :loading="busy"
       >
         <template v-slot:loading>

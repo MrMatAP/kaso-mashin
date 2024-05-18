@@ -1,8 +1,8 @@
 import { defineStore } from "pinia";
 import { mande } from "mande";
-import { Entity, EditableEntity, CreatableEntity } from "@/base_types";
+import { Entity, ModifiableEntity, CreatableEntity } from "@/base_types";
 
-const networks = mande("/api/networks/");
+const networkAPI = mande("/api/networks/");
 
 export enum NetworkKind {
   VMNET_HOST = "vmnet-host",
@@ -30,7 +30,7 @@ export class NetworkCreateSchema extends CreatableEntity {
   dhcp_end: string = "";
 }
 
-export class NetworkModifySchema extends EditableEntity<NetworkGetSchema> {
+export class NetworkModifySchema extends ModifiableEntity<NetworkGetSchema> {
   cidr: string;
   gateway: string;
   dhcp_start: string;
@@ -45,29 +45,30 @@ export class NetworkModifySchema extends EditableEntity<NetworkGetSchema> {
   }
 }
 
-export const useNetworksStore = defineStore("networks", {
+export const useNetworkStore = defineStore("networks", {
   state: () => ({
     networks: [] as NetworkGetSchema[],
   }),
   actions: {
-    async list() {
-      let network_list: NetworkListSchema = await networks.get();
+    async list(): Promise<NetworkGetSchema[]> {
+      let network_list: NetworkListSchema = await networkAPI.get();
       this.networks = network_list.entries;
+      return this.networks;
     },
     async get(uid: string): Promise<NetworkGetSchema> {
-      return await networks.get(uid);
+      return await networkAPI.get(uid);
     },
     async create(create: NetworkCreateSchema): Promise<NetworkGetSchema> {
-      return await networks.post(create);
+      return await networkAPI.post(create);
     },
     async modify(
       uid: string,
       modify: NetworkModifySchema,
     ): Promise<NetworkGetSchema> {
-      return await networks.put(uid, modify);
+      return await networkAPI.put(uid, modify);
     },
     async remove(uid: string): Promise<void> {
-      return await networks.delete(uid);
+      return await networkAPI.delete(uid);
     },
   },
 });

@@ -6,43 +6,44 @@ import {
   NetworkGetSchema,
   NetworkModifySchema,
   NetworkKind,
-  useNetworksStore,
+  useNetworkStore,
 } from "@/store/networks";
 
-const store = useNetworksStore();
+const networksStore = useNetworkStore();
 const router = useRouter();
 const route = useRoute();
 
-const readonly: Ref<boolean> = ref(true);
+const readMode: Ref<boolean> = ref(true);
+const modifyMode: Ref<boolean> = ref(false)
+const createMode: Ref<boolean> = ref(false)
 const busy: Ref<boolean> = ref(false);
 const pendingConfirmation: Ref<boolean> = ref(false);
+const editForm = ref(null);
 
 const title: Ref<string> = ref("Network Detail");
-const editForm = ref(null);
-const empty = ref("");
-
 const uid: Ref<string> = ref("");
-const original: Ref<NetworkGetSchema> = ref({} as NetworkGetSchema);
-const model: Ref<NetworkGetSchema | NetworkCreateSchema | NetworkModifySchema> =
-  ref({} as NetworkCreateSchema);
+const original: Ref<NetworkGetSchema> = ref(new NetworkGetSchema());
+const model: Ref<any> = ref(new NetworkGetSchema());
 
 async function onBack() {
   await router.push({ name: "Networks" });
 }
 
 async function onCancel() {
-  if (model.value instanceof NetworkCreateSchema) {
+  if (createMode.value) {
+    createMode.value = false;
     await onBack();
     return;
   }
   model.value = original.value;
   title.value = "Network: " + model.value.name;
-  readonly.value = true;
+  readMode.value = true;
+  modifyMode.value = false;
 }
 
 async function onRemove() {
   busy.value = true;
-  store.remove(uid.value).then(() => {
+  networksStore.remove(uid.value).then(() => {
     busy.value = false;
     onBack();
   });
@@ -51,38 +52,45 @@ async function onRemove() {
 async function onEdit() {
   title.value = "Modify Network: " + model.value.name;
   model.value = new NetworkModifySchema(original.value);
-  readonly.value = false;
+  readMode.value = false;
+  modifyMode.value = true;
 }
 
 async function onSubmit() {
-  readonly.value = true;
-  if (model.value instanceof NetworkCreateSchema) {
-    store.create(model.value).then(() => {
-      readonly.value = false;
+  readMode.value = true;
+  if (createMode.value) {
+    networksStore.create(model.value).then(() => {
+      readMode.value = false;
       onBack();
     });
   } else {
-    store.modify(uid.value, model.value).then(() => {
-      readonly.value = false;
+    networksStore.modify(uid.value, model.value).then(() => {
+      readMode.value = false;
       onBack();
     });
   }
 }
 
 onMounted(async () => {
+  busy.value = true
   if ("uid" in route.params) {
     // We're showing or editing an existing identity
-    readonly.value = true;
+    readMode.value = true;
+    modifyMode.value = false;
+    createMode.value = false;
     uid.value = route.params.uid as string;
-    original.value = await store.get(uid.value);
+    original.value = await networksStore.get(uid.value);
     model.value = original.value;
     title.value = "Network: " + model.value.name;
   } else {
     // We're creating a new identity
-    readonly.value = false;
+    readMode.value = false;
+    modifyMode.value = false;
+    createMode.value = true;
     model.value = new NetworkCreateSchema();
     title.value = "Create Network";
   }
+  busy.value = false;
 });
 </script>
 
@@ -135,9 +143,9 @@ onMounted(async () => {
           label="Name"
           tabindex="0"
           autofocus
-          :hint="readonly ? '' : 'A unique name for the network'"
-          :clearable="!readonly"
-          :readonly="readonly"
+          :hint="readMode ? '' : 'A unique name for the network'"
+          :clearable="modifyMode || createMode"
+          :readonly="readMode"
           v-model="model.name"
         />
       </div>
@@ -146,19 +154,11 @@ onMounted(async () => {
           name="kind"
           label="Kind"
           tabindex="1"
-          :hint="readonly ? '' : 'Network kind'"
-          :readonly="readonly"
+          :hint="readMode ? '' : 'Network kind'"
+          :readonly="readMode"
           :options="Object.values(NetworkKind)"
-          v-show="
-            model instanceof NetworkGetSchema ||
-            model instanceof NetworkCreateSchema
-          "
-          v-model="
-            model instanceof NetworkGetSchema ||
-            model instanceof NetworkCreateSchema
-              ? model.kind
-              : empty
-          "
+          v-show="true"
+          v-model="model.kind"
         />
       </div>
     </div>
@@ -168,9 +168,9 @@ onMounted(async () => {
           name="cidr"
           label="CIDR"
           tabindex="2"
-          :hint="readonly ? '' : 'The network CIDR'"
-          :clearable="!readonly"
-          :readonly="readonly"
+          :hint="readMode ? '' : 'The network CIDR'"
+          :clearable="modifyMode || createMode"
+          :readonly="readMode"
           v-model="model.cidr"
         />
       </div>
@@ -179,9 +179,9 @@ onMounted(async () => {
           name="gateway"
           label="Gateway Address"
           tabindex="3"
-          :hint="readonly ? '' : 'Network gateway address'"
-          :clearable="!readonly"
-          :readonly="readonly"
+          :hint="readMode ? '' : 'Network gateway address'"
+          :clearable="!readMode"
+          :readonly="readMode"
           v-model="model.gateway"
         />
       </div>
@@ -192,9 +192,9 @@ onMounted(async () => {
           name="dhcp_start"
           label="DHCP Start Address"
           tabindex="4"
-          :hint="readonly ? '' : 'DHCP start address'"
-          :clearable="!readonly"
-          :readonly="readonly"
+          :hint="readMode ? '' : 'DHCP start address'"
+          :clearable="modifyMode || createMode"
+          :readonly="readMode"
           v-model="model.dhcp_start"
         />
       </div>
@@ -203,9 +203,9 @@ onMounted(async () => {
           name="dhcp_end"
           label="DHCP End Address"
           tabindex="5"
-          :hint="readonly ? '' : 'DHCP end address'"
-          :clearable="!readonly"
-          :readonly="readonly"
+          :hint="readMode ? '' : 'DHCP end address'"
+          :clearable="modifyMode || createMode"
+          :readonly="readMode"
           v-model="model.dhcp_end"
         />
       </div>
@@ -216,7 +216,7 @@ onMounted(async () => {
         padding="lg"
         label="Edit"
         color="primary"
-        v-show="readonly"
+        v-show="readMode"
         @click="onEdit"
       />
       <q-btn
@@ -224,7 +224,7 @@ onMounted(async () => {
         padding="lg"
         label="Remove"
         color="primary"
-        v-show="readonly"
+        v-show="readMode"
         @click="pendingConfirmation = true"
       />
       <q-btn
@@ -232,16 +232,16 @@ onMounted(async () => {
         padding="lg"
         label="Cancel"
         color="secondary"
-        v-show="!readonly"
+        v-show="!readMode"
         @click="onCancel"
       />
       <q-btn
         flat
         padding="lg"
-        :label="model instanceof NetworkCreateSchema ? 'Create' : 'Modify'"
+        :label="createMode ? 'Create' : 'Modify'"
         type="submit"
         color="primary"
-        v-show="!readonly"
+        v-show="!readMode"
         :loading="busy"
       >
         <template v-slot:loading>

@@ -1,9 +1,9 @@
 <script setup lang="ts">
 import { onMounted } from "vue";
-import { useNetworksStore } from "@/store/networks";
+import { useNetworkStore } from "@/store/networks";
 import NetworkCard from "@/components/NetworkCard.vue";
 
-const networksStore = useNetworksStore();
+const networksStore = useNetworkStore();
 
 onMounted(() => {
   networksStore.list();

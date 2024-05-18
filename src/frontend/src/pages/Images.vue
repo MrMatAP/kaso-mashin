@@ -2,10 +2,10 @@
 import { onMounted, ref } from "vue";
 import { useRouter } from "vue-router";
 import ImageCard from "@/components/ImageCard.vue";
-import { useImagesStore } from "@/store/images";
+import { useImageStore } from "@/store/images";
 
 const router = useRouter();
-const imagesStore = useImagesStore();
+const imagesStore = useImageStore();
 const loading = ref(true);
 
 async function onSelected(uid: string) {

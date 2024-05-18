@@ -3,11 +3,11 @@ import { onMounted, ref } from "vue";
 import {
   ImageCreateSchema,
   ImageModifySchema,
-  useImagesStore,
+  useImageStore,
 } from "@/store/images";
 import ExplanationNote from "@/components/ExplanationNote.vue";
 
-const imagesStore = useImagesStore();
+const imagesStore = useImageStore();
 const loading = ref(true);
 
 const headers = [

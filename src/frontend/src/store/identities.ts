@@ -1,7 +1,7 @@
 import { defineStore } from "pinia";
 import { mande } from "mande";
 
-import { Entity, EditableEntity, CreatableEntity } from "@/base_types";
+import { Entity, ModifiableEntity, CreatableEntity } from "@/base_types";
 
 const identities = mande("/api/identities/");
 
@@ -30,7 +30,7 @@ export class IdentityCreateSchema extends CreatableEntity {
   credential: string = "";
 }
 
-export class IdentityModifySchema extends EditableEntity<IdentityGetSchema> {
+export class IdentityModifySchema extends ModifiableEntity<IdentityGetSchema> {
   kind: IdentityKind;
   gecos: string;
   homedir: string;

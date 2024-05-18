@@ -3,12 +3,12 @@ import { mande } from "mande";
 import {
   BinarySizedValue,
   Entity,
-  EditableEntity,
+  ModifiableEntity,
   CreatableEntity,
 } from "@/base_types";
 import { TaskGetSchema } from "@/store/tasks";
 
-const images = mande("/api/images/");
+const imageAPI = mande("/api/images/");
 
 export interface ImageListSchema {
   entries: ImageGetSchema[];
@@ -29,10 +29,10 @@ export class ImageCreateSchema extends CreatableEntity {
   min_disk: BinarySizedValue = new BinarySizedValue();
 }
 
-export class ImageModifySchema extends EditableEntity<ImageGetSchema> {
-  min_vcpu: number = 0;
-  min_ram: BinarySizedValue = new BinarySizedValue();
-  min_disk: BinarySizedValue = new BinarySizedValue();
+export class ImageModifySchema extends ModifiableEntity<ImageGetSchema> {
+  min_vcpu: number;
+  min_ram: BinarySizedValue;
+  min_disk: BinarySizedValue;
 
   constructor(original: ImageGetSchema) {
     super(original);
@@ -42,29 +42,27 @@ export class ImageModifySchema extends EditableEntity<ImageGetSchema> {
   }
 }
 
-export const useImagesStore = defineStore("images", {
+export const useImageStore = defineStore("images", {
   state: () => ({
     images: [] as ImageGetSchema[],
   }),
   actions: {
-    async list() {
-      let image_list: ImageListSchema = await images.get();
+    async list(): Promise<ImageGetSchema[]> {
+      let image_list: ImageListSchema = await imageAPI.get();
       this.images = image_list.entries;
+      return this.images;
     },
     async get(uid: string): Promise<ImageGetSchema> {
-      return await images.get(uid);
+      return await imageAPI.get(uid);
     },
     async create(create: ImageCreateSchema): Promise<TaskGetSchema> {
-      return await images.post(create);
+      return await imageAPI.post(create);
     },
-    async modify(
-      uid: string,
-      modify: ImageModifySchema,
-    ): Promise<ImageGetSchema> {
-      return await images.put(uid, modify);
+    async modify(uid: string, modify: ImageModifySchema): Promise<ImageGetSchema> {
+      return await imageAPI.put(uid, modify);
     },
     async remove(uid: string): Promise<void> {
-      return await images.delete(uid);
+      return await imageAPI.delete(uid);
     },
   },
 });

@@ -3,7 +3,7 @@ import { mande } from "mande";
 import {
   BinarySizedValue,
   Entity,
-  EditableEntity,
+  ModifiableEntity,
   CreatableEntity,
 } from "@/base_types";
 import { TaskState } from "@/store/tasks";
@@ -42,7 +42,7 @@ export class InstanceCreateSchema extends CreatableEntity {
   bootstrap_uid: string = "";
 }
 
-export class InstanceModifySchema extends EditableEntity<InstanceGetSchema> {
+export class InstanceModifySchema extends ModifiableEntity<InstanceGetSchema> {
   state: InstanceState = InstanceState.STOPPED;
 
   constructor(original: InstanceGetSchema) {

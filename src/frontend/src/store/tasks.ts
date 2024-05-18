@@ -20,7 +20,7 @@ export class TaskGetSchema extends Entity {
   percent_complete: number = 0;
 }
 
-export const useTasksStore = defineStore("images", {
+export const useTasksStore = defineStore("tasks", {
   state: () => ({
     tasks: [] as TaskGetSchema[],
   }),

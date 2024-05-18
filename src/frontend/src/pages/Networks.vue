@@ -2,10 +2,10 @@
 import { onMounted, ref } from "vue";
 import { useRouter } from "vue-router";
 import NetworkCard from "@/components/NetworkCard.vue";
-import { useNetworksStore } from "@/store/networks";
+import { useNetworkStore } from "@/store/networks";
 
 const router = useRouter();
-const store = useNetworksStore();
+const store = useNetworkStore();
 const loading = ref(true);
 
 async function onSelected(uid: string) {
