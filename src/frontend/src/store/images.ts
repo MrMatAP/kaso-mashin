@@ -45,6 +45,7 @@ export class ImageModifySchema extends ModifiableEntity<ImageGetSchema> {
 export const useImageStore = defineStore("images", {
   state: () => ({
     images: [] as ImageGetSchema[],
+    pendingImages: [] as ImageCreateSchema[],
   }),
   actions: {
     async list(): Promise<ImageGetSchema[]> {

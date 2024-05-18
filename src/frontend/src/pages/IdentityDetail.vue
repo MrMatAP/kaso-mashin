@@ -6,10 +6,10 @@ import {
   IdentityGetSchema,
   IdentityKind,
   IdentityModifySchema,
-  useIdentitiesStore,
+  useIdentityStore,
 } from "@/store/identities";
 
-const store = useIdentitiesStore();
+const store = useIdentityStore();
 const router = useRouter();
 const route = useRoute();
 

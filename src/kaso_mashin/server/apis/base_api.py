@@ -8,7 +8,6 @@ import fastapi
 from kaso_mashin.server.runtime import Runtime
 from kaso_mashin.common import (
     T_EntityListSchema,
-    T_EntityListEntrySchema,
     T_EntityGetSchema,
     T_EntityCreateSchema,
     T_EntityModifySchema,
@@ -134,6 +133,8 @@ class BaseAPI(
         ],
     ) -> T_EntityGetSchema:
         entity = await self.repository.get_by_uid(uid)
+        if not entity:
+            raise EntityNotFoundException(status=404, msg='No such entity')
         return self._get_schema_type.model_validate(entity)
 
     async def create(

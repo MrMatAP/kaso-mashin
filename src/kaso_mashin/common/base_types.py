@@ -8,7 +8,7 @@ import typing
 import uuid
 
 import pydantic
-from pydantic import Field, BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict
 from sqlalchemy import UUID, String, select
 from sqlalchemy.ext.asyncio import async_sessionmaker, AsyncSession
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column

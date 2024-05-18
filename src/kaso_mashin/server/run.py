@@ -64,14 +64,14 @@ def create_server(runtime: Runtime) -> fastapi.applications.FastAPI:
     async def kaso_mashin_exception_handler(
         request: fastapi.Request, exc: KasoMashinException
     ):
-        del request  # pylint: disable=unused-argument
+        del request
         logging.getLogger("kaso_mashin.server").error(
             "(%s) %s", exc.status, f"{exc.__class__.__name__}: {exc.msg}"
         )
         return fastapi.responses.JSONResponse(
             status_code=exc.status,
             content=ExceptionSchema(
-                status=exc.status, msg=f"{exc.__class__.__name__}: {exc.msg}"
+                status=exc.status, msg=f"{exc.msg}"
             ).model_dump(),
         )
 
@@ -79,14 +79,14 @@ def create_server(runtime: Runtime) -> fastapi.applications.FastAPI:
     async def entity_not_found_exception_handler(
         request: fastapi.Request, exc: EntityNotFoundException
     ):
-        del request  # pylint: disable=unused-argument
+        del request
         logging.getLogger("kaso_mashin.server").error(
             "(%s) %s", exc.status, f"{exc.__class__.__name__}: {exc.msg}"
         )
         return fastapi.responses.JSONResponse(
             status_code=exc.status,
             content=ExceptionSchema(
-                status=exc.status, msg=f"{exc.__class__.__name__}: {exc.msg}"
+                status=exc.status, msg=f"{exc.msg}"
             ).model_dump(),
         )
 
@@ -94,14 +94,14 @@ def create_server(runtime: Runtime) -> fastapi.applications.FastAPI:
     async def entity_invariant_exception_handler(
         request: fastapi.Request, exc: EntityInvariantException
     ):
-        del request  # pylint: disable=unused-argument
+        del request
         logging.getLogger("kaso_mashin.server").error(
             "(%s) %s", exc.status, f"{exc.__class__.__name__}: {exc.msg}"
         )
         return fastapi.responses.JSONResponse(
             status_code=exc.status,
             content=ExceptionSchema(
-                status=exc.status, msg=f"{exc.__class__.__name__}: {exc.msg}"
+                status=exc.status, msg=f"{exc.msg}"
             ).model_dump(),
         )
 

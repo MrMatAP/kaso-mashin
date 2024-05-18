@@ -1,19 +1,24 @@
 <script setup lang="ts">
 import { onMounted, ref } from "vue";
 import { useRouter } from "vue-router";
-import NetworkCard from "@/components/NetworkCard.vue";
 import { useNetworkStore } from "@/store/networks";
+import NetworkCard from "@/components/NetworkCard.vue";
+import CreateCard from '@/components/CreateCard.vue';
 
 const router = useRouter();
-const store = useNetworkStore();
+const networkStore = useNetworkStore();
 const loading = ref(true);
 
 async function onSelected(uid: string) {
   await router.push({ name: "NetworkDetail", params: { uid: uid } });
 }
 
+async function onCreate() {
+  await router.push({ name: 'NetworkCreate' });
+}
+
 onMounted(() => {
-  store.list().then(() => {
+  networkStore.list().then(() => {
     loading.value = false;
   });
 });
@@ -25,23 +30,13 @@ onMounted(() => {
   </div>
   <div class="q-pa-md row items-start q-gutter-md">
     <NetworkCard
-      v-for="network in store.networks"
+      v-for="network in networkStore.networks"
       :key="network.uid"
       :network="network"
       @onSelected="onSelected"
     />
 
-    <q-card class="km-new-card">
-      <q-card-section class="absolute-center">
-        <q-btn
-          flat
-          round
-          color="primary"
-          icon="add"
-          :to="{ name: 'NetworksCreate' }"
-        />
-      </q-card-section>
-    </q-card>
+    <CreateCard @onCreate="onCreate" />
     <q-inner-loading :showing="loading">
       <q-spinner-gears size="50px" color="primary" />
     </q-inner-loading>

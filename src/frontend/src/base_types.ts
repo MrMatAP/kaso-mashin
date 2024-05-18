@@ -18,6 +18,19 @@ export class BinarySizedValue {
   }
 }
 
+export class ExceptionSchema {
+  readonly status: number;
+  readonly msg: string;
+
+  constructor(status: number = 400, msg: string = 'There was a problem') {
+    this.status = status;
+    this.msg = msg
+  }
+}
+
+export class EntityNotFoundExceptionSchema extends ExceptionSchema {}
+export class EntityInvariantExceptionSchema extends ExceptionSchema {}
+
 export abstract class Entity {
   readonly uid: string = "";
   name: string = "";

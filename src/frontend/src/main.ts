@@ -5,7 +5,7 @@
  */
 
 import { createApp } from "vue";
-import { Quasar, Loading } from "quasar";
+import { Quasar, Loading, Notify } from "quasar";
 import quasarLang from "quasar/lang/en-GB";
 import pinia from "@/store";
 import router from "@/router";
@@ -29,6 +29,7 @@ app
   .use(Quasar, {
     plugins: {
       Loading,
+      Notify
     },
     lang: quasarLang,
   })

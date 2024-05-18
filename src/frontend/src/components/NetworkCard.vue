@@ -12,14 +12,17 @@ defineEmits<{
 <template>
   <q-card
     v-ripple
-    class="km-card cursor-pointer q-hoverable"
+    class="km-entity-card cursor-pointer q-hoverable"
     @click="$emit('onSelected', network.uid)">
-    <q-card-section horizontal>
-      <q-card-section class="q-pt-xs">
-        <div class="text-caption text-weight-thin">{{ network.uid }}</div>
-        <div class="text-h5 q-mt-sm q-mb-xs">{{ network.name }}</div>
-      </q-card-section>
-    </q-card-section>
+    <q-item>
+      <q-item-section side>
+        <q-avatar icon="settings_ethernet" size="lg" color="primary" text-color="white"/>
+      </q-item-section>
+      <q-item-section>
+        <q-item-label>{{ network.name }}</q-item-label>
+        <q-item-label caption>{{ network.uid }}</q-item-label>
+      </q-item-section>
+    </q-item>
     <q-separator />
     <q-markup-table>
       <tbody>

@@ -47,7 +47,7 @@ export class IdentityModifySchema extends ModifiableEntity<IdentityGetSchema> {
   }
 }
 
-export const useIdentitiesStore = defineStore("identities", {
+export const useIdentityStore = defineStore("identities", {
   state: () => ({
     identities: [] as IdentityGetSchema[],
   }),

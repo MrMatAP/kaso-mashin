@@ -51,7 +51,7 @@ export class InstanceModifySchema extends ModifiableEntity<InstanceGetSchema> {
   }
 }
 
-export const useInstancesStore = defineStore("instances", {
+export const useInstanceStore = defineStore("instances", {
   state: () => ({
     instances: [] as InstanceGetSchema[],
   }),

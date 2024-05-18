@@ -7,17 +7,16 @@ import {
   ImageModifySchema,
   useImageStore,
 } from "@/store/images";
-import { TaskGetSchema, useTasksStore } from "@/store/tasks";
+import { TaskGetSchema, useTaskStore } from "@/store/tasks";
 import {
   ConfigSchema,
   PredefinedImageSchema,
   useConfigStore,
 } from "@/store/config";
 import { BinaryScale } from "@/base_types";
-import RemoveConfirmation from "@/components/RemoveConfirmation.vue";
 
 const imageStore = useImageStore();
-const taskStore = useTasksStore();
+const taskStore = useTaskStore();
 const configStore = useConfigStore();
 const router = useRouter();
 const route = useRoute();
@@ -26,7 +25,7 @@ const readMode: Ref<boolean> = ref(true);
 const modifyMode: Ref<boolean> = ref(false)
 const createMode: Ref<boolean> = ref(false)
 const busy: Ref<boolean> = ref(false);
-const pendingConfirmation: Ref<boolean> = ref(false);
+const showRemoveConfirmationDialog: Ref<boolean> = ref(false);
 const editForm = ref(null);
 
 const title: Ref<string> = ref("Image Detail");
@@ -74,13 +73,10 @@ async function onEdit() {
 async function onSubmit() {
   readMode.value = true;
   if (createMode.value) {
-    imageStore.create(model.value).then((task) => {
+    imageStore.create(model.value).then(async (task) => {
       readMode.value = false;
-      console.dir(task);
-      onBack();
+      await onBack();
     });
-    await
-      taskStore.list()
   } else {
     imageStore.modify(uid.value, model.value).then(() => {
       readMode.value = false;
@@ -94,15 +90,16 @@ onMounted(async () => {
   predefined_images.value = config.value.predefined_images;
 
   if ("uid" in route.params) {
-    // We're showing or editing an existing identity
-    readMode.value = false;
-    modifyMode.value = true;
+    // We're showing or editing an existing entity
+    readMode.value = true;
+    modifyMode.value = false;
     createMode.value = false;
     uid.value = route.params.uid as string;
-    model.value = await imageStore.get(uid.value);
+    original.value = await imageStore.get(uid.value);
+    model.value = original.value
     title.value = "Image: " + model.value.name;
   } else {
-    // We're creating a new identity
+    // We're creating a new entity
     readMode.value = false;
     modifyMode.value = false;
     createMode.value = true;
@@ -113,9 +110,23 @@ onMounted(async () => {
 </script>
 
 <template>
-  <RemoveConfirmation :active="pendingConfirmation"
-                       entityName="image"
-                       @remove="onRemove"/>
+    <q-dialog v-model="showRemoveConfirmationDialog" persistent>
+      <q-card>
+        <q-card-section class="row items-center">
+          <span class="q-ml-sm">Are you sure you want to remove this image?</span>
+        </q-card-section>
+        <q-card-actions align="right">
+          <q-btn flat label="Cancel" color="primary" v-close-popup />
+          <q-btn
+            flat
+            label="Remove"
+            color="primary"
+            v-close-popup
+            @click="onRemove"
+          />
+        </q-card-actions>
+      </q-card>
+    </q-dialog>
 
   <q-form
     ref="editForm"
@@ -304,7 +315,7 @@ onMounted(async () => {
         label="Remove"
         color="primary"
         v-show="readMode"
-        @click="pendingConfirmation = true"
+        @click="showRemoveConfirmationDialog = true"
       />
       <q-btn
         flat

@@ -4,11 +4,11 @@ import {
   IdentityCreateSchema,
   IdentityGetSchema,
   IdentityModifySchema,
-  useIdentitiesStore,
+  useIdentityStore,
 } from "@/store/identities";
 import ExplanationNote from "@/components/ExplanationNote.vue";
 
-const identitiesStore = useIdentitiesStore();
+const identitiesStore = useIdentityStore();
 const loading = ref(true);
 
 const headers = [

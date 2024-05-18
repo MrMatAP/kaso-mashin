@@ -22,7 +22,7 @@ const routes = [
       },
       {
         path: "/instances/?create",
-        name: "InstancesCreate",
+        name: "InstanceCreate",
         component: () => import("@/pages/InstanceDetail.vue"),
       },
       {
@@ -37,7 +37,7 @@ const routes = [
       },
       {
         path: "/identities/?create",
-        name: "IdentitiesCreate",
+        name: "IdentityCreate",
         component: () => import("@/pages/IdentityDetail.vue"),
       },
       {
@@ -52,7 +52,7 @@ const routes = [
       },
       {
         path: "/networks/?create",
-        name: "NetworksCreate",
+        name: "NetworkCreate",
         component: () => import("@/pages/NetworkDetail.vue"),
       },
       {
@@ -67,7 +67,7 @@ const routes = [
       },
       {
         path: "/images/?create",
-        name: "ImagesCreate",
+        name: "ImageCreate",
         component: () => import("@/pages/ImageDetail.vue"),
       },
     ],

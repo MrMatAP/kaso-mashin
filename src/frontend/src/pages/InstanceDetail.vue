@@ -5,12 +5,12 @@ import {
   InstanceGetSchema,
   InstanceCreateSchema,
   InstanceModifySchema,
-  useInstancesStore,
+  useInstanceStore,
 } from "@/store/instances";
-import { TaskGetSchema, useTasksStore } from "@/store/tasks";
+import { TaskGetSchema, useTaskStore } from "@/store/tasks";
 
-const instancesStore = useInstancesStore();
-const tasksStore = useTasksStore();
+const instancesStore = useInstanceStore();
+const tasksStore = useTaskStore();
 const router = useRouter();
 const route = useRoute();
 

@@ -4,7 +4,7 @@ import { InstanceGetSchema } from "@/store/instances";
 defineProps<{
   instance: InstanceGetSchema;
 }>();
-const emits = defineEmits<{
+defineEmits<{
   (e: "onSelected", uid: string): void;
 }>();
 </script>
@@ -12,15 +12,18 @@ const emits = defineEmits<{
 <template>
   <q-card
     v-ripple
-    class="km-card cursor-pointer q-hoverable"
+    class="km-entity-card cursor-pointer q-hoverable"
     @click="$emit('onSelected', instance.uid)"
   >
-    <q-card-section horizontal>
-      <q-card-section class="q-pt-xs">
-        <div class="text-caption text-weight-thin">{{ instance.uid }}</div>
-        <div class="text-h5 q-mt-sm q-mb-xs">{{ instance.name }}</div>
-      </q-card-section>
-    </q-card-section>
+    <q-item>
+      <q-item-section side>
+        <q-avatar icon="developer_board" size="lg" color="primary" text-color="white"/>
+      </q-item-section>
+      <q-item-section>
+        <q-item-label>{{ instance.name }}</q-item-label>
+        <q-item-label caption>{{ instance.uid }}</q-item-label>
+      </q-item-section>
+    </q-item>
     <q-separator />
     <q-markup-table>
       <tbody>

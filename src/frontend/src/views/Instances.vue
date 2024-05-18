@@ -1,9 +1,9 @@
 <script setup lang="ts">
 import { onMounted, ref } from "vue";
-import { useInstancesStore } from "@/store/instances";
+import { useInstanceStore } from "@/store/instances";
 import InstanceCard from "@/components/InstanceCard.vue";
 
-const store = useInstancesStore();
+const store = useInstanceStore();
 const loading = ref(true);
 
 onMounted(() => {
