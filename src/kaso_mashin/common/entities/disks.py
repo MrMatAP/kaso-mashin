@@ -46,6 +46,7 @@ class DiskCreateSchema(EntitySchema):
     """
 
     name: str = Field(description="Disk name", examples=["root", "data-1", "data-2"])
+    # TODO: We should not have to specify the path
     path: pathlib.Path = Field(
         description="Path of the disk image on the local filesystem",
         examples=["/var/kaso/instances/root.qcow2"],
@@ -57,6 +58,7 @@ class DiskCreateSchema(EntitySchema):
         description="Disk image file format",
         examples=[DiskFormat.QCoW2, DiskFormat.Raw],
     )
+    # TODO: This should be optional
     image_uid: UniqueIdentifier = Field(
         description="The image uid on which this disk is based on", default=None
     )

@@ -5,7 +5,7 @@ import {
   ModifiableEntity,
   CreatableEntity,
   EntityNotFoundException,
-  EntityInvariantException
+  EntityInvariantException, UIEntitySelectOptions
 } from "@/base_types";
 
 const networkAPI = mande("/api/networks/");
@@ -61,7 +61,8 @@ export const useNetworkStore = defineStore("networks", {
     },
     getNetworkByUid: (state) => {
       return (uid: string) => state.networks.find((network) => network.uid === uid);
-    }
+    },
+    networkOptions: (state) => state.networks.map((network) => new UIEntitySelectOptions(network.uid, network.name)),
   },
   actions: {
     async list(): Promise<NetworkGetSchema[]> {

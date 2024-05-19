@@ -76,6 +76,14 @@ async function onToggleDrawer() {
               <q-item-label>Images</q-item-label>
             </q-item-section>
           </q-item>
+          <q-item v-ripple clickable :to="{ name: 'Bootstraps' }">
+            <q-item-section avatar>
+              <q-icon name="start" />
+            </q-item-section>
+            <q-item-section>
+              <q-item-label>Bootstraps</q-item-label>
+            </q-item-section>
+          </q-item>
           <q-separator class="q-my-md" />
         </q-list>
       </q-scroll-area>

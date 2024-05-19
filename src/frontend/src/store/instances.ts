@@ -1,13 +1,15 @@
 import { defineStore } from "pinia";
 import { mande } from "mande";
 import {
+  BinaryScale,
   BinarySizedValue,
+  CreatableEntity,
   Entity,
-  ModifiableEntity,
-  CreatableEntity, EntityNotFoundException, EntityInvariantException
+  EntityInvariantException,
+  EntityNotFoundException,
+  ModifiableEntity
 } from "@/base_types";
-import { TaskGetSchema, TaskState } from "@/store/tasks";
-import { NetworkGetSchema } from "@/store/networks";
+import { TaskGetSchema } from "@/store/tasks";
 
 const instanceAPI = mande("/api/instances/");
 
@@ -24,20 +26,21 @@ export interface InstanceListSchema {
 
 export class InstanceGetSchema extends Entity {
   path: string = "";
-  state: InstanceState = InstanceState.STOPPED;
   vcpu: number = 0;
   ram: BinarySizedValue = new BinarySizedValue();
   mac: string = "";
-  // os_disk
-  network: NetworkGetSchema = new NetworkGetSchema();
-  // bootstrap
+  os_disk_uid: string = "";
+  os_disk_size: BinarySizedValue = new BinarySizedValue();
+  network_uid: string = "";
+  bootstrap_uid: string = "";
   bootstrap_file: string = "";
+  state: InstanceState = InstanceState.STOPPED;
 }
 
 export class InstanceCreateSchema extends CreatableEntity {
-  vcpu: number = 0;
-  ram: BinarySizedValue = new BinarySizedValue();
-  os_disk_size: BinarySizedValue = new BinarySizedValue();
+  vcpu: number = 1;
+  ram: BinarySizedValue = new BinarySizedValue(2, BinaryScale.G);
+  os_disk_size: BinarySizedValue = new BinarySizedValue(10, BinaryScale.G);
   image_uid: string = "";
   network_uid: string = "";
   bootstrap_uid: string = "";
@@ -71,7 +74,7 @@ export const useInstanceStore = defineStore("instances", {
   },
   actions: {
     async list() {
-      let instance_list: InstanceListSchema = await instanceAPI.get();
+      let instance_list = await instanceAPI.get<InstanceListSchema>();
       this.instances = instance_list.entries;
       return this.instances;
     },

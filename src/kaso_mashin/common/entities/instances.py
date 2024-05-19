@@ -94,24 +94,26 @@ class InstanceGetSchema(EntitySchema):
     name: str = Field(
         description="The instance name", examples=["k8s-master", "your-mom"]
     )
-    state: InstanceState = Field(
-        description='The instance state', examples=[InstanceState.STOPPED, InstanceState.STARTED]
-    )
     path: pathlib.Path = Field(description="Path of the instance on the local disk")
     vcpu: int = Field(description="Number of virtual CPU cores", examples=[2])
     ram: BinarySizedValue = Field(
         description="Amount of RAM", examples=[BinarySizedValue(value=2, scale=BinaryScale.G)]
     )
     mac: str = Field(description="Instance MAC address")
-    os_disk: DiskGetSchema = Field(
-        description="The image from which to create the OS disk from"
+    network_uid: UniqueIdentifier = Field(
+        description="The network UID on which to run this instance"
     )
-    network: NetworkGetSchema = Field(
-        description="The network on which to run this instance"
+    image_uid: UniqueIdentifier = Field(description='The image UID')
+    os_disk_uid: UniqueIdentifier = Field(
+        description="The OS disk UID"
     )
-    bootstrap: BootstrapGetSchema = Field(description="The bootstrapper")
+    os_disk_size: BinarySizedValue = Field(description="Size of the OS disk")
+    bootstrap_uid: UniqueIdentifier = Field(description="The bootstrapper uid")
     bootstrap_file: pathlib.Path = Field(
         description="The path to the bootstrap file on the local disk"
+    )
+    state: InstanceState = Field(
+        description='The instance state', examples=[InstanceState.STOPPED, InstanceState.STARTED]
     )
 
     def __rich__(self):
@@ -120,18 +122,16 @@ class InstanceGetSchema(EntitySchema):
         table.add_column("Value")
         table.add_row("[blue]UID", str(self.uid))
         table.add_row("[blue]Name", self.name)
-        table.add_row('[blue]State', str(self.state))
         table.add_row("[blue]Path", str(self.path))
         table.add_row("[blue]VCPUs", str(self.vcpu))
         table.add_row("[blue]RAM", f"{self.ram.value} {self.ram.scale}")
         table.add_row("[blue]MAC", self.mac)
-        table.add_row("[blue]OS Disk UID", str(self.os_disk.uid))
-        table.add_row("[blue]OS Disk Path", str(self.os_disk.path))
-        table.add_row("[blue]Network UID", str(self.network.uid))
-        table.add_row("[blue]Network Name", self.network.name)
-        table.add_row("[blue]Bootstrap UID", str(self.bootstrap.uid))
-        table.add_row("[blue]Bootstrap Name", self.bootstrap.name)
-        table.add_row("[blue]Bootstrap Path", str(self.bootstrap_file))
+        table.add_row("[blue]Network UID", str(self.network_uid))
+        table.add_row("[blue]Image UID", str(self.image_uid))
+        table.add_row("[blue]OS Disk UID", str(self.os_disk_uid))
+        table.add_row("[blue]Bootstrap UID", str(self.bootstrap_uid))
+        table.add_row("[blue]Bootstrap File", str(self.bootstrap_file))
+        table.add_row('[blue]State', str(self.state))
         return table
 
 
@@ -178,10 +178,13 @@ class InstanceModel(EntityModel):
     ram: Mapped[int] = mapped_column(Integer, default=2)
     ram_scale: Mapped[str] = mapped_column(Enum(BinaryScale), default=BinaryScale.G)
     mac: Mapped[str] = mapped_column(String)
-    os_disk_uid: Mapped[str] = mapped_column(
+    network_uid: Mapped[str] = mapped_column(
         UUID(as_uuid=True).with_variant(String(32), "sqlite")
     )
-    network_uid: Mapped[str] = mapped_column(
+    image_uid: Mapped[str] = mapped_column(
+        UUID(as_uuid=True).with_variant(String(32), "sqlite")
+    )
+    os_disk_uid: Mapped[str] = mapped_column(
         UUID(as_uuid=True).with_variant(String(32), "sqlite")
     )
     bootstrap_uid: Mapped[str] = mapped_column(
@@ -203,6 +206,7 @@ class InstanceEntity(Entity, AggregateRoot):
         uefi_vars: pathlib.Path,
         vcpu: int,
         ram: BinarySizedValue,
+        image: ImageEntity,
         os_disk: DiskEntity,
         network: NetworkEntity,
         bootstrap: BootstrapEntity,
@@ -216,6 +220,7 @@ class InstanceEntity(Entity, AggregateRoot):
         self._vcpu = vcpu
         self._ram = ram
         self._mac = self._generate_mac()
+        self._image = image
         self._os_disk = os_disk
         self._network = network
         self._bootstrap = bootstrap
@@ -232,14 +237,6 @@ class InstanceEntity(Entity, AggregateRoot):
         return self._path
 
     @property
-    def uefi_code(self) -> pathlib.Path:
-        return self._uefi_code
-
-    @property
-    def uefi_vars(self) -> pathlib.Path:
-        return self._uefi_vars
-
-    @property
     def vcpu(self) -> int:
         return self._vcpu
 
@@ -252,16 +249,24 @@ class InstanceEntity(Entity, AggregateRoot):
         return self._mac
 
     @property
-    def os_disk(self) -> DiskEntity:
-        return self._os_disk
+    def image_uid(self) -> UniqueIdentifier:
+        return self._image.uid
 
     @property
-    def network(self) -> NetworkEntity:
-        return self._network
+    def os_disk_uid(self) -> UniqueIdentifier:
+        return self._os_disk.uid
 
     @property
-    def bootstrap(self) -> BootstrapEntity:
-        return self._bootstrap
+    def os_disk_size(self) -> BinarySizedValue:
+        return self._os_disk.size
+
+    @property
+    def network_uid(self) -> UniqueIdentifier:
+        return self._network.uid
+
+    @property
+    def bootstrap_uid(self) -> UniqueIdentifier:
+        return self._bootstrap.uid
 
     @property
     def bootstrap_file(self) -> pathlib.Path:
@@ -270,6 +275,36 @@ class InstanceEntity(Entity, AggregateRoot):
     @property
     def state(self) -> InstanceState:
         return self._state
+
+    # TODO: Consider replacing this in favour of image_uid
+    @property
+    def image(self) -> ImageEntity:
+        return self._image
+
+    # TODO: Consider replacing this in favour of os_disk_uid
+    @property
+    def os_disk(self) -> DiskEntity:
+        return self._os_disk
+
+    # TODO: Consider replacing this in favour of network_uid
+    @property
+    def network(self) -> NetworkEntity:
+        return self._network
+
+    # TODO: Consider replacing this in favour of bootstrap_uid
+    @property
+    def bootstrap(self) -> BootstrapEntity:
+        return self._bootstrap
+
+    # TODO: Consider moving this into bootstrap
+    @property
+    def uefi_code(self) -> pathlib.Path:
+        return self._uefi_code
+
+    # TODO: Consider moving this into bootstrap
+    @property
+    def uefi_vars(self) -> pathlib.Path:
+        return self._uefi_vars
 
     def __eq__(self, other: "InstanceEntity") -> bool:
         return all(
@@ -282,6 +317,7 @@ class InstanceEntity(Entity, AggregateRoot):
                 self.vcpu == other.vcpu,
                 self.ram == other.ram,
                 self.mac == other.mac,
+                self.image == other.image,
                 self.os_disk == other.os_disk,
                 self.network == other.network,
                 self.bootstrap == other.bootstrap,
@@ -294,21 +330,27 @@ class InstanceEntity(Entity, AggregateRoot):
             f"InstanceEntity(uid={self.uid}, "
             f"name={self.name}, "
             f"path={self.path}, "
-            f"uefi_code={self.uefi_code}, "
-            f"uefi_vars={self.uefi_vars}, "
             f"vcpu={self.vcpu}, "
             f"ram={self.ram}, "
             f"mac={self.mac}, "
+            f"image_uid={self.image_uid}, "
+            f"os_disk_uid={self.os_disk_uid}, "
+            f"network_uid={self.network_uid}, "
+            f"bootstrap_uid={self.bootstrap_uid}, "
+            f"bootstrap_file={self.bootstrap_file}"
+            f"image={self.image}, "
             f"os_disk={self.os_disk}, "
             f"network={self.network}, "
             f"bootstrap={self.bootstrap}, "
-            f"bootstrap_file={self.bootstrap_file}"
+            f"uefi_code={self.uefi_code}, "
+            f"uefi_vars={self.uefi_vars}, "
             ")"
         )
 
     @staticmethod
     async def from_model(model: InstanceModel) -> "InstanceEntity":
         # TODO: Internal consistency. This will fail if the disk is dead
+        image = await ImageEntity.repository.get_by_uid(UniqueIdentifier(model.image_uid))
         os_disk = await DiskEntity.repository.get_by_uid(
             UniqueIdentifier(model.os_disk_uid)
         )
@@ -326,6 +368,7 @@ class InstanceEntity(Entity, AggregateRoot):
             uefi_vars=pathlib.Path(model.uefi_vars),
             vcpu=model.vcpu,
             ram=BinarySizedValue(value=model.ram, scale=BinaryScale(model.ram_scale)),
+            image=image,
             os_disk=os_disk,
             network=network,
             bootstrap=bootstrap,
@@ -347,9 +390,10 @@ class InstanceEntity(Entity, AggregateRoot):
                 ram=self.ram.value,
                 ram_scale=self.ram.scale,
                 mac=self.mac,
-                os_disk_uid=str(self.os_disk.uid),
-                network_uid=str(self.network.uid),
-                bootstrap_uid=str(self.bootstrap.uid),
+                image_uid=str(self.image_uid),
+                os_disk_uid=str(self.os_disk_uid),
+                network_uid=str(self.network_uid),
+                bootstrap_uid=str(self.bootstrap_uid),
                 bootstrap_file=str(self.bootstrap_file),
             )
         else:
@@ -362,9 +406,9 @@ class InstanceEntity(Entity, AggregateRoot):
             model.ram = self.ram.value
             model.ram_scale = self.ram.scale
             model.mac = str(self.mac)
-            model.os_disk_uid = str(self.os_disk.uid)
-            model.network_uid = str(self.network.uid)
-            model.bootstrap_uid = str(self.bootstrap.uid)
+            model.os_disk_uid = str(self.os_disk_uid)
+            model.network_uid = str(self.network_uid)
+            model.bootstrap_uid = str(self.bootstrap_uid)
             model.bootstrap_file = str(self.bootstrap_file)
             return model
 
@@ -419,6 +463,7 @@ class InstanceEntity(Entity, AggregateRoot):
                 uefi_vars=instance_uefi_vars,
                 vcpu=vcpu,
                 ram=ram,
+                image=image,
                 os_disk=os_disk,
                 network=network,
                 bootstrap=bootstrap,

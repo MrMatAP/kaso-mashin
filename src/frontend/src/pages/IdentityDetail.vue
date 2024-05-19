@@ -9,32 +9,32 @@ import {
   useIdentityStore,
 } from "@/store/identities";
 
-const store = useIdentityStore();
+const identityStore = useIdentityStore();
 const router = useRouter();
 const route = useRoute();
 
-const readonly: Ref<boolean> = ref(true);
+const readMode: Ref<boolean> = ref(true);
+const modifyMode: Ref<boolean> = ref(false);
+const createMode: Ref<boolean> = ref(false);
 const busy: Ref<boolean> = ref(false);
 const pendingConfirmation: Ref<boolean> = ref(false);
+const editForm = ref(null);
 
 const title: Ref<string> = ref("Identity Detail");
+const uid: Ref<string> = ref("");
+const original: Ref<IdentityGetSchema> = ref({} as IdentityGetSchema);
+const model: Ref<any> = ref(new IdentityGetSchema());
 const pwCredential = ref("");
 const pubkeyCredential = ref("");
 const isPwd = ref(true);
-const editForm = ref(null);
-
-const uid: Ref<string> = ref("");
-const original: Ref<IdentityGetSchema> = ref({} as IdentityGetSchema);
-const model: Ref<
-  IdentityGetSchema | IdentityCreateSchema | IdentityModifySchema
-> = ref({} as IdentityCreateSchema);
 
 async function onBack() {
   await router.push({ name: "Identities" });
 }
 
 async function onCancel() {
-  if (model.value instanceof IdentityCreateSchema) {
+  if (createMode.value) {
+    createMode.value = false;
     await onBack();
     return;
   }
@@ -44,12 +44,13 @@ async function onCancel() {
   pwCredential.value =
     model.value.kind === IdentityKind.PASSWORD ? model.value.credential : "";
   title.value = "Identity: " + model.value.name;
-  readonly.value = true;
+  readMode.value = true;
+  modifyMode.value = true;
 }
 
 async function onRemove() {
   busy.value = true;
-  store.remove(uid.value).then(() => {
+  identityStore.remove(uid.value).then(() => {
     busy.value = false;
     onBack();
   });
@@ -62,42 +63,49 @@ async function onEdit() {
     model.value.kind === IdentityKind.PUBKEY ? model.value.credential : "";
   pwCredential.value =
     model.value.kind === IdentityKind.PASSWORD ? model.value.credential : "";
-  readonly.value = false;
+  readMode.value = false;
+  modifyMode.value = false;
 }
 
 async function onSubmit() {
-  readonly.value = true;
+  readMode.value = true;
   model.value.credential =
     model.value.kind === IdentityKind.PUBKEY
       ? pubkeyCredential.value
       : pwCredential.value;
   if (model.value instanceof IdentityCreateSchema) {
-    store.create(model.value).then(() => {
-      readonly.value = false;
-      router.push({ name: "Identities" });
+    identityStore.create(model.value).then(async () => {
+      readMode.value = false;
+      await onBack();
     });
   } else {
-    store.modify(uid.value, model.value).then(() => {
-      readonly.value = false;
-      router.push({ name: "Identities" });
+    identityStore.modify(uid.value, model.value).then(async () => {
+      readMode.value = false;
+      await onBack();
     });
   }
 }
 
 onMounted(async () => {
+  busy.value = true;
   if ("uid" in route.params) {
     // We're showing or editing an existing identity
-    readonly.value = true;
+    readMode.value = true;
+    modifyMode.value = true;
+    createMode.value = true;
     uid.value = route.params.uid as string;
-    original.value = await store.get(uid.value);
+    original.value = await identityStore.get(uid.value);
     model.value = original.value;
     title.value = "Identity: " + model.value.name;
   } else {
     // We're creating a new identity
-    readonly.value = false;
+    readMode.value = false;
+    modifyMode.value = false;
+    createMode.value = false;
     model.value = new IdentityCreateSchema();
     title.value = "Create Identity";
   }
+  busy.value = false;
 });
 </script>
 
@@ -150,9 +158,9 @@ onMounted(async () => {
           label="Name"
           tabindex="0"
           autofocus
-          :hint="readonly ? '' : 'A unique name for the identity'"
-          :clearable="!readonly"
-          :readonly="readonly"
+          :hint="readMode ? '' : 'A unique name for the identity'"
+          :clearable="modifyMode || createMode"
+          :readonly="readMode"
           v-model="model.name"
         />
       </div>
@@ -161,8 +169,8 @@ onMounted(async () => {
           name="kind"
           label="Kind"
           tabindex="1"
-          :hint="readonly ? '' : 'Kind of the identity credential'"
-          :readonly="readonly"
+          :hint="readMode ? '' : 'Identity Kind'"
+          :readonly="readMode"
           :options="Object.values(IdentityKind)"
           v-model="model.kind"
         />
@@ -174,9 +182,9 @@ onMounted(async () => {
           name="gecos"
           label="GECOS"
           tabindex="2"
-          :hint="readonly ? '' : 'The display name of this identity'"
-          :clearable="!readonly"
-          :readonly="readonly"
+          :hint="readMode ? '' : 'The display name of this identity'"
+          :clearable="modifyMode || createMode"
+          :readonly="readMode"
           v-model="model.gecos"
         />
       </div>
@@ -188,12 +196,12 @@ onMounted(async () => {
           label="Home Directory"
           tabindex="3"
           :hint="
-            readonly
+            readMode
               ? ''
               : 'Path to the home directory within the virtual machine'
           "
-          :clearable="!readonly"
-          :readonly="readonly"
+          :clearable="!readMode"
+          :readonly="readMode"
           v-model="model.homedir"
         />
       </div>
@@ -202,9 +210,9 @@ onMounted(async () => {
           name="shell"
           label="Shell"
           tabindex="4"
-          :hint="readonly ? '' : 'Path to the shell within the virtual machine'"
-          :clearable="!readonly"
-          :readonly="readonly"
+          :hint="readMode ? '' : 'Path to the shell within the virtual machine'"
+          :clearable="!readMode"
+          :readonly="readMode"
           v-model="model.shell"
         />
       </div>
@@ -216,17 +224,17 @@ onMounted(async () => {
           label="Password"
           :tabindex="model.kind !== IdentityKind.PASSWORD ? 99 : 5"
           :type="isPwd ? 'password' : 'text'"
-          :hint="readonly ? '' : 'Enter the password for this identity'"
-          :clearable="!readonly"
+          :hint="readMode ? '' : 'Enter the password for this identity'"
+          :clearable="!readMode"
           :disable="model.kind !== IdentityKind.PASSWORD"
-          :readonly="readonly"
+          :readonly="readMode"
           v-model="pwCredential"
         >
           <template v-slot:append>
             <q-icon
               :name="isPwd ? 'visibility_off' : 'visibility'"
               class="cursor-pointer"
-              v-show="!readonly"
+              v-show="!readMode"
               @click="isPwd = !isPwd"
             />
           </template>
@@ -240,10 +248,10 @@ onMounted(async () => {
           label="SSH Public Key"
           type="textarea"
           :tabindex="model.kind !== IdentityKind.PUBKEY ? 99 : 5"
-          :hint="readonly ? '' : 'Enter the SSH public key for this identity'"
-          :clearable="!readonly"
+          :hint="readMode ? '' : 'Enter the SSH public key for this identity'"
+          :clearable="!readMode"
           :disable="model.kind !== IdentityKind.PUBKEY"
-          :readonly="readonly"
+          :readonly="readMode"
           v-model="pubkeyCredential"
         />
       </div>
@@ -254,7 +262,7 @@ onMounted(async () => {
         padding="lg"
         label="Edit"
         color="primary"
-        v-show="readonly"
+        v-show="readMode"
         @click="onEdit"
       />
       <q-btn
@@ -262,7 +270,7 @@ onMounted(async () => {
         padding="lg"
         label="Remove"
         color="primary"
-        v-show="readonly"
+        v-show="readMode"
         @click="pendingConfirmation = true"
       />
       <q-btn
@@ -270,16 +278,16 @@ onMounted(async () => {
         padding="lg"
         label="Cancel"
         color="secondary"
-        v-show="!readonly"
+        v-show="!readMode"
         @click="onCancel"
       />
       <q-btn
         flat
         padding="lg"
-        :label="model instanceof IdentityCreateSchema ? 'Create' : 'Modify'"
+        :label="createMode ? 'Create' : 'Modify'"
         type="submit"
         color="primary"
-        v-show="!readonly"
+        v-show="!readMode"
         :loading="busy"
       >
         <template v-slot:loading>

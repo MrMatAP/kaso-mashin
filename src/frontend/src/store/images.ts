@@ -2,9 +2,12 @@ import { defineStore } from "pinia";
 import { mande } from "mande";
 import {
   BinarySizedValue,
+  CreatableEntity,
   Entity,
-  ModifiableEntity,
-  CreatableEntity, EntityNotFoundException, EntityInvariantException
+  EntityInvariantException,
+  EntityNotFoundException,
+  UIEntitySelectOptions,
+  ModifiableEntity
 } from "@/base_types";
 import { TaskGetSchema } from "@/store/tasks";
 
@@ -53,7 +56,8 @@ export const useImageStore = defineStore("images", {
     },
     getImageByUid: (state) => {
       return (uid: string) => state.images.find((image) => image.uid === uid);
-    }
+    },
+    imageOptions: (state) => state.images.map((image) => new UIEntitySelectOptions(image.uid, image.name))
   },
   actions: {
     async list(): Promise<ImageGetSchema[]> {

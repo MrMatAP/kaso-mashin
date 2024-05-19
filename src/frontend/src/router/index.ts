@@ -70,6 +70,21 @@ const routes = [
         name: "ImageCreate",
         component: () => import("@/pages/ImageDetail.vue"),
       },
+      {
+        path: '/bootstraps',
+        name: 'Bootstraps',
+        component: () => import('@/pages/Bootstraps.vue'),
+      },
+      {
+        path: '/bootstraps/:uid',
+        name: 'BootstrapDetail',
+        component: () => import("@/pages/BootstrapDetail.vue"),
+      },
+      {
+        path: '/bootstraps/?create',
+        name: 'BootstrapCreate',
+        component: () => import('@/pages/BootstrapDetail.vue'),
+      }
     ],
   },
 ];

@@ -39,10 +39,6 @@ defineEmits<{
           <td class="text-left">RAM</td>
           <td class="text-right">{{ instance.ram.value }} {{ instance.ram.scale }}</td>
         </tr>
-        <tr>
-          <td class="text-left">Network</td>
-          <td class="text-right">{{ instance.network.name }}</td>
-        </tr>
       </tbody>
     </q-markup-table>
   </q-card>

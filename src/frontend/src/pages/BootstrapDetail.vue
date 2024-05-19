@@ -2,56 +2,56 @@
 import { onMounted, ref, Ref } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import {
-  NetworkCreateSchema,
-  NetworkGetSchema,
-  NetworkModifySchema,
-  NetworkKind,
-  useNetworkStore,
-} from "@/store/networks";
+  BootstrapCreateSchema,
+  BootstrapGetSchema,
+  BootstrapKind,
+  BootstrapModifySchema,
+  useBootstrapStore,
+} from "@/store/bootstraps";
 
-const networksStore = useNetworkStore();
+const bootstrapStore = useBootstrapStore();
 const router = useRouter();
 const route = useRoute();
 
 const readMode: Ref<boolean> = ref(true);
-const modifyMode: Ref<boolean> = ref(false)
-const createMode: Ref<boolean> = ref(false)
+const modifyMode: Ref<boolean> = ref(false);
+const createMode: Ref<boolean> = ref(false);
 const busy: Ref<boolean> = ref(false);
 const pendingConfirmation: Ref<boolean> = ref(false);
 const editForm = ref(null);
 
-const title: Ref<string> = ref("Network Detail");
+const title: Ref<string> = ref("Bootstrap Detail");
 const uid: Ref<string> = ref("");
-const original: Ref<NetworkGetSchema> = ref(new NetworkGetSchema());
-const model: Ref<any> = ref(new NetworkGetSchema());
+const original: Ref<BootstrapGetSchema> = ref(new BootstrapGetSchema());
+const model: Ref<any> = ref(new BootstrapGetSchema());
 
 async function onBack() {
-  await router.push({ name: "Networks" });
+  await router.push({ name: "Bootstraps" });
 }
 
 async function onCancel() {
   if (createMode.value) {
-    createMode.value = false;
+    createMode.value = false
     await onBack();
     return;
   }
   model.value = original.value;
-  title.value = "Network: " + model.value.name;
+  title.value = "Identity: " + model.value.name;
   readMode.value = true;
   modifyMode.value = false;
 }
 
 async function onRemove() {
   busy.value = true;
-  networksStore.remove(uid.value).then(() => {
+  bootstrapStore.remove(uid.value).then(() => {
     busy.value = false;
     onBack();
   });
 }
 
 async function onEdit() {
-  title.value = "Modify Network: " + model.value.name;
-  model.value = new NetworkModifySchema(original.value);
+  title.value = "Modify Identity: " + model.value.name;
+  model.value = new BootstrapModifySchema(original.value);
   readMode.value = false;
   modifyMode.value = true;
 }
@@ -59,36 +59,36 @@ async function onEdit() {
 async function onSubmit() {
   readMode.value = true;
   if (createMode.value) {
-    networksStore.create(model.value).then(async () => {
+    bootstrapStore.create(model.value).then(() => {
       readMode.value = false;
-      await onBack();
+      onBack()
     });
   } else {
-    networksStore.modify(uid.value, model.value).then(async () => {
+    bootstrapStore.modify(uid.value, model.value).then(() => {
       readMode.value = false;
-      await onBack();
+      onBack()
     });
   }
 }
 
 onMounted(async () => {
-  busy.value = true
+  busy.value = true;
   if ("uid" in route.params) {
     // We're showing or editing an existing identity
     readMode.value = true;
     modifyMode.value = false;
     createMode.value = false;
     uid.value = route.params.uid as string;
-    original.value = await networksStore.get(uid.value);
+    original.value = await bootstrapStore.get(uid.value);
     model.value = original.value;
-    title.value = "Network: " + model.value.name;
+    title.value = "Bootstrap: " + model.value.name;
   } else {
     // We're creating a new identity
     readMode.value = false;
     modifyMode.value = false;
     createMode.value = true;
-    model.value = new NetworkCreateSchema();
-    title.value = "Create Network";
+    model.value = new BootstrapCreateSchema();
+    title.value = "Create Bootstrap";
   }
   busy.value = false;
 });
@@ -99,7 +99,7 @@ onMounted(async () => {
     <q-card>
       <q-card-section class="row items-center">
         <span class="q-ml-sm"
-          >Are you sure you want to remove this network?</span
+          >Are you sure you want to remove this bootstrap?</span
         >
       </q-card-section>
       <q-card-actions align="right">
@@ -143,7 +143,7 @@ onMounted(async () => {
           label="Name"
           tabindex="0"
           autofocus
-          :hint="readMode ? '' : 'A unique name for the network'"
+          :hint="readMode ? '' : 'A unique name for the bootstrap'"
           :clearable="modifyMode || createMode"
           :readonly="readMode"
           v-model="model.name"
@@ -154,60 +154,25 @@ onMounted(async () => {
           name="kind"
           label="Kind"
           tabindex="1"
-          :hint="readMode ? '' : 'Network Kind'"
+          :hint="readMode ? '' : 'Kind of the bootstrap'"
           :readonly="readMode"
-          :options="Object.values(NetworkKind)"
-          v-show="true"
+          :options="Object.values(BootstrapKind)"
           v-model="model.kind"
         />
       </div>
     </div>
     <div class="row q-col-gutter-x-md q-col-gutter-y-md">
-      <div class="col-xs-12 col-sm-6 col-md-6 col-lg-6 col-xl-6">
+      <div class="col-xs-12 col-sm-12 col-md-12 col-lg-12 col-xl-12">
         <q-input
-          name="cidr"
-          label="CIDR"
-          tabindex="2"
-          :hint="readMode ? '' : 'The network CIDR'"
+          name="content"
+          label="Bootstrap Content"
+          type="textarea"
+          filled
+          autograp
+          :hint="readMode ? '' : 'Bootstrap Content'"
           :clearable="modifyMode || createMode"
           :readonly="readMode"
-          v-model="model.cidr"
-        />
-      </div>
-      <div class="col-xs-12 col-sm-6 col-md-6 col-lg-6 col-xl-6">
-        <q-input
-          name="gateway"
-          label="Gateway Address"
-          tabindex="3"
-          :hint="readMode ? '' : 'Network gateway address'"
-          :clearable="!readMode"
-          :readonly="readMode"
-          v-model="model.gateway"
-        />
-      </div>
-    </div>
-    <div class="row q-col-gutter-x-md q-col-gutter-y-md">
-      <div class="col-xs-12 col-sm-6 col-md-6 col-lg-6 col-xl-6">
-        <q-input
-          name="dhcp_start"
-          label="DHCP Start Address"
-          tabindex="4"
-          :hint="readMode ? '' : 'DHCP start address'"
-          :clearable="modifyMode || createMode"
-          :readonly="readMode"
-          v-model="model.dhcp_start"
-        />
-      </div>
-      <div class="col-xs-12 col-sm-6 col-md-6 col-lg-6 col-xl-6">
-        <q-input
-          name="dhcp_end"
-          label="DHCP End Address"
-          tabindex="5"
-          :hint="readMode ? '' : 'DHCP end address'"
-          :clearable="modifyMode || createMode"
-          :readonly="readMode"
-          v-model="model.dhcp_end"
-        />
+          v-model="model.content"/>
       </div>
     </div>
     <div class="row q-gutter-xl justify-end">
