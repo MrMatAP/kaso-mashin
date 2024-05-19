@@ -28,8 +28,8 @@ export class ExceptionSchema {
   }
 }
 
-export class EntityNotFoundExceptionSchema extends ExceptionSchema {}
-export class EntityInvariantExceptionSchema extends ExceptionSchema {}
+export class EntityNotFoundException extends ExceptionSchema {}
+export class EntityInvariantException extends ExceptionSchema {}
 
 export abstract class Entity {
   readonly uid: string = "";

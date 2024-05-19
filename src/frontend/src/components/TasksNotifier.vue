@@ -2,7 +2,7 @@
 import { onMounted, Ref, ref } from "vue";
 import { useInterval, useQuasar } from "quasar";
 import { TaskGetSchema, TaskState, useTaskStore } from "@/store/tasks";
-import { EntityNotFoundExceptionSchema } from "@/base_types";
+import { EntityNotFoundException } from "@/base_types";
 
 const $q = useQuasar();
 const { registerInterval } = useInterval()
@@ -23,7 +23,7 @@ async function updatePendingTasks() {
       }
     }
   } catch(e) {
-    $q.notify({ message: (e as EntityNotFoundExceptionSchema).msg, icon: 'error' })
+    $q.notify({ message: (e as EntityNotFoundException).msg, icon: 'error' })
   }
 }
 

@@ -322,7 +322,7 @@ onMounted(async () => {
         padding="lg"
         label="Cancel"
         color="secondary"
-        v-show="!readMode"
+        v-show="modifyMode || createMode"
         @click="onCancel"
       />
       <q-btn
@@ -331,7 +331,7 @@ onMounted(async () => {
         :label="createMode ? 'Create' : 'Modify'"
         type="submit"
         color="primary"
-        v-show="!readMode"
+        v-show="modifyMode || createMode"
         :loading="busy"
       >
         <template v-slot:loading>

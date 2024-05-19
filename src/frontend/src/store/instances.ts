@@ -4,11 +4,12 @@ import {
   BinarySizedValue,
   Entity,
   ModifiableEntity,
-  CreatableEntity,
+  CreatableEntity, EntityNotFoundException, EntityInvariantException
 } from "@/base_types";
-import { TaskState } from "@/store/tasks";
+import { TaskGetSchema, TaskState } from "@/store/tasks";
+import { NetworkGetSchema } from "@/store/networks";
 
-const instances = mande("/api/instances/");
+const instanceAPI = mande("/api/instances/");
 
 export enum InstanceState {
   STOPPING = "STOPPING",
@@ -28,7 +29,7 @@ export class InstanceGetSchema extends Entity {
   ram: BinarySizedValue = new BinarySizedValue();
   mac: string = "";
   // os_disk
-  // network
+  network: NetworkGetSchema = new NetworkGetSchema();
   // bootstrap
   bootstrap_file: string = "";
 }
@@ -44,36 +45,80 @@ export class InstanceCreateSchema extends CreatableEntity {
 
 export class InstanceModifySchema extends ModifiableEntity<InstanceGetSchema> {
   state: InstanceState = InstanceState.STOPPED;
+  vcpu: number = 0;
+  ram: BinarySizedValue = new BinarySizedValue();
 
   constructor(original: InstanceGetSchema) {
     super(original);
     this.state = original.state;
+    this.vcpu = original.vcpu;
+    this.ram = original.ram;
   }
 }
 
 export const useInstanceStore = defineStore("instances", {
   state: () => ({
     instances: [] as InstanceGetSchema[],
+    pendingInstances: new Map<string, InstanceCreateSchema>(),
   }),
+  getters: {
+    getIndexByUid: (state) => {
+      return (uid: string) => state.instances.findIndex((instance) => instance.uid === uid);
+    },
+    getInstanceByUid: (state) => {
+      return (uid: string) => state.instances.find((instance) => instance.uid === uid);
+    },
+  },
   actions: {
     async list() {
-      let instance_list: InstanceListSchema = await instances.get();
+      let instance_list: InstanceListSchema = await instanceAPI.get();
       this.instances = instance_list.entries;
+      return this.instances;
     },
     async get(uid: string): Promise<InstanceGetSchema> {
-      return await instances.get(uid);
+      try {
+        let instance = await instanceAPI.get<InstanceGetSchema>(uid);
+        let index = this.getIndexByUid(uid);
+        if(index !== -1) {
+          this.instances[index] = instance
+        } else {
+          this.instances.push(instance)
+        }
+        return instance;
+      } catch(error: any) {
+        throw new EntityNotFoundException(error.body.status, error.body.msg)
+      }
     },
-    async create(create: InstanceCreateSchema): Promise<InstanceCreateSchema> {
-      return await instances.post(create);
+    async create(create: InstanceCreateSchema): Promise<TaskGetSchema> {
+      try {
+        let task = await instanceAPI.post<TaskGetSchema>(create);
+        this.pendingInstances.set(task.uid, create);
+        return task;
+      } catch(error: any) {
+        throw new EntityInvariantException(error.body.status, error.body.msg);
+      }
     },
     async modify(
       uid: string,
       modify: InstanceModifySchema,
-    ): Promise<InstanceCreateSchema> {
-      return await instances.put(uid, modify);
+    ): Promise<InstanceGetSchema> {
+      try {
+        let update = await instanceAPI.put<InstanceGetSchema>(uid, modify);
+        let index = this.getIndexByUid(uid);
+        this.instances[index] = update
+        return update
+      } catch(error: any) {
+        throw new EntityInvariantException(error.body.status, error.body.msg)
+      }
     },
     async remove(uid: string): Promise<void> {
-      return await instances.delete(uid);
+      try {
+        await instanceAPI.delete(uid);
+        let index = this.getIndexByUid(uid);
+        this.instances.splice(index, 1);
+      } catch(error: any) {
+        throw new EntityNotFoundException(error.body.status, error.body.msg);
+      }
     },
   },
 });

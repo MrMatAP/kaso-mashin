@@ -1,6 +1,6 @@
 import { defineStore } from "pinia";
 import { mande } from "mande";
-import { Entity, EntityNotFoundExceptionSchema } from "@/base_types";
+import { Entity, EntityNotFoundException } from "@/base_types";
 
 const taskAPI = mande("/api/tasks/");
 
@@ -28,6 +28,12 @@ export const useTaskStore = defineStore("tasks", {
     pendingNumber: (state) =>
       state.tasks.filter((task) => task.state === TaskState.RUNNING).length,
     pendingTasks: (state) : TaskGetSchema[] => state.tasks.filter( (task) => task.state === TaskState.RUNNING),
+    getIndexByUid: (state) => {
+      return (uid: string) => state.tasks.findIndex((task) => task.uid === uid);
+    },
+    getTaskByUid: (state) => {
+      return (uid: string) => state.tasks.find((task) => task.uid === uid);
+    }
   },
   actions: {
     async list() {
@@ -46,7 +52,7 @@ export const useTaskStore = defineStore("tasks", {
         }
         return task;
       } catch (error: any) {
-        throw new EntityNotFoundExceptionSchema(error.body.status, error.body.msg);
+        throw new EntityNotFoundException(error.body.status, error.body.msg);
       }
     },
   },

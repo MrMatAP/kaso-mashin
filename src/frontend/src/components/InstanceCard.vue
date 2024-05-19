@@ -28,8 +28,20 @@ defineEmits<{
     <q-markup-table>
       <tbody>
         <tr>
-          <td class="text-left">MAC</td>
-          <td class="text-right">{{ instance.mac }}</td>
+          <td class="text-left">State</td>
+          <td class="text-right">{{ instance.state }}</td>
+        </tr>
+        <tr>
+          <td class="text-left">VCPUs</td>
+          <td class="text-right">{{ instance.vcpu }}</td>
+        </tr>
+        <tr>
+          <td class="text-left">RAM</td>
+          <td class="text-right">{{ instance.ram.value }} {{ instance.ram.scale }}</td>
+        </tr>
+        <tr>
+          <td class="text-left">Network</td>
+          <td class="text-right">{{ instance.network.name }}</td>
         </tr>
       </tbody>
     </q-markup-table>

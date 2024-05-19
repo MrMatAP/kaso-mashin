@@ -25,18 +25,12 @@ async function onToggleDrawer() {
         />
         <q-btn flat no-caps no-wrap v-if="$q.screen.gt.xs">
           <q-toolbar-title shrink class="text-weight-bold"
-            >Kaso :: Mashin - {{ configStore.config.version }}</q-toolbar-title
+            >Kaso :: Mashin</q-toolbar-title
           >
         </q-btn>
         <q-space />
         <div class="q-gutter-sm row items-center no-wrap">
           <TasksNotifier/>
-          <q-btn round flat>
-            <q-avatar size="26px">
-              <img src="https://cdn.quasar.dev/img/boy-avatar.png" />
-            </q-avatar>
-            <q-tooltip>Account</q-tooltip>
-          </q-btn>
         </div>
       </q-toolbar>
     </q-header>
@@ -85,6 +79,11 @@ async function onToggleDrawer() {
           <q-separator class="q-my-md" />
         </q-list>
       </q-scroll-area>
+      <q-footer class="bg-grey-1">
+        <q-item class="bg-grey-50 text-grey-8 q-py-xs">
+          <q-item-label>{{ configStore.config.version }}</q-item-label>
+        </q-item>
+      </q-footer>
     </q-drawer>
 
     <q-page-container>

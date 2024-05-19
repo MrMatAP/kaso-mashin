@@ -1,9 +1,15 @@
 import { defineStore } from "pinia";
 import { mande } from "mande";
 
-import { Entity, ModifiableEntity, CreatableEntity } from "@/base_types";
+import {
+  Entity,
+  ModifiableEntity,
+  CreatableEntity,
+  EntityNotFoundException,
+  EntityInvariantException
+} from "@/base_types";
 
-const identities = mande("/api/identities/");
+const identityAPI = mande("/api/identities/");
 
 export enum IdentityKind {
   PUBKEY = "pubkey",
@@ -61,23 +67,52 @@ export const useIdentityStore = defineStore("identities", {
   },
   actions: {
     async list() {
-      let identity_list: IdentityListSchema = await identities.get();
+      let identity_list: IdentityListSchema = await identityAPI.get();
       this.identities = identity_list.entries;
+      return this.identities;
     },
     async get(uid: string): Promise<IdentityGetSchema> {
-      return await identities.get(uid);
+      try {
+        let identity = await identityAPI.get<IdentityGetSchema>(uid);
+        let index = this.getIndexByUid(uid);
+        if(index !== -1) {
+          this.identities[index] = identity
+        } else {
+          this.identities.push(identity)
+        }
+        return identity
+      } catch(error: any) {
+        throw new EntityNotFoundException(error.body.status, error.body.msg);
+      }
     },
     async create(create: IdentityCreateSchema): Promise<IdentityGetSchema> {
-      return await identities.post(create);
+      try {
+        return await identityAPI.post<IdentityGetSchema>(create);
+      } catch(error: any) {
+        throw new EntityInvariantException(error.body.status, error.body.msg);
+      }
     },
     async modify(
       uid: string,
       modify: IdentityModifySchema,
     ): Promise<IdentityGetSchema> {
-      return await identities.put(uid, modify);
+      try {
+        let update = await identityAPI.put<IdentityGetSchema>(uid, modify);
+        let index = this.getIndexByUid(uid);
+        this.identities[index] = update;
+        return update;
+      } catch(error: any) {
+        throw new EntityInvariantException(error.body.status, error.body.msg);
+      }
     },
     async remove(uid: string): Promise<void> {
-      return await identities.delete(uid);
+      try {
+        await identityAPI.delete(uid);
+        let index = this.getIndexByUid(uid);
+        this.identities.splice(index, 1);
+      } catch(error: any) {
+        throw new EntityNotFoundException(error.body.status, error.body.msg);
+      }
     },
   },
 });

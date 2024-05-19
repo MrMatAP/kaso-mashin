@@ -4,7 +4,7 @@ import {
   BinarySizedValue,
   Entity,
   ModifiableEntity,
-  CreatableEntity, EntityNotFoundExceptionSchema, EntityInvariantExceptionSchema
+  CreatableEntity, EntityNotFoundException, EntityInvariantException
 } from "@/base_types";
 import { TaskGetSchema } from "@/store/tasks";
 
@@ -57,7 +57,7 @@ export const useImageStore = defineStore("images", {
   },
   actions: {
     async list(): Promise<ImageGetSchema[]> {
-      let image_list: ImageListSchema = await imageAPI.get();
+      let image_list = await imageAPI.get<ImageListSchema>();
       this.images = image_list.entries;
       return this.images;
     },
@@ -72,7 +72,7 @@ export const useImageStore = defineStore("images", {
         }
         return image
       } catch(error: any) {
-        throw new EntityNotFoundExceptionSchema(error.body.status, error.body.msg)
+        throw new EntityNotFoundException(error.body.status, error.body.msg)
       }
     },
     async create(create: ImageCreateSchema): Promise<TaskGetSchema> {
@@ -81,7 +81,7 @@ export const useImageStore = defineStore("images", {
         this.pendingImages.set(task.uid, create)
         return task
       } catch(error: any) {
-        throw new EntityInvariantExceptionSchema(error.body.status, error.body.msg);
+        throw new EntityInvariantException(error.body.status, error.body.msg);
       }
     },
     async modify(uid: string, modify: ImageModifySchema): Promise<ImageGetSchema> {
@@ -91,7 +91,7 @@ export const useImageStore = defineStore("images", {
         this.images[index] = update
         return update
       } catch(error: any) {
-        throw new EntityInvariantExceptionSchema(error.body.status, error.body.msg);
+        throw new EntityInvariantException(error.body.status, error.body.msg);
       }
     },
     async remove(uid: string): Promise<void> {
@@ -100,7 +100,7 @@ export const useImageStore = defineStore("images", {
         let index = this.getIndexByUid(uid)
         this.images.splice(index, 1);
       } catch(error: any) {
-        throw new EntityInvariantExceptionSchema(error.body.status, error.body.msg)
+        throw new EntityNotFoundException(error.body.status, error.body.msg)
       }
     },
   },

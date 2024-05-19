@@ -7,7 +7,7 @@
 import { createApp } from "vue";
 import { Quasar, Loading, Notify } from "quasar";
 import quasarLang from "quasar/lang/en-GB";
-import pinia from "@/store";
+import { createPinia } from 'pinia';
 import router from "@/router";
 
 //
@@ -33,7 +33,7 @@ app
     },
     lang: quasarLang,
   })
-  .use(pinia)
+  .use(createPinia())
   .use(router);
 
 app.mount("#app");
