@@ -111,7 +111,7 @@ class BinarySizedValue(pydantic.BaseModel):
         return not self.__lt__(other)
 
     def __str__(self):
-        return f"{self.value}{self.scale.name}"
+        return f"{self.value}{BinaryScale(self.scale).name}"
 
     def __repr__(self):
         return f"<BinarySizedValue(value={self.value}, scale={self.scale.name})>"

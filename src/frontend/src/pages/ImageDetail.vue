@@ -73,7 +73,7 @@ async function onEdit() {
 async function onSubmit() {
   readMode.value = true;
   if (createMode.value) {
-    imageStore.create(model.value).then(async (task) => {
+    imageStore.create(model.value).then(async () => {
       readMode.value = false;
       await onBack();
     });

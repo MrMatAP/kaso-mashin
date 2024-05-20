@@ -82,6 +82,8 @@ class InstanceAPI(
             return TaskGetSchema.model_validate(task)
         except EntityNotFoundException as e:
             return ExceptionSchema.model_validate(e)
+        except Exception as e:
+            return ExceptionSchema.model_validate(e)
 
     async def modify(
         self,

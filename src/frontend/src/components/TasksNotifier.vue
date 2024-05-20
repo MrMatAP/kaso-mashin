@@ -5,7 +5,7 @@ import { TaskGetSchema, TaskState, useTaskStore } from "@/store/tasks";
 import { EntityNotFoundException } from "@/base_types";
 
 const $q = useQuasar();
-const { registerInterval } = useInterval()
+const { registerInterval } = useInterval();
 const taskStore = useTaskStore();
 
 const pendingTasks: Ref<TaskGetSchema[]> = ref<TaskGetSchema[]>([]);
@@ -29,7 +29,7 @@ async function updatePendingTasks() {
 
 onMounted( async () => {
   await taskStore.list()
-  registerInterval(async () => updatePendingTasks, 3000)
+  registerInterval(async () => await updatePendingTasks(), 3000)
 })
 </script>
 

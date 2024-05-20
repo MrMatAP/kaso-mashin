@@ -96,7 +96,7 @@ async function onEdit() {
 async function onSubmit() {
   readMode.value = true;
   if (createMode.value) {
-    instanceStore.create(model.value).then(async (task) => {
+    instanceStore.create(model.value).then(async () => {
       readMode.value = false;
       await onBack();
     });

@@ -4,6 +4,7 @@ import { useRouter } from "vue-router";
 import { useImageStore } from "@/store/images";
 import ImageCard from "@/components/ImageCard.vue";
 import CreateCard from "@/components/CreateCard.vue";
+import ImagePending from "@/components/ImagePending.vue";
 
 const router = useRouter();
 const imageStore = useImageStore();
@@ -35,6 +36,10 @@ onMounted(() => {
       :image="image"
       @onSelected="onSelected"
     />
+    <ImagePending
+      v-for="[taskUid, image] in imageStore.pendingImages"
+      :taskUid="taskUid"
+      :image="image"/>
 
     <CreateCard @onCreate="onCreate"/>
     <q-inner-loading :showing="loading">

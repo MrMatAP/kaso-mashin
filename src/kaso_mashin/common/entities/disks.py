@@ -281,6 +281,12 @@ class DiskEntity(Entity, AggregateRoot):
                 status=400,
                 msg=f"You have no permission to create a disk at path {path}",
             ) from e
+        except Exception as e:
+            path.unlink(missing_ok=True)
+            raise DiskException(
+                status=500,
+                msg=f'An unknown error occurred: {e}',
+            ) from e
 
     async def resize(self, value: BinarySizedValue) -> "DiskEntity":
         try:

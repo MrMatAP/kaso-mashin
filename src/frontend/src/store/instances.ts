@@ -9,9 +9,10 @@ import {
   EntityNotFoundException,
   ModifiableEntity
 } from "@/base_types";
-import { TaskGetSchema } from "@/store/tasks";
+import { TaskGetSchema, useTaskStore } from "@/store/tasks";
 
 const instanceAPI = mande("/api/instances/");
+const taskStore = useTaskStore()
 
 export enum InstanceState {
   STOPPING = "STOPPING",
@@ -96,6 +97,7 @@ export const useInstanceStore = defineStore("instances", {
       try {
         let task = await instanceAPI.post<TaskGetSchema>(create);
         this.pendingInstances.set(task.uid, create);
+        await taskStore.track(task)
         return task;
       } catch(error: any) {
         throw new EntityInvariantException(error.body.status, error.body.msg);

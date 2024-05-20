@@ -1,6 +1,6 @@
 import { defineStore } from "pinia";
 import { mande } from "mande";
-import { Entity, EntityNotFoundException } from "@/base_types";
+import { Entity, EntityInvariantException, EntityNotFoundException } from "@/base_types";
 
 const taskAPI = mande("/api/tasks/");
 
@@ -55,5 +55,17 @@ export const useTaskStore = defineStore("tasks", {
         throw new EntityNotFoundException(error.body.status, error.body.msg);
       }
     },
+    async track(task: TaskGetSchema) {
+      try {
+        let index = this.tasks.findIndex((task) => task.uid === task.uid);
+        if(index !== -1) {
+          this.tasks[index] = task
+        } else {
+          this.tasks.push(task)
+        }
+      } catch(error: any) {
+        throw new EntityInvariantException(error.body.status, error.body.msg)
+      }
+    }
   },
 });
