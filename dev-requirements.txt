@@ -25,4 +25,4 @@ httpx==0.25.2              # BSD 3-Clause
 aiofiles==23.2.1           # Apache 2.0
 qemu.qmp==0.0.3            # LGPLv2+
 passlib==1.7.4             # BSD
-aioconsole==0.7.0          # GPLv3
+aioconsole==0.7.1          # GPLv3
