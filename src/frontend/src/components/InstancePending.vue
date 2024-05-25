@@ -1,18 +1,18 @@
 <script setup lang="ts">
 import { ref, Ref, onMounted } from 'vue';
 import { useInterval, useQuasar } from 'quasar';
-import { ImageCreateSchema, useImageStore } from "@/store/images";
+import { InstanceCreateSchema, useInstanceStore } from "@/store/instances";
 import { TaskGetSchema, TaskState, useTaskStore } from "@/store/tasks";
 
 const props = defineProps<{
   taskUid: string;
-  image: ImageCreateSchema;
+  instance: InstanceCreateSchema;
 }>();
 
 const quasar = useQuasar();
 const { registerInterval } = useInterval();
 const taskStore = useTaskStore();
-const imageStore = useImageStore();
+const instanceStore = useInstanceStore();
 const task: Ref<TaskGetSchema> = ref(new TaskGetSchema());
 
 onMounted(async () => {
@@ -20,17 +20,17 @@ onMounted(async () => {
   registerInterval(async () => {
     task.value = await taskStore.get(props.taskUid);
     if(task.value.state === TaskState.FAILED) {
-      imageStore.pendingImages.delete(props.taskUid);
+      instanceStore.pendingInstances.delete(props.taskUid);
       quasar.notify({ message: task.value.msg, type: "error", icon: 'error' })
     }
     if(task.value.state === TaskState.DONE) {
       if(! task.value.outcome) {
         quasar.notify({ message: task.value.msg, type: 'error', icon: 'error' })
       } else {
-        await imageStore.get(task.value.outcome);
+        await instanceStore.get(task.value.outcome);
         quasar.notify({ message: task.value.msg })
       }
-      imageStore.pendingImages.delete(props.taskUid);
+      instanceStore.pendingInstances.delete(props.taskUid);
     }
   }, 3000)
 })
@@ -41,10 +41,10 @@ onMounted(async () => {
   <q-card class="km-entity-card">
     <q-item>
       <q-item-section side>
-        <q-avatar icon="work_outline" size="lg" color="primary" text-color="white"/>
+        <q-avatar icon="developer_board" size="lg" color="primary" text-color="white"/>
       </q-item-section>
       <q-item-section>
-        <q-item-label>{{ image.name }}</q-item-label>
+        <q-item-label>{{ instance.name }}</q-item-label>
         <q-item-label caption></q-item-label>
       </q-item-section>
     </q-item>
@@ -52,16 +52,12 @@ onMounted(async () => {
     <q-markup-table>
       <tbody>
         <tr>
-          <td class="text-left">Minimum vCPU</td>
-          <td class="text-right">{{ image.min_vcpu }}</td>
+          <td class="text-left">vCPUs</td>
+          <td class="text-right">{{ instance.vcpu }}</td>
         </tr>
         <tr>
-          <td class="text-left">Minimum RAM</td>
-          <td class="text-right">{{ image.min_ram.value }}</td>
-        </tr>
-        <tr>
-          <td class="text-left">Minimum Disk Space</td>
-          <td class="text-right">{{ image.min_disk.value }}</td>
+          <td class="text-left">RAM</td>
+          <td class="text-right">{{ instance.ram.value }} {{ instance.ram.scale }}</td>
         </tr>
       </tbody>
     </q-markup-table>

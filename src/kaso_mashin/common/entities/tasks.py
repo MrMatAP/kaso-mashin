@@ -48,6 +48,7 @@ class TaskGetSchema(EntitySchema):
         description="Task status message", examples=["Downloaded 10% of the image"]
     )
     percent_complete: int = Field(description="Task completion", examples=[12, 100])
+    outcome: UniqueIdentifier | None = Field(description='The resulting uid of the task if applicable')
 
     def __rich__(self):
         table = rich.table.Table(box=rich.box.ROUNDED)
@@ -104,7 +105,7 @@ class TaskEntity(Entity, AggregateRoot):
         self._state = TaskState.RUNNING
         self._msg = msg
         self._percent_complete = 0
-        self._outcome: Entity | None = None
+        self._outcome: UniqueIdentifier | None = None
 
     @property
     def name(self) -> str:
@@ -127,7 +128,7 @@ class TaskEntity(Entity, AggregateRoot):
         return self._percent_complete
 
     @property
-    def outcome(self) -> Entity | None:
+    def outcome(self) -> UniqueIdentifier | None:
         return self._outcome
 
     @staticmethod
@@ -155,7 +156,8 @@ class TaskEntity(Entity, AggregateRoot):
             f"name={self.name}, "
             f"state={self.state}, "
             f"msg={self.msg}, "
-            f"percent_complete={self.percent_complete})"
+            f"percent_complete={self.percent_complete}),"
+            f"outcome={self.outcome})"
         )
 
     @staticmethod
@@ -169,7 +171,7 @@ class TaskEntity(Entity, AggregateRoot):
             self._msg = msg
         await self.repository.modify(self)
 
-    async def done(self, msg: str, outcome: Entity | None = None):
+    async def done(self, msg: str, outcome: UniqueIdentifier | None = None):
         self._percent_complete = 100
         self._msg = msg
         self._outcome = outcome

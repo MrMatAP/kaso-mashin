@@ -18,6 +18,7 @@ export class TaskGetSchema extends Entity {
   state: TaskState = TaskState.RUNNING;
   msg: string = "";
   percent_complete: number = 0;
+  outcome?: string = ''
 }
 
 export const useTaskStore = defineStore("tasks", {
@@ -25,15 +26,17 @@ export const useTaskStore = defineStore("tasks", {
     tasks: [] as TaskGetSchema[],
   }),
   getters: {
-    pendingNumber: (state) =>
-      state.tasks.filter((task) => task.state === TaskState.RUNNING).length,
-    pendingTasks: (state) : TaskGetSchema[] => state.tasks.filter( (task) => task.state === TaskState.RUNNING),
     getIndexByUid: (state) => {
       return (uid: string) => state.tasks.findIndex((task) => task.uid === uid);
     },
     getTaskByUid: (state) => {
       return (uid: string) => state.tasks.find((task) => task.uid === uid);
-    }
+    },
+    pendingNumber: (state) =>
+      state.tasks.filter((task) => task.state === TaskState.RUNNING).length,
+    pendingTasks: (state) : TaskGetSchema[] => state.tasks.filter( (task) => task.state === TaskState.RUNNING),
+    failedTasks: (state) : TaskGetSchema[] => state.tasks.filter( (task) => task.state === TaskState.FAILED),
+    doneTasks: (state) : TaskGetSchema[] => state.tasks.filter( (task) => task.state === TaskState.DONE),
   },
   actions: {
     async list() {

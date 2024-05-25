@@ -32,7 +32,7 @@ defineEmits<{
           <td class="text-right">{{ instance.state }}</td>
         </tr>
         <tr>
-          <td class="text-left">VCPUs</td>
+          <td class="text-left">vCPUs</td>
           <td class="text-right">{{ instance.vcpu }}</td>
         </tr>
         <tr>

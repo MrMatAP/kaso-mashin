@@ -7,6 +7,7 @@ import { EntityNotFoundException } from "@/base_types";
 const $q = useQuasar();
 const { registerInterval } = useInterval();
 const taskStore = useTaskStore();
+const currentTab: Ref<string> = ref('tasks')
 
 const pendingTasks: Ref<TaskGetSchema[]> = ref<TaskGetSchema[]>([]);
 
@@ -44,29 +45,40 @@ onMounted( async () => {
       {{ taskStore.pendingNumber }}
     </q-badge>
     <q-tooltip>Tasks</q-tooltip>
-    <q-menu style="max-width: 300px">
-      <q-list style="min-width: 100px">
-        <q-item v-close-popup v-show="pendingTasks.length === 0">
-          <q-item-section>
-            <q-item-label>There are no active tasks</q-item-label>
-          </q-item-section>
-        </q-item>
-        <q-item v-close-popup v-for="task in pendingTasks">
-          <q-item-section>
-            <q-item-label>{{ task.name }}</q-item-label>
-            <q-item-label caption>{{ task.msg }}</q-item-label>
-          </q-item-section>
-          <q-item-section side top>
-            <q-item-label caption>{{ task.state }}</q-item-label>
-            <q-circular-progress show-value
-                                 :value="task.percent_complete"
-                                 class="text-light-blue q-ma-md"
-                                 color="light-blue"
-                                 size="xs"/>
-            <q-item-label>{{ task.percent_complete }}</q-item-label>
-          </q-item-section>
-        </q-item>
-      </q-list>
+    <q-menu style="max-width: 500px">
+      <q-tabs v-model="currentTab">
+        <q-tab name="tasks" label="Tasks">
+          <q-list dense>
+            <q-item v-close-popup v-for="task in taskStore.tasks">
+              <q-item-section avatar>
+                <q-avatar color="primary" text-color="white" icon="bluetooth"/>
+              </q-item-section>
+              <q-item-section>
+                <q-item-label>{{ task.name }}</q-item-label>
+                <q-item-label caption lines="2">{{ task.msg }}</q-item-label>
+              </q-item-section>
+              <q-item-section side>
+                <q-item-label caption>{{ task.state }}</q-item-label>
+                <q-circular-progress show-value
+                                     v-show="task.state === TaskState.RUNNING"
+                                     :value="task.percent_complete"
+                                     class="text-light-blue q-ma-md"
+                                     color="light-blue"
+                                     size="xs"/>
+              </q-item-section>
+            </q-item>
+          </q-list>
+        </q-tab>
+        <q-tab name="error" label="Errors">
+          <q-list>
+            <q-item v-close-popup>
+              <q-item-section>
+                <q-item-label>There are no errors</q-item-label>
+              </q-item-section>
+            </q-item>
+          </q-list>
+        </q-tab>
+      </q-tabs>
     </q-menu>
   </q-btn>
 </template>

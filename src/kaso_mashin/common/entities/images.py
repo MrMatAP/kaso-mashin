@@ -305,7 +305,7 @@ class ImageEntity(Entity, AggregateRoot):
                 min_disk=min_disk,
             )
             outcome = await ImageEntity.repository.create(image)
-            await task.done(msg="Successfully downloaded")
+            await task.done(msg="Successfully downloaded", outcome=outcome.uid)
             return outcome
         except PermissionError as e:
             await task.fail(

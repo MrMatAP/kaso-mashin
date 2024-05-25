@@ -47,5 +47,3 @@ onMounted(() => {
     </q-inner-loading>
   </div>
 </template>
-
-<style lang="sass" scoped></style>

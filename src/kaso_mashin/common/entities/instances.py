@@ -471,7 +471,7 @@ class InstanceEntity(Entity, AggregateRoot):
             )
 
             outcome = await InstanceEntity.repository.create(entity)
-            await task.done(msg="Successfully created")
+            await task.done(msg="Successfully created", outcome=outcome.uid)
             return outcome
         except Exception as e:
             if os_disk_size is not None:

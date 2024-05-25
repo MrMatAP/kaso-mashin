@@ -4,6 +4,7 @@ import { useRouter } from "vue-router";
 import { useInstanceStore } from "@/store/instances";
 import InstanceCard from "@/components/InstanceCard.vue";
 import CreateCard from "@/components/CreateCard.vue";
+import InstancePending from "@/components/InstancePending.vue";
 
 const router = useRouter();
 const instanceStore = useInstanceStore();
@@ -35,6 +36,10 @@ onMounted(() => {
       :instance="instance"
       @onSelected="onSelected"
     />
+    <InstancePending
+      v-for="[taskUid, instance] in instanceStore.pendingInstances"
+      :taskUid="taskUid"
+      :instance="instance"/>
 
     <CreateCard @onCreate="onCreate" />
     <q-inner-loading :showing="loading">
