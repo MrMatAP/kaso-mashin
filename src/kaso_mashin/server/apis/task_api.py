@@ -9,11 +9,7 @@ from kaso_mashin.common.entities import (
 )
 
 
-class TaskAPI(
-    BaseAPI[
-        TaskListSchema, TaskGetSchema, TaskGetSchema, TaskGetSchema
-    ]
-):
+class TaskAPI(BaseAPI[TaskListSchema, TaskGetSchema, TaskGetSchema, TaskGetSchema]):
     """
     The Task API
     """
@@ -30,8 +26,7 @@ class TaskAPI(
         self._router.routes = list(
             filter(lambda route: route.name in ["get", "list"], self._router.routes)
         )
-        self._router.add_api_websocket_route(path='/notify',
-                                             endpoint=self.notify)
+        self._router.add_api_websocket_route(path="/notify", endpoint=self.notify)
 
     async def notify(self, websocket: WebSocket):
         await websocket.accept()

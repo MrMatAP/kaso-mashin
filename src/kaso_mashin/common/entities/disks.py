@@ -20,7 +20,7 @@ from kaso_mashin.common import (
     AggregateRoot,
     AsyncRepository,
     BinarySizedValue,
-    BinaryScale
+    BinaryScale,
 )
 
 from .images import ImageEntity
@@ -52,7 +52,8 @@ class DiskCreateSchema(EntitySchema):
         examples=["/var/kaso/instances/root.qcow2"],
     )
     size: BinarySizedValue = Field(
-        description="Disk size", examples=[BinarySizedValue(value=2, scale=BinaryScale.G)]
+        description="Disk size",
+        examples=[BinarySizedValue(value=2, scale=BinaryScale.G)],
     )
     disk_format: DiskFormat = Field(
         description="Disk image file format",
@@ -79,7 +80,8 @@ class DiskGetSchema(EntitySchema):
         examples=["/var/kaso/instances/root.qcow2"],
     )
     size: BinarySizedValue = Field(
-        description="Disk size", examples=[BinarySizedValue(value=2, scale=BinaryScale.G)]
+        description="Disk size",
+        examples=[BinarySizedValue(value=2, scale=BinaryScale.G)],
     )
     disk_format: DiskFormat = Field(
         description="Disk image file format",
@@ -256,9 +258,7 @@ class DiskEntity(Entity, AggregateRoot):
             path.parent.mkdir(parents=True, exist_ok=True)
             args = ["/opt/homebrew/bin/qemu-img", "create", "-f", str(disk_format)]
             if image is not None:
-                args.extend(
-                    ["-F", str(disk_format), "-b", str(image.path)]
-                )
+                args.extend(["-F", str(disk_format), "-b", str(image.path)])
             args.extend([str(path), str(size)])
             subprocess.run(args, check=True)
             disk = DiskEntity(
@@ -285,7 +285,7 @@ class DiskEntity(Entity, AggregateRoot):
             path.unlink(missing_ok=True)
             raise DiskException(
                 status=500,
-                msg=f'An unknown error occurred: {e}',
+                msg=f"An unknown error occurred: {e}",
             ) from e
 
     async def resize(self, value: BinarySizedValue) -> "DiskEntity":

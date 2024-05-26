@@ -20,10 +20,10 @@ class BaseCommands(typing.Generic[T_EntityListSchema, T_EntityGetSchema], abc.AB
     """
 
     def __init__(self, config: Config):
-        self._config = config
-        self._prefix = None
-        self._list_schema_type: typing.Type[T_EntityListSchema] = None
-        self._get_schema_type: typing.Type[T_EntityGetSchema] = None
+        self._config: Config = config
+        self._prefix: str
+        self._list_schema_type: typing.Type[T_EntityListSchema]
+        self._get_schema_type: typing.Type[T_EntityGetSchema]
         self._logger = logging.getLogger(
             f"{self.__class__.__module__}.{self.__class__.__name__}"
         )

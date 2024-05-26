@@ -20,7 +20,7 @@ from kaso_mashin.common import (
     AggregateRoot,
     AsyncRepository,
     BinarySizedValue,
-    BinaryScale
+    BinaryScale,
 )
 
 from kaso_mashin.common.entities import TaskEntity
@@ -115,6 +115,7 @@ class ImageModifySchema(EntitySchema):
     """
     Schema to modify an existing image
     """
+
     name: typing.Optional[str] = Field(
         description="The image name", examples=["ubuntu", "flatpack", "debian"]
     )
@@ -322,10 +323,14 @@ class ImageEntity(Entity, AggregateRoot):
             )
 
     async def modify(self, schema: ImageModifySchema):
-        self._name = schema.name
-        self._min_vcpu = schema.min_vcpu
-        self._min_ram = schema.min_ram
-        self._min_disk = schema.min_disk
+        if schema.name is not None:
+            self._name = schema.name
+        if schema.min_vcpu is not None:
+            self._min_vcpu = schema.min_vcpu
+        if schema.min_ram is not None:
+            self._min_ram = schema.min_ram
+        if schema.min_disk is not None:
+            self._min_disk = schema.min_disk
         await self.repository.modify(self)
 
     async def remove(self):

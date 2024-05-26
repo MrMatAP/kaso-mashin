@@ -8,9 +8,9 @@ from kaso_mashin.common.entities import InstanceEntity, NetworkKind, BootstrapKi
 
 class QEMUService(Service):
 
-    def __init__(self, runtime: 'Runtime'):
+    def __init__(self, runtime: "Runtime"):
         super().__init__(runtime)
-        self._logger.info('Started QEMU service')
+        self._logger.info("Started QEMU service")
 
     def start_instance(self, instance: InstanceEntity) -> subprocess.Popen:
         args = [
@@ -48,7 +48,7 @@ class QEMUService(Service):
             "-drive",
             f"if=virtio,file={instance.os_disk.path},format=qcow2,index=0,media=disk",
             "-vnc",
-            "localhost:0,power-control=on"
+            "localhost:0,power-control=on",
         ]
         if instance.bootstrap.kind == BootstrapKind.IGNITION:
             args.extend(
@@ -66,7 +66,7 @@ class QEMUService(Service):
 
         # args.extend(["-drive", f"file={instance.os_disk.path},media=disk,if=virtio,format=qcow2,cache=writethrough"])
         # args.extend(["-display", "cocoa", "-vnc", "to=0,power-control=on", "-device", "virtio-gpu-pci"])
-        #args.extend(["-device", "VGA", "-display", "cocoa", "-vnc", "to=0,power-control=on"])
-        #args.extend(["-display", "vnc=:0", "-vnc", "to=0,power-control=on"])
+        # args.extend(["-device", "VGA", "-display", "cocoa", "-vnc", "to=0,power-control=on"])
+        # args.extend(["-display", "vnc=:0", "-vnc", "to=0,power-control=on"])
 
         return subprocess.Popen(args)

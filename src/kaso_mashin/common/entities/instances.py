@@ -65,7 +65,8 @@ class InstanceCreateSchema(EntitySchema):
     )
     vcpu: int = Field(description="Number of virtual CPU cores", examples=[2])
     ram: BinarySizedValue = Field(
-        description="Amount of RAM", examples=[BinarySizedValue(value=2, scale=BinaryScale.G)]
+        description="Amount of RAM",
+        examples=[BinarySizedValue(value=2, scale=BinaryScale.G)],
     )
     os_disk_size: BinarySizedValue = Field(description="Size of the OS disk")
     image_uid: str = Field(
@@ -97,23 +98,23 @@ class InstanceGetSchema(EntitySchema):
     path: pathlib.Path = Field(description="Path of the instance on the local disk")
     vcpu: int = Field(description="Number of virtual CPU cores", examples=[2])
     ram: BinarySizedValue = Field(
-        description="Amount of RAM", examples=[BinarySizedValue(value=2, scale=BinaryScale.G)]
+        description="Amount of RAM",
+        examples=[BinarySizedValue(value=2, scale=BinaryScale.G)],
     )
     mac: str = Field(description="Instance MAC address")
     network_uid: UniqueIdentifier = Field(
         description="The network UID on which to run this instance"
     )
-    image_uid: UniqueIdentifier = Field(description='The image UID')
-    os_disk_uid: UniqueIdentifier = Field(
-        description="The OS disk UID"
-    )
+    image_uid: UniqueIdentifier = Field(description="The image UID")
+    os_disk_uid: UniqueIdentifier = Field(description="The OS disk UID")
     os_disk_size: BinarySizedValue = Field(description="Size of the OS disk")
     bootstrap_uid: UniqueIdentifier = Field(description="The bootstrapper uid")
     bootstrap_file: pathlib.Path = Field(
         description="The path to the bootstrap file on the local disk"
     )
     state: InstanceState = Field(
-        description='The instance state', examples=[InstanceState.STOPPED, InstanceState.STARTED]
+        description="The instance state",
+        examples=[InstanceState.STOPPED, InstanceState.STARTED],
     )
 
     def __rich__(self):
@@ -131,7 +132,7 @@ class InstanceGetSchema(EntitySchema):
         table.add_row("[blue]OS Disk UID", str(self.os_disk_uid))
         table.add_row("[blue]Bootstrap UID", str(self.bootstrap_uid))
         table.add_row("[blue]Bootstrap File", str(self.bootstrap_file))
-        table.add_row('[blue]State', str(self.state))
+        table.add_row("[blue]State", str(self.state))
         return table
 
 
@@ -350,7 +351,9 @@ class InstanceEntity(Entity, AggregateRoot):
     @staticmethod
     async def from_model(model: InstanceModel) -> "InstanceEntity":
         # TODO: Internal consistency. This will fail if the disk is dead
-        image = await ImageEntity.repository.get_by_uid(UniqueIdentifier(model.image_uid))
+        image = await ImageEntity.repository.get_by_uid(
+            UniqueIdentifier(model.image_uid)
+        )
         os_disk = await DiskEntity.repository.get_by_uid(
             UniqueIdentifier(model.os_disk_uid)
         )

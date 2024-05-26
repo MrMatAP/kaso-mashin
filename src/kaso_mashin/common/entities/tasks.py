@@ -35,6 +35,7 @@ class TaskGetSchema(EntitySchema):
     """
     Schema to get information about a specific task
     """
+
     uid: UniqueIdentifier = Field(
         description="The unique identifier",
         examples=["b430727e-2491-4184-bb4f-c7d6d213e093"],
@@ -48,7 +49,9 @@ class TaskGetSchema(EntitySchema):
         description="Task status message", examples=["Downloaded 10% of the image"]
     )
     percent_complete: int = Field(description="Task completion", examples=[12, 100])
-    outcome: UniqueIdentifier | None = Field(description='The resulting uid of the task if applicable')
+    outcome: UniqueIdentifier | None = Field(
+        description="The resulting uid of the task if applicable"
+    )
 
     def __rich__(self):
         table = rich.table.Table(box=rich.box.ROUNDED)

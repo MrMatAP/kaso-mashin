@@ -134,7 +134,7 @@ class BaseAPI(
     ) -> T_EntityGetSchema:
         entity = await self.repository.get_by_uid(uid)
         if not entity:
-            raise EntityNotFoundException(status=404, msg='No such entity')
+            raise EntityNotFoundException(status=404, msg="No such entity")
         return self._get_schema_type.model_validate(entity)
 
     async def create(

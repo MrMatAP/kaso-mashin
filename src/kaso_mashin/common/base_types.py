@@ -1,12 +1,15 @@
 """
 Common Base Types
 """
+
 import abc
 import dataclasses
 import enum
+import pathlib
 import typing
 import uuid
 import logging
+import argparse
 
 import pydantic
 from pydantic import BaseModel, ConfigDict
@@ -14,7 +17,7 @@ from sqlalchemy import UUID, String, select
 from sqlalchemy.ext.asyncio import async_sessionmaker, AsyncSession
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
 
-from .. import KasoMashinException
+from kaso_mashin import KasoMashinException, default_config_file
 
 
 class ValueObject(abc.ABC):
@@ -157,7 +160,7 @@ class Service(abc.ABC):
     A domain service
     """
 
-    def __init__(self, runtime: 'Runtime'):
+    def __init__(self, runtime: "Runtime"):
         self._logger = logging.getLogger(
             f"{self.__class__.__module__}.{self.__class__.__name__}"
         )
@@ -293,3 +296,17 @@ class AsyncRepository(typing.Generic[T_AggregateRoot, T_EntityModel]):
             if model is not None:
                 await session.delete(model)
                 await session.commit()
+
+
+class CLIArgumentsHolder(argparse.Namespace):
+    """
+    A typed object to receive server CLI arguments
+    """
+
+    def __init__(self, config: "Config"):
+        super().__init__()
+        self.debug: bool = False
+        self.config: pathlib.Path = default_config_file
+        self.host: str = config.default_server_host
+        self.port: int = config.default_server_port
+        self.cmd: typing.Callable | None = None

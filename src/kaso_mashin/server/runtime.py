@@ -137,7 +137,7 @@ class Runtime:
             await NetworkEntity.create(
                 name=DEFAULT_HOST_NETWORK_NAME,
                 kind=NetworkKind.VMNET_HOST,
-                cidr=IPv4Network('10.1.0.0/24'),
+                cidr=IPv4Network("10.1.0.0/24"),
                 gateway=ipaddress.IPv4Address("10.1.0.1"),
             )
         shared_network = await self.network_repository.get_by_name(

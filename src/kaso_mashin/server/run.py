@@ -10,9 +10,15 @@ import fastapi.staticfiles
 import uvicorn
 import sqlalchemy.exc
 
-from kaso_mashin import __version__, console, default_config_file, KasoMashinException, __log_config__
+from kaso_mashin import (
+    __version__,
+    console,
+    default_config_file,
+    KasoMashinException,
+    __log_config__,
+)
 from kaso_mashin.common.config import Config
-from kaso_mashin.common.base_types import ExceptionSchema
+from kaso_mashin.common.base_types import ExceptionSchema, CLIArgumentsHolder
 from kaso_mashin.common import EntityNotFoundException, EntityInvariantException
 from kaso_mashin.server.db import DB
 from kaso_mashin.server.runtime import Runtime
@@ -70,9 +76,7 @@ def create_server(runtime: Runtime) -> fastapi.applications.FastAPI:
         )
         return fastapi.responses.JSONResponse(
             status_code=exc.status,
-            content=ExceptionSchema(
-                status=exc.status, msg=f"{exc.msg}"
-            ).model_dump(),
+            content=ExceptionSchema(status=exc.status, msg=f"{exc.msg}").model_dump(),
         )
 
     @app.exception_handler(EntityNotFoundException)
@@ -85,9 +89,7 @@ def create_server(runtime: Runtime) -> fastapi.applications.FastAPI:
         )
         return fastapi.responses.JSONResponse(
             status_code=exc.status,
-            content=ExceptionSchema(
-                status=exc.status, msg=f"{exc.msg}"
-            ).model_dump(),
+            content=ExceptionSchema(status=exc.status, msg=f"{exc.msg}").model_dump(),
         )
 
     @app.exception_handler(EntityInvariantException)
@@ -100,9 +102,7 @@ def create_server(runtime: Runtime) -> fastapi.applications.FastAPI:
         )
         return fastapi.responses.JSONResponse(
             status_code=exc.status,
-            content=ExceptionSchema(
-                status=exc.status, msg=f"{exc.msg}"
-            ).model_dump(),
+            content=ExceptionSchema(status=exc.status, msg=f"{exc.msg}").model_dump(),
         )
 
     @app.exception_handler(sqlalchemy.exc.SQLAlchemyError)
@@ -135,6 +135,7 @@ def main(args: typing.Optional[typing.List] = None) -> int:
     db = DB(config)
     runtime = Runtime(config=config, db=db)
 
+    parsed_args = CLIArgumentsHolder(config=config)
     parser = argparse.ArgumentParser(
         add_help=True, description=f"kaso-server - {__version__}"
     )
@@ -147,15 +148,15 @@ def main(args: typing.Optional[typing.List] = None) -> int:
         dest="config",
         type=pathlib.Path,
         required=False,
-        default=default_config_file,
-        help=f"Path to the configuration file. Defaults to {default_config_file}",
+        default=parsed_args.config,
+        help=f"Path to the configuration file. Defaults to {parsed_args.config}",
     )
     parser.add_argument(
         "--host",
         dest="default_server_host",
         type=str,
         required=False,
-        default=config.default_server_host,
+        default=parsed_args.host,
         help="The host to bind to",
     )
     parser.add_argument(
@@ -163,25 +164,25 @@ def main(args: typing.Optional[typing.List] = None) -> int:
         dest="default_server_port",
         type=int,
         required=False,
-        default=config.default_server_port,
+        default=parsed_args.port,
         help="The port to bind to",
     )
 
-    args = parser.parse_args(args if args is not None else sys.argv[1:])
-    logger.setLevel(logging.DEBUG if args.debug else logging.INFO)
-    config.load(args.config)
-    config.cli_override(args)
+    parser.parse_args(args if args is not None else sys.argv[1:], namespace=parsed_args)
+    logger.setLevel(logging.DEBUG if parsed_args.debug else logging.INFO)
+    config.load(parsed_args.config)
+    config.cli_override(parsed_args)
     try:
         app = create_server(runtime)
         uvicorn.run(
             app,
             host=config.default_server_host,
             port=config.default_server_port,
-            log_config=__log_config__
+            log_config=__log_config__,
         )
         return 0
     except KeyboardInterrupt:
-        console.print('Shutting down...')
+        console.print("Shutting down...")
     except Exception:  # pylint: disable=broad-except
         console.print_exception()
     return 1
