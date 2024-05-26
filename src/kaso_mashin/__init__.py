@@ -22,7 +22,7 @@ __log_config__ = {
     "handlers": {
         "server": {
             "()": "rich.logging.RichHandler",
-            "show_time": True,
+            "show_time": False,
             "show_path": False,
             "formatter": "server",
         },
@@ -39,7 +39,7 @@ __log_config__ = {
         "kaso_mashin.cui": {"level": "INFO", "handlers": ["cui"], "propagate": False},
         "httpx": {"level": "WARNING", "handlers": ["server"]},
         "httpcore": {"level": "WARNING", "handlers": ["server"]},
-        "uvicorn": {"level": "WARNING", "handlers": ["server"]},
+        "uvicorn": {"level": "INFO", "handlers": ["server"], "propagate": False},
     },
 }
 logging.config.dictConfig(__log_config__)

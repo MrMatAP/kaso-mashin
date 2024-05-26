@@ -6,6 +6,7 @@ import dataclasses
 import enum
 import typing
 import uuid
+import logging
 
 import pydantic
 from pydantic import BaseModel, ConfigDict
@@ -156,7 +157,11 @@ class Service(abc.ABC):
     A domain service
     """
 
-    pass
+    def __init__(self, runtime: 'Runtime'):
+        self._logger = logging.getLogger(
+            f"{self.__class__.__module__}.{self.__class__.__name__}"
+        )
+        self._runtime = runtime
 
 
 T_ValueObject = typing.TypeVar("T_ValueObject", bound=ValueObject)

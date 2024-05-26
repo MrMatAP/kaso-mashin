@@ -170,6 +170,7 @@ class TaskEntity(Entity, AggregateRoot):
         if msg is not None:
             self._msg = msg
         await self.repository.modify(self)
+        await self.runtime.queue_service.queue_task(self)
 
     async def done(self, msg: str, outcome: UniqueIdentifier | None = None):
         self._percent_complete = 100

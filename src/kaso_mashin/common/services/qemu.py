@@ -8,8 +8,9 @@ from kaso_mashin.common.entities import InstanceEntity, NetworkKind, BootstrapKi
 
 class QEMUService(Service):
 
-    def __init__(self, runtime: "Runtime"):
-        self._runtime = runtime
+    def __init__(self, runtime: 'Runtime'):
+        super().__init__(runtime)
+        self._logger.info('Started QEMU service')
 
     def start_instance(self, instance: InstanceEntity) -> subprocess.Popen:
         args = [

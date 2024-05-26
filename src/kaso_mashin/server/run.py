@@ -10,7 +10,7 @@ import fastapi.staticfiles
 import uvicorn
 import sqlalchemy.exc
 
-from kaso_mashin import __version__, console, default_config_file, KasoMashinException
+from kaso_mashin import __version__, console, default_config_file, KasoMashinException, __log_config__
 from kaso_mashin.common.config import Config
 from kaso_mashin.common.base_types import ExceptionSchema
 from kaso_mashin.common import EntityNotFoundException, EntityInvariantException
@@ -174,9 +174,14 @@ def main(args: typing.Optional[typing.List] = None) -> int:
     try:
         app = create_server(runtime)
         uvicorn.run(
-            app, host=config.default_server_host, port=config.default_server_port
+            app,
+            host=config.default_server_host,
+            port=config.default_server_port,
+            log_config=__log_config__
         )
         return 0
+    except KeyboardInterrupt:
+        console.print('Shutting down...')
     except Exception:  # pylint: disable=broad-except
         console.print_exception()
     return 1
