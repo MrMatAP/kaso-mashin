@@ -15,7 +15,7 @@ from kaso_mashin.common import (
     EntityNotFoundException,
 )
 from kaso_mashin.common.entities import TaskGetSchema
-from kaso_mashin.common.base_types import ExceptionSchema
+from kaso_mashin.common.base_types import ExceptionSchema, Entity, AggregateRoot
 
 
 class BaseAPI(
@@ -132,7 +132,7 @@ class BaseAPI(
             ),
         ],
     ) -> T_EntityGetSchema:
-        entity = await self.repository.get_by_uid(uid)
+        entity: T_EntityGetSchema = await self.repository.get_by_uid(uid)
         if not entity:
             raise EntityNotFoundException(status=404, msg="No such entity")
         return self._get_schema_type.model_validate(entity)
@@ -179,7 +179,7 @@ class BaseAPI(
         response: fastapi.Response,
     ):
         try:
-            entity = await self.repository.get_by_uid(uid)
+            entity: AggregateRoot = await self.repository.get_by_uid(uid)
             await entity.remove()
             response.status_code = 204
         except EntityNotFoundException:

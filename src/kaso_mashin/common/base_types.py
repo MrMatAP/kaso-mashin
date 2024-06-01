@@ -129,6 +129,14 @@ class EntitySchema(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
 
+class GetSchema(EntitySchema):
+    pass
+
+
+class ModifySchema(EntitySchema):
+    pass
+
+
 class ExceptionSchema(pydantic.BaseModel):
     """
     Schema for an exception
@@ -231,6 +239,12 @@ class AggregateRoot(typing.Generic[T_EntityModel, T_Entity]):
     @staticmethod
     @abc.abstractmethod
     async def create(**kwargs) -> "T_AggregateRoot":
+        pass
+
+    async def modify(self, schema: ModifySchema) -> "T_AggregateRoot":
+        pass
+
+    async def remove(self):
         pass
 
     @staticmethod
