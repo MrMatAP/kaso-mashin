@@ -277,13 +277,14 @@ class ImageEntity(Entity, AggregateRoot):
             size = int(resp.headers.get("content-length"))
             current = 0
             client = httpx.AsyncClient(follow_redirects=True, timeout=60)
+            chunk_size = 32784  # 8196
             async with (
                 client.stream("GET", url=url) as resp,
                 aiofiles.open(path, mode="wb") as file,
             ):
-                async for chunk in resp.aiter_bytes(chunk_size=8196):
+                async for chunk in resp.aiter_bytes(chunk_size=chunk_size):
                     await file.write(chunk)
-                    current += 8196
+                    current += chunk_size
                     completed = int(current / size * 100)
                     await task.progress(percent_complete=completed, msg=f"Downloaded {completed}%")
             shutil.chown(path, user)
