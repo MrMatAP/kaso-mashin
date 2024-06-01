@@ -143,7 +143,8 @@ async def test_context_empty() -> KasoTestContext:
     """
     temp_dir = pathlib.Path(
         tempfile.mkdtemp(
-            prefix="kaso-test", dir=pathlib.Path(__file__).parent.joinpath("build")
+            prefix="kaso-test",
+            dir=pathlib.Path(__file__).parent.parent.joinpath("build"),
         )
     )
     config_file = temp_dir.joinpath(".kaso")
@@ -174,7 +175,8 @@ async def test_context_seeded() -> KasoTestContext:
     """
     temp_dir = pathlib.Path(
         tempfile.mkdtemp(
-            prefix="kaso-test", dir=pathlib.Path(__file__).parent.joinpath("build")
+            prefix="kaso-test",
+            dir=pathlib.Path(__file__).parent.parent.joinpath("build"),
         )
     )
     config_file = temp_dir.joinpath(".kaso")
