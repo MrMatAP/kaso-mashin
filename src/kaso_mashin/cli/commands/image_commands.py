@@ -47,14 +47,12 @@ class ImageCommands(BaseCommands[ImageListSchema, ImageGetSchema]):
             "--uid", dest="uid", type=UniqueIdentifier, help="The image uid"
         )
         image_get_parser.set_defaults(cmd=self.get)
-        image_create_parser = image_subparser.add_parser(
-            name="create", help="Create an image"
-        )
+        image_create_parser = image_subparser.add_parser(name="create", help="Create an image")
         image_create_parser.add_argument(
             "-n", "--name", dest="name", type=str, required=True, help="The image name"
         )
-        image_create_predefined_or_url = (
-            image_create_parser.add_mutually_exclusive_group(required=True)
+        image_create_predefined_or_url = image_create_parser.add_mutually_exclusive_group(
+            required=True
         )
         image_create_predefined_or_url.add_argument(
             "--url", dest="url", type=str, help="Provide the URL to the cloud image"
@@ -102,9 +100,7 @@ class ImageCommands(BaseCommands[ImageListSchema, ImageGetSchema]):
             help="Scale of the minimum disk space specification",
         )
         image_create_parser.set_defaults(cmd=self.create)
-        image_modify_parser = image_subparser.add_parser(
-            name="modify", help="Modify an image"
-        )
+        image_modify_parser = image_subparser.add_parser(name="modify", help="Modify an image")
         image_modify_parser.add_argument(
             "--uid", dest="uid", type=uuid.UUID, required=True, help="The image uid"
         )
@@ -149,9 +145,7 @@ class ImageCommands(BaseCommands[ImageListSchema, ImageGetSchema]):
             help="Scale of the minimum disk space specification",
         )
         image_modify_parser.set_defaults(cmd=self.modify)
-        image_remove_parser = image_subparser.add_parser(
-            name="remove", help="Remove an image"
-        )
+        image_remove_parser = image_subparser.add_parser(name="remove", help="Remove an image")
         image_remove_parser.add_argument(
             "--uid", dest="uid", type=uuid.UUID, required=True, help="The image uid"
         )
@@ -208,9 +202,7 @@ class ImageCommands(BaseCommands[ImageListSchema, ImageGetSchema]):
                     console.print(f"[red]ERROR[/red]: {task.msg}")
                     return 1
                 else:
-                    progress.update(
-                        download_task, completed=task.percent_complete, refresh=True
-                    )
+                    progress.update(download_task, completed=task.percent_complete, refresh=True)
                 time.sleep(2)
         return 0
 

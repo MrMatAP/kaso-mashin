@@ -60,9 +60,7 @@ class InstanceCreateSchema(EntitySchema):
     Schema to create an instance
     """
 
-    name: str = Field(
-        description="The instance name", examples=["k8s-master", "your-mom"]
-    )
+    name: str = Field(description="The instance name", examples=["k8s-master", "your-mom"])
     vcpu: int = Field(description="Number of virtual CPU cores", examples=[2])
     ram: BinarySizedValue = Field(
         description="Amount of RAM",
@@ -92,9 +90,7 @@ class InstanceGetSchema(EntitySchema):
         description="The unique identifier of the instance",
         examples=["b430727e-2491-4184-bb4f-c7d6d213e093"],
     )
-    name: str = Field(
-        description="The instance name", examples=["k8s-master", "your-mom"]
-    )
+    name: str = Field(description="The instance name", examples=["k8s-master", "your-mom"])
     path: pathlib.Path = Field(description="Path of the instance on the local disk")
     vcpu: int = Field(description="Number of virtual CPU cores", examples=[2])
     ram: BinarySizedValue = Field(
@@ -160,9 +156,7 @@ class InstanceModifySchema(EntitySchema):
     Schema to modify an existing instance
     """
 
-    state: typing.Optional[InstanceState] = Field(
-        description="The state of the instance"
-    )
+    state: typing.Optional[InstanceState] = Field(description="The state of the instance")
 
 
 class InstanceModel(EntityModel):
@@ -179,15 +173,9 @@ class InstanceModel(EntityModel):
     ram: Mapped[int] = mapped_column(Integer, default=2)
     ram_scale: Mapped[str] = mapped_column(Enum(BinaryScale), default=BinaryScale.G)
     mac: Mapped[str] = mapped_column(String)
-    network_uid: Mapped[str] = mapped_column(
-        UUID(as_uuid=True).with_variant(String(32), "sqlite")
-    )
-    image_uid: Mapped[str] = mapped_column(
-        UUID(as_uuid=True).with_variant(String(32), "sqlite")
-    )
-    os_disk_uid: Mapped[str] = mapped_column(
-        UUID(as_uuid=True).with_variant(String(32), "sqlite")
-    )
+    network_uid: Mapped[str] = mapped_column(UUID(as_uuid=True).with_variant(String(32), "sqlite"))
+    image_uid: Mapped[str] = mapped_column(UUID(as_uuid=True).with_variant(String(32), "sqlite"))
+    os_disk_uid: Mapped[str] = mapped_column(UUID(as_uuid=True).with_variant(String(32), "sqlite"))
     bootstrap_uid: Mapped[str] = mapped_column(
         UUID(as_uuid=True).with_variant(String(32), "sqlite")
     )
@@ -351,15 +339,9 @@ class InstanceEntity(Entity, AggregateRoot):
     @staticmethod
     async def from_model(model: InstanceModel) -> "InstanceEntity":
         # TODO: Internal consistency. This will fail if the disk is dead
-        image = await ImageEntity.repository.get_by_uid(
-            UniqueIdentifier(model.image_uid)
-        )
-        os_disk = await DiskEntity.repository.get_by_uid(
-            UniqueIdentifier(model.os_disk_uid)
-        )
-        network = await NetworkEntity.repository.get_by_uid(
-            UniqueIdentifier(model.network_uid)
-        )
+        image = await ImageEntity.repository.get_by_uid(UniqueIdentifier(model.image_uid))
+        os_disk = await DiskEntity.repository.get_by_uid(UniqueIdentifier(model.os_disk_uid))
+        network = await NetworkEntity.repository.get_by_uid(UniqueIdentifier(model.network_uid))
         bootstrap = await BootstrapEntity.repository.get_by_uid(
             UniqueIdentifier(model.bootstrap_uid)
         )

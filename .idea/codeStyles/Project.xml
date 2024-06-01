@@ -48,6 +48,9 @@
     <codeStyleSettings language="Markdown">
       <option name="SOFT_MARGINS" value="120" />
     </codeStyleSettings>
+    <codeStyleSettings language="Python">
+      <option name="RIGHT_MARGIN" value="100" />
+    </codeStyleSettings>
     <codeStyleSettings language="TypeScript">
       <option name="SOFT_MARGINS" value="80" />
       <indentOptions>

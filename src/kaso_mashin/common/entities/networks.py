@@ -107,9 +107,7 @@ class NetworkListSchema(EntitySchema):
         table.add_column("[blue]Name")
         table.add_column("[blue]CIDR")
         for entry in self.entries:
-            table.add_row(
-                str(entry.uid), str(entry.kind.value), entry.name, str(entry.cidr)
-            )
+            table.add_row(str(entry.uid), str(entry.kind.value), entry.name, str(entry.cidr))
         return table
 
 

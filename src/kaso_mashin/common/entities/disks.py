@@ -99,9 +99,7 @@ class DiskListSchema(EntitySchema):
     Schema to list disks
     """
 
-    entries: typing.List[DiskGetSchema] = Field(
-        description="List of disks", default_factory=list
-    )
+    entries: typing.List[DiskGetSchema] = Field(description="List of disks", default_factory=list)
 
     def __rich__(self):
         table = rich.table.Table(box=rich.box.ROUNDED)
@@ -251,9 +249,7 @@ class DiskEntity(Entity, AggregateRoot):
         if path.exists():
             raise DiskException(status=400, msg=f"Disk at {path} already exists")
         if image is not None and size < image.min_disk:
-            raise DiskException(
-                status=400, msg=f"Disk size is less than image minimum size"
-            )
+            raise DiskException(status=400, msg=f"Disk size is less than image minimum size")
         try:
             path.parent.mkdir(parents=True, exist_ok=True)
             args = ["/opt/homebrew/bin/qemu-img", "create", "-f", str(disk_format)]
@@ -261,20 +257,14 @@ class DiskEntity(Entity, AggregateRoot):
                 args.extend(["-F", str(disk_format), "-b", str(image.path)])
             args.extend([str(path), str(size)])
             subprocess.run(args, check=True)
-            disk = DiskEntity(
-                name=name, path=path, size=size, disk_format=disk_format, image=image
-            )
+            disk = DiskEntity(name=name, path=path, size=size, disk_format=disk_format, image=image)
             return await DiskEntity.repository.create(disk)
         except subprocess.CalledProcessError as e:
             path.unlink(missing_ok=True)
-            raise DiskException(
-                status=500, msg=f"Failed to create disk: {e.output}"
-            ) from e
+            raise DiskException(status=500, msg=f"Failed to create disk: {e.output}") from e
         except EntityNotFoundException as e:
             path.unlink(missing_ok=True)
-            raise DiskException(
-                status=400, msg=f"The provided image does not exist"
-            ) from e
+            raise DiskException(status=400, msg=f"The provided image does not exist") from e
         except PermissionError as e:
             path.unlink(missing_ok=True)
             raise DiskException(
@@ -299,9 +289,7 @@ class DiskEntity(Entity, AggregateRoot):
             await DiskEntity.repository.modify(self)
             return self
         except subprocess.CalledProcessError as e:
-            raise DiskException(
-                status=500, msg=f"Failed to resize disk: {e.output}"
-            ) from e
+            raise DiskException(status=500, msg=f"Failed to resize disk: {e.output}") from e
 
     async def modify(self, schema: DiskModifySchema) -> "DiskEntity":
         if schema.size is not None:

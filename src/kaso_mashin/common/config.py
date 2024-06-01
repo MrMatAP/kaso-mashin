@@ -52,9 +52,7 @@ class ConfigSchema(EntitySchema):
     bootstrap_path: pathlib.Path = pydantic.Field(
         description="Path on the local disk where bootstrap templates are stored"
     )
-    default_os_disk_size: str = pydantic.Field(
-        description="Default OS disk size", examples=["5G"]
-    )
+    default_os_disk_size: str = pydantic.Field(description="Default OS disk size", examples=["5G"])
     default_phone_home_port: int = pydantic.Field(
         description="Default phone home port", examples=[10200]
     )
@@ -79,14 +77,10 @@ class ConfigSchema(EntitySchema):
     default_server_host: str = pydantic.Field(
         description="Default server host", examples=["127.0.0.1"]
     )
-    default_server_port: int = pydantic.Field(
-        description="Default server port", examples=[8000]
-    )
+    default_server_port: int = pydantic.Field(description="Default server port", examples=[8000])
     uefi_code_url: str = pydantic.Field(description="URL to the UEFI code")
     uefi_vars_url: str = pydantic.Field(description="URL to the UEFI vars")
-    butane_path: pathlib.Path = pydantic.Field(
-        description="Path the local butane installation"
-    )
+    butane_path: pathlib.Path = pydantic.Field(description="Path the local butane installation")
     qemu_aarch64_path: pathlib.Path = pydantic.Field(
         description="Path to the local qemu-aarch64 installation"
     )
@@ -142,9 +136,7 @@ class Config:
     Configuration handling for kaso_mashin
     """
 
-    path: pathlib.Path = dataclasses.field(
-        default=pathlib.Path("~/var/kaso").expanduser()
-    )
+    path: pathlib.Path = dataclasses.field(default=pathlib.Path("~/var/kaso").expanduser())
     images_path: pathlib.Path = dataclasses.field(
         default=pathlib.Path("~/var/kaso/images").expanduser()
     )
@@ -170,20 +162,14 @@ class Config:
     uefi_vars_url: str = dataclasses.field(
         default="https://stable.release.flatcar-linux.net/arm64-usr/current/flatcar_production_qemu_uefi_efi_vars.fd"
     )
-    butane_path: pathlib.Path = dataclasses.field(
-        default=pathlib.Path("/opt/homebrew/bin/butane")
-    )
+    butane_path: pathlib.Path = dataclasses.field(default=pathlib.Path("/opt/homebrew/bin/butane"))
     qemu_aarch64_path: pathlib.Path = dataclasses.field(
         default=pathlib.Path("/opt/homebrew/bin/qemu-system-aarch64")
     )
-    predefined_images: typing.List[PredefinedImageSchema] = dataclasses.field(
-        default_factory=list
-    )
+    predefined_images: typing.List[PredefinedImageSchema] = dataclasses.field(default_factory=list)
 
     def __init__(self, config_file: typing.Optional[pathlib.Path] = None):
-        self._logger = logging.getLogger(
-            f"{self.__class__.__module__}.{self.__class__.__name__}"
-        )
+        self._logger = logging.getLogger(f"{self.__class__.__module__}.{self.__class__.__name__}")
         self.predefined_images = Predefined_Images
         if config_file:
             self.load(config_file)
@@ -227,16 +213,12 @@ class Config:
 
     def save(self, config_file: pathlib.Path):
         self._logger.debug("Saving configuration at %s", config_file)
-        configured = {
-            field.name: getattr(self, field.name) for field in dataclasses.fields(self)
-        }
+        configured = {field.name: getattr(self, field.name) for field in dataclasses.fields(self)}
         try:
             with open(config_file, "w+", encoding="UTF-8") as c:
                 yaml.dump(configured, c, Dumper=Dumper)
         except yaml.YAMLError as exc:
-            raise KasoMashinException(
-                status=500, msg="Failed to save config file"
-            ) from exc
+            raise KasoMashinException(status=500, msg="Failed to save config file") from exc
 
     @property
     def server_url(self) -> str:

@@ -43,9 +43,7 @@ class ImageCreateSchema(EntitySchema):
     Schema to create an image
     """
 
-    name: str = Field(
-        description="The image name", examples=["ubuntu", "flatpack", "debian"]
-    )
+    name: str = Field(description="The image name", examples=["ubuntu", "flatpack", "debian"])
     url: str = Field(
         description="URL from which the image is sourced",
         examples=[
@@ -98,9 +96,7 @@ class ImageListSchema(EntitySchema):
     Schema to list images
     """
 
-    entries: typing.List[ImageGetSchema] = Field(
-        description="List of images", default_factory=list
-    )
+    entries: typing.List[ImageGetSchema] = Field(description="List of images", default_factory=list)
 
     def __rich__(self):
         table = rich.table.Table(box=rich.box.ROUNDED)
@@ -149,9 +145,7 @@ class ImageModel(EntityModel):
     min_ram: Mapped[int] = mapped_column(Integer, default=0)
     min_ram_scale: Mapped[str] = mapped_column(Enum(BinaryScale), default=BinaryScale.G)
     min_disk: Mapped[int] = mapped_column(Integer, default=0)
-    min_disk_scale: Mapped[str] = mapped_column(
-        Enum(BinaryScale), default=BinaryScale.G
-    )
+    min_disk_scale: Mapped[str] = mapped_column(Enum(BinaryScale), default=BinaryScale.G)
 
 
 class ImageEntity(Entity, AggregateRoot):
@@ -231,9 +225,7 @@ class ImageEntity(Entity, AggregateRoot):
             url=model.url,
             path=pathlib.Path(model.path),
             min_vcpu=model.min_vcpu,
-            min_ram=BinarySizedValue(
-                value=model.min_ram, scale=BinaryScale(model.min_ram_scale)
-            ),
+            min_ram=BinarySizedValue(value=model.min_ram, scale=BinaryScale(model.min_ram_scale)),
             min_disk=BinarySizedValue(
                 value=model.min_disk, scale=BinaryScale(model.min_disk_scale)
             ),
@@ -293,9 +285,7 @@ class ImageEntity(Entity, AggregateRoot):
                     await file.write(chunk)
                     current += 8196
                     completed = int(current / size * 100)
-                    await task.progress(
-                        percent_complete=completed, msg=f"Downloaded {completed}%"
-                    )
+                    await task.progress(percent_complete=completed, msg=f"Downloaded {completed}%")
             shutil.chown(path, user)
             image = ImageEntity(
                 name=name,
@@ -309,18 +299,14 @@ class ImageEntity(Entity, AggregateRoot):
             await task.done(msg="Successfully downloaded", outcome=outcome.uid)
             return outcome
         except PermissionError as e:
-            await task.fail(
-                msg=f"You have no permission to create an image at path {path}"
-            )
+            await task.fail(msg=f"You have no permission to create an image at path {path}")
             raise ImageException(
                 status=400,
                 msg=f"You have no permission to create an image at path {path}",
             ) from e
         except Exception as e:
             await task.fail(msg=f"Exception occurred while downloading {e}")
-            raise ImageException(
-                status=500, msg=f"Exception occurred while downloading {e}"
-            )
+            raise ImageException(status=500, msg=f"Exception occurred while downloading {e}")
 
     async def modify(self, schema: ImageModifySchema):
         if schema.name is not None:

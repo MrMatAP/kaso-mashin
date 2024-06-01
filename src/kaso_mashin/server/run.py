@@ -67,9 +67,7 @@ def create_server(runtime: Runtime) -> fastapi.applications.FastAPI:
         return response
 
     @app.exception_handler(KasoMashinException)
-    async def kaso_mashin_exception_handler(
-        request: fastapi.Request, exc: KasoMashinException
-    ):
+    async def kaso_mashin_exception_handler(request: fastapi.Request, exc: KasoMashinException):
         del request
         logging.getLogger("kaso_mashin.server").error(
             "(%s) %s", exc.status, f"{exc.__class__.__name__}: {exc.msg}"
@@ -110,14 +108,10 @@ def create_server(runtime: Runtime) -> fastapi.applications.FastAPI:
         request: fastapi.Request, exc: sqlalchemy.exc.SQLAlchemyError
     ):
         del request  # pylint: disable=unused-argument
-        logging.getLogger("kaso_mashin.server").error(
-            "(500) Database exception %s", str(exc)
-        )
+        logging.getLogger("kaso_mashin.server").error("(500) Database exception %s", str(exc))
         return fastapi.responses.JSONResponse(
             status_code=500,
-            content=ExceptionSchema(
-                status=500, msg=f"Database exception {exc}"
-            ).model_dump(),
+            content=ExceptionSchema(status=500, msg=f"Database exception {exc}").model_dump(),
         )
 
     return app
@@ -136,12 +130,8 @@ def main(args: typing.Optional[typing.List] = None) -> int:
     runtime = Runtime(config=config, db=db)
 
     parsed_args = CLIArgumentsHolder(config=config)
-    parser = argparse.ArgumentParser(
-        add_help=True, description=f"kaso-server - {__version__}"
-    )
-    parser.add_argument(
-        "-d", "--debug", action="store_true", dest="debug", help="Debug"
-    )
+    parser = argparse.ArgumentParser(add_help=True, description=f"kaso-server - {__version__}")
+    parser.add_argument("-d", "--debug", action="store_true", dest="debug", help="Debug")
     parser.add_argument(
         "-c",
         "--config",

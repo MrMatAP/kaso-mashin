@@ -72,15 +72,11 @@ class BinarySizedValue(pydantic.BaseModel):
     def at_scale(self, scale: BinaryScale = BinaryScale.M) -> "BinarySizedValue":
         if self.scale == scale:
             return self
-        scale_difference = BinaryScale.scale_value(
-            self.scale
-        ) - BinaryScale.scale_value(scale)
+        scale_difference = BinaryScale.scale_value(self.scale) - BinaryScale.scale_value(scale)
         if scale_difference == 0:
             return self
         if scale_difference > 0:
-            return BinarySizedValue(
-                scale=scale, value=int(self.value * (1024**scale_difference))
-            )
+            return BinarySizedValue(scale=scale, value=int(self.value * (1024 ** scale_difference)))
         return BinarySizedValue(
             scale=scale, value=int(self.value / (1024 ** abs(scale_difference)))
         )
@@ -99,12 +95,10 @@ class BinarySizedValue(pydantic.BaseModel):
                     BinaryScale.k,
                 ],
                 self.scale == BinaryScale.P
-                and other.scale
-                in [BinaryScale.T, BinaryScale.G, BinaryScale.M, BinaryScale.k],
+                and other.scale in [BinaryScale.T, BinaryScale.G, BinaryScale.M, BinaryScale.k],
                 self.scale == BinaryScale.T
                 and other.scale in [BinaryScale.G, BinaryScale.M, BinaryScale.k],
-                self.scale == BinaryScale.G
-                and other.scale in [BinaryScale.M, BinaryScale.k],
+                self.scale == BinaryScale.G and other.scale in [BinaryScale.M, BinaryScale.k],
                 self.scale == BinaryScale.M and other.scale == BinaryScale.k,
             ]
         ):
@@ -169,9 +163,7 @@ class Service(abc.ABC):
     """
 
     def __init__(self, runtime: "Runtime"):
-        self._logger = logging.getLogger(
-            f"{self.__class__.__module__}.{self.__class__.__name__}"
-        )
+        self._logger = logging.getLogger(f"{self.__class__.__module__}.{self.__class__.__name__}")
         self._runtime = runtime
 
 

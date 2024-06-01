@@ -92,9 +92,7 @@ class IdentityListSchema(EntitySchema):
         table.add_column("[blue]Name")
         table.add_column("[blue]Gecos")
         for entry in self.entries:
-            table.add_row(
-                str(entry.uid), str(entry.kind.value), entry.name, entry.gecos
-            )
+            table.add_row(str(entry.uid), str(entry.kind.value), entry.name, entry.gecos)
         return table
 
 
@@ -109,17 +107,11 @@ class IdentityModifySchema(EntitySchema):
         optional=True,
         default=None,
     )
-    kind: IdentityKind = Field(
-        description="The identity kind", optional=True, default=None
-    )
+    kind: IdentityKind = Field(description="The identity kind", optional=True, default=None)
     gecos: str = Field(description="The identity GECOS", optional=True, default=None)
-    homedir: pathlib.Path = Field(
-        description="The home directory", optional=True, default=None
-    )
+    homedir: pathlib.Path = Field(description="The home directory", optional=True, default=None)
     shell: str = Field(description="The identity shell", optional=True, default=None)
-    credential: str = Field(
-        description="The identity credential", optional=True, default=None
-    )
+    credential: str = Field(description="The identity credential", optional=True, default=None)
 
 
 class IdentityModel(EntityModel):

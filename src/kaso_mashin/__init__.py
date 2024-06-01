@@ -45,9 +45,7 @@ __log_config__ = {
 logging.config.dictConfig(__log_config__)
 log = logging.getLogger(__name__)
 
-default_config_file = pathlib.Path(
-    os.environ.get("KASO_MASHIN_CONFIG", "~/.kaso")
-).expanduser()
+default_config_file = pathlib.Path(os.environ.get("KASO_MASHIN_CONFIG", "~/.kaso")).expanduser()
 
 
 class Base(DeclarativeBase):  # pylint: disable=too-few-public-methods
@@ -61,9 +59,7 @@ class KasoMashinException(Exception):
     A dedicated exception for mrmat-playground
     """
 
-    def __init__(
-        self, status: int = 500, msg: str = "An unknown exception occurred", task=None
-    ):
+    def __init__(self, status: int = 500, msg: str = "An unknown exception occurred", task=None):
         super().__init__(msg)
         self._status = status
         self._msg = msg

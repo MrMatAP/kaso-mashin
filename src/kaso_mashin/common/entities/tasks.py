@@ -45,9 +45,7 @@ class TaskGetSchema(EntitySchema):
         description="The current state of the task",
         examples=[TaskState.RUNNING, TaskState.DONE],
     )
-    msg: str = Field(
-        description="Task status message", examples=["Downloaded 10% of the image"]
-    )
+    msg: str = Field(description="Task status message", examples=["Downloaded 10% of the image"])
     percent_complete: int = Field(description="Task completion", examples=[12, 100])
     outcome: UniqueIdentifier | None = Field(
         description="The resulting uid of the task if applicable"
@@ -70,9 +68,7 @@ class TaskListSchema(EntitySchema):
     Schema to list tasks
     """
 
-    entries: typing.List[TaskGetSchema] = Field(
-        description="List of tasks", default_factory=list
-    )
+    entries: typing.List[TaskGetSchema] = Field(description="List of tasks", default_factory=list)
 
     def __rich__(self):
         table = rich.table.Table(box=rich.box.ROUNDED)

@@ -13,7 +13,6 @@ import tempfile
 import fastapi
 import fastapi.testclient
 
-
 from kaso_mashin.server.run import create_server
 from kaso_mashin.server.db import DB
 from kaso_mashin.server.runtime import Runtime
@@ -35,9 +34,7 @@ from kaso_mashin.common.entities import (
     NetworkModel,
 )
 
-KasoTestContext = collections.namedtuple(
-    "KasoTestContext", "config db runtime server client"
-)
+KasoTestContext = collections.namedtuple("KasoTestContext", "config db runtime server client")
 
 
 class BaseTest(typing.Generic[T_EntityModel, T_Entity, T_EntityGetSchema], abc.ABC):
@@ -51,15 +48,11 @@ class BaseTest(typing.Generic[T_EntityModel, T_Entity, T_EntityGetSchema], abc.A
         return matches[0]
 
     @abc.abstractmethod
-    def assert_get_by_model(
-        self, obj: T_EntityGetSchema | T_Entity, model: T_EntityModel
-    ):
+    def assert_get_by_model(self, obj: T_EntityGetSchema | T_Entity, model: T_EntityModel):
         pass
 
     @abc.abstractmethod
-    def assert_list_by_model(
-        self, obj: T_EntityListSchema | T_Entity, model: T_EntityModel
-    ):
+    def assert_list_by_model(self, obj: T_EntityListSchema | T_Entity, model: T_EntityModel):
         pass
 
 

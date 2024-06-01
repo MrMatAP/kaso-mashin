@@ -24,9 +24,7 @@ class BaseCommands(typing.Generic[T_EntityListSchema, T_EntityGetSchema], abc.AB
         self._prefix: str
         self._list_schema_type: typing.Type[T_EntityListSchema]
         self._get_schema_type: typing.Type[T_EntityGetSchema]
-        self._logger = logging.getLogger(
-            f"{self.__class__.__module__}.{self.__class__.__name__}"
-        )
+        self._logger = logging.getLogger(f"{self.__class__.__module__}.{self.__class__.__name__}")
         self._logger.debug("Started")
 
     @abc.abstractmethod
@@ -127,11 +125,7 @@ class BaseCommands(typing.Generic[T_EntityListSchema, T_EntityGetSchema], abc.AB
         try:
             if expected_status is None:
                 expected_status = [200]
-            content = (
-                schema.model_dump_json(exclude_unset=True)
-                if schema is not None
-                else None
-            )
+            content = schema.model_dump_json(exclude_unset=True) if schema is not None else None
             resp = httpx.request(
                 url=f"{self.config.server_url}{uri}",
                 method=method,
@@ -139,9 +133,7 @@ class BaseCommands(typing.Generic[T_EntityListSchema, T_EntityGetSchema], abc.AB
                 timeout=120,
             )
             if resp.status_code not in expected_status:
-                table = rich.table.Table(
-                    title="ERROR", box=rich.box.ROUNDED, show_header=False
-                )
+                table = rich.table.Table(title="ERROR", box=rich.box.ROUNDED, show_header=False)
                 table.add_row("[red]Status:", str(resp.status_code))
                 try:
                     ex = ExceptionSchema.model_validate_json(resp.content)

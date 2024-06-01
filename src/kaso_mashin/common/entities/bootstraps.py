@@ -49,9 +49,7 @@ class BootstrapGetSchema(EntitySchema):
         examples=["b430727e-2491-4184-bb4f-c7d6d213e093"],
     )
     name: str = Field(description="The bootstrap name", examples=["k8s-master"])
-    kind: BootstrapKind = Field(
-        description="The bootstrap kind", examples=[BootstrapKind.IGNITION]
-    )
+    kind: BootstrapKind = Field(description="The bootstrap kind", examples=[BootstrapKind.IGNITION])
     content: str = Field(description="The bootstrap content template")
     required_keys: typing.List[str] = Field(
         description="Required keys to render this bootstrap template"
@@ -94,9 +92,7 @@ class BootstrapCreateSchema(EntitySchema):
     """
 
     name: str = Field(description="The bootstrap name", examples=["k8s-master"])
-    kind: BootstrapKind = Field(
-        description="The bootstrap kind", examples=[BootstrapKind.IGNITION]
-    )
+    kind: BootstrapKind = Field(description="The bootstrap kind", examples=[BootstrapKind.IGNITION])
     content: str = Field(description="The bootstrap content template")
 
 
@@ -106,9 +102,7 @@ class BootstrapModifySchema(EntitySchema):
     """
 
     name: str = Field(description="The bootstrap name", examples=["k8s-master"])
-    kind: BootstrapKind = Field(
-        description="The bootstrap kind", examples=[BootstrapKind.IGNITION]
-    )
+    kind: BootstrapKind = Field(description="The bootstrap kind", examples=[BootstrapKind.IGNITION])
     content: str = Field(description="The bootstrap content template")
 
 
@@ -133,9 +127,7 @@ class BootstrapEntity(Entity, AggregateRoot):
         self._name = name
         self._kind = kind
         self._content = content
-        self._template = jinja2.Environment(enable_async=True).from_string(
-            self._content
-        )
+        self._template = jinja2.Environment(enable_async=True).from_string(self._content)
         ast = jinja2.Environment().parse(self._content)
         self._required_keys = jinja2.meta.find_undeclared_variables(ast)
 
@@ -155,9 +147,7 @@ class BootstrapEntity(Entity, AggregateRoot):
     def required_keys(self) -> typing.Set:
         return self._required_keys
 
-    async def render(
-        self, kv: typing.Dict[str, typing.Any], bootstrap_file: pathlib.Path
-    ):
+    async def render(self, kv: typing.Dict[str, typing.Any], bootstrap_file: pathlib.Path):
         try:
             rendered = await self._template.render_async(kv)
             if self.kind == BootstrapKind.IGNITION:
@@ -176,9 +166,7 @@ class BootstrapEntity(Entity, AggregateRoot):
         except jinja2.TemplateError as te:
             raise BootstrapException(status=400, msg="Templating error") from te
         except subprocess.CalledProcessError as e:
-            raise BootstrapException(
-                status=500, msg="Failed to render bootstrap"
-            ) from e
+            raise BootstrapException(status=500, msg="Failed to render bootstrap") from e
         except Exception as e:
             raise BootstrapException(status=500, msg="Unknown error") from e
 
@@ -193,11 +181,7 @@ class BootstrapEntity(Entity, AggregateRoot):
         )
 
     def __repr__(self) -> str:
-        return (
-            f"BootstrapEntity(uid={self.uid}, "
-            f"name={self.name},"
-            f"kind={self.kind})>"
-        )
+        return f"BootstrapEntity(uid={self.uid}, " f"name={self.name}," f"kind={self.kind})>"
 
     @staticmethod
     async def from_model(model: BootstrapModel) -> "BootstrapEntity":

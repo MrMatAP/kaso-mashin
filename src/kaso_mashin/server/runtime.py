@@ -53,9 +53,7 @@ class Runtime:
     """
 
     def __init__(self, config: Config, db: DB):
-        self._logger = logging.getLogger(
-            f"{self.__class__.__module__}.{self.__class__.__name__}"
-        )
+        self._logger = logging.getLogger(f"{self.__class__.__module__}.{self.__class__.__name__}")
         self._config = config
         self._db = db
         self._effective_user = getpass.getuser()
@@ -130,9 +128,7 @@ class Runtime:
 
     async def lifespan_networks(self):
         self._logger.info(f"Lifespan Networks started")
-        host_network = await self.network_repository.get_by_name(
-            DEFAULT_HOST_NETWORK_NAME
-        )
+        host_network = await self.network_repository.get_by_name(DEFAULT_HOST_NETWORK_NAME)
         if not host_network:
             await NetworkEntity.create(
                 name=DEFAULT_HOST_NETWORK_NAME,
@@ -140,9 +136,7 @@ class Runtime:
                 cidr=IPv4Network("10.1.0.0/24"),
                 gateway=ipaddress.IPv4Address("10.1.0.1"),
             )
-        shared_network = await self.network_repository.get_by_name(
-            DEFAULT_SHARED_NETWORK_NAME
-        )
+        shared_network = await self.network_repository.get_by_name(DEFAULT_SHARED_NETWORK_NAME)
         if not shared_network:
             await NetworkEntity.create(
                 name=DEFAULT_SHARED_NETWORK_NAME,
@@ -150,9 +144,7 @@ class Runtime:
                 cidr=ipaddress.IPv4Network("10.2.0.0/24"),
                 gateway=ipaddress.IPv4Address("10.2.0.1"),
             )
-        bridged_network = await self.network_repository.get_by_name(
-            DEFAULT_BRIDGED_NETWORK_NAME
-        )
+        bridged_network = await self.network_repository.get_by_name(DEFAULT_BRIDGED_NETWORK_NAME)
         if not bridged_network:
             await NetworkEntity.create(
                 name=DEFAULT_BRIDGED_NETWORK_NAME,

@@ -110,9 +110,7 @@ class BaseAPI(
                 410: {"model": None, "description": "The entity was already gone"},
             },
         )
-        self._logger = logging.getLogger(
-            f"{self.__class__.__module__}.{self.__class__.__name__}"
-        )
+        self._logger = logging.getLogger(f"{self.__class__.__module__}.{self.__class__.__name__}")
         self._logger.info(f"Started API Router for {name}")
 
     async def list(self) -> T_EntityListSchema:
