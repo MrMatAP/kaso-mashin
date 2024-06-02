@@ -1,9 +1,14 @@
 <script lang="ts" setup>
 import { ref } from "vue";
 import { useConfigStore } from "@/store/config";
-import TasksNotifier from "@/components/TasksNotifier.vue";
+import { useTaskStore } from "@/store/tasks";
+import { useErrorStore } from "@/store/errors";
+import TaskCards from "@/components/TaskCards.vue";
+import ErrorCards from "@/components/ErrorCards.vue";
 
 const configStore = useConfigStore();
+const taskStore = useTaskStore();
+const errorStore = useErrorStore();
 const drawerOpen = ref(false);
 
 async function onToggleDrawer() {
@@ -15,33 +20,15 @@ async function onToggleDrawer() {
   <q-layout>
     <q-header elevated height-hint="58" class="bg-white text-grey-8 q-py-xs">
       <q-toolbar>
-        <q-btn
-          flat
-          dense
-          round
-          @click="onToggleDrawer"
-          aria-label="Menu"
-          icon="menu"
-        />
+        <q-btn flat dense round @click="onToggleDrawer" aria-label="Menu" icon="menu" />
         <q-btn flat no-caps no-wrap v-if="$q.screen.gt.xs">
-          <q-toolbar-title shrink class="text-weight-bold"
-            >Kaso :: Mashin</q-toolbar-title
-          >
+          <q-toolbar-title shrink class="text-weight-bold">Kaso :: Mashin</q-toolbar-title>
         </q-btn>
         <q-space />
-        <div class="q-gutter-sm row items-center no-wrap">
-          <TasksNotifier/>
-        </div>
       </q-toolbar>
     </q-header>
 
-    <q-drawer
-      :v-model="drawerOpen"
-      show-if-above
-      bordered
-      class="bg-grey-2"
-      :width="240"
-    >
+    <q-drawer :v-model="drawerOpen" show-if-above bordered class="bg-grey-2" :width="240">
       <q-scroll-area class="fit">
         <q-list padding>
           <q-item v-ripple clickable :to="{ name: 'Instances' }">
@@ -84,14 +71,49 @@ async function onToggleDrawer() {
               <q-item-label>Bootstraps</q-item-label>
             </q-item-section>
           </q-item>
-          <q-separator class="q-my-md" />
         </q-list>
+        <q-space />
+        <div class="absolute-bottom" style="max-height: 50%">
+          <q-list>
+            <q-separator />
+            <q-expansion-item expand-separator group="info" default-opened style="overflow-y: auto">
+              <template v-slot:header>
+                <q-item-section avatar>
+                  <q-avatar icon="task_alt" />
+                </q-item-section>
+                <q-item-section>Tasks</q-item-section>
+                <q-badge
+                  color="red"
+                  text-color="white"
+                  rounded
+                  v-show="taskStore.runningTasks.length > 0"
+                  >{{ taskStore.runningTasks.length }}
+                </q-badge>
+              </template>
+              <TaskCards />
+            </q-expansion-item>
+            <q-expansion-item expand-separator group="info" style="overflow-y: auto">
+              <template v-slot:header>
+                <q-item-section avatar>
+                  <q-avatar icon="error" />
+                </q-item-section>
+                <q-item-section>Errors</q-item-section>
+                <q-badge
+                  color="red"
+                  text-color="white"
+                  rounded
+                  v-show="errorStore.errors.length > 0"
+                  >{{ errorStore.errors.length }}
+                </q-badge>
+              </template>
+              <ErrorCards />
+            </q-expansion-item>
+            <q-item dense>
+              <q-item-label caption>{{ configStore.config.version }}</q-item-label>
+            </q-item>
+          </q-list>
+        </div>
       </q-scroll-area>
-      <q-footer class="bg-grey-1">
-        <q-item class="bg-grey-50 text-grey-8 q-py-xs">
-          <q-item-label>{{ configStore.config.version }}</q-item-label>
-        </q-item>
-      </q-footer>
     </q-drawer>
 
     <q-page-container>

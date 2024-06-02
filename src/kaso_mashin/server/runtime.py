@@ -44,7 +44,7 @@ from kaso_mashin.common.entities import (
     IdentityModel,
     IdentityEntity,
 )
-from kaso_mashin.common.services import QEMUService, MessagingService
+from kaso_mashin.common.services import QEMUService, EventService
 
 
 class Runtime:
@@ -68,7 +68,7 @@ class Runtime:
         self._identity_repository: IdentityRepository | None = None
         self._uefi_code_path = config.bootstrap_path / "uefi-code.fd"
         self._uefi_vars_path = config.bootstrap_path / "uefi-vars.fd"
-        self._queue_service = MessagingService(self)
+        self._event_service = EventService(self)
         self._qemu_service = QEMUService(self)
 
     async def lifespan_uefi(self):
@@ -233,8 +233,8 @@ class Runtime:
         return self._identity_repository
 
     @property
-    def queue_service(self) -> MessagingService:
-        return self._queue_service
+    def event_service(self) -> EventService:
+        return self._event_service
 
     @property
     def qemu_service(self) -> QEMUService:

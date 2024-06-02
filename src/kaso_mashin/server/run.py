@@ -13,7 +13,6 @@ import sqlalchemy.exc
 from kaso_mashin import (
     __version__,
     console,
-    default_config_file,
     KasoMashinException,
     __log_config__,
 )
@@ -32,6 +31,8 @@ from kaso_mashin.server.apis import (
     BootstrapAPI,
     IdentityAPI,
 )
+
+logger = logging.getLogger("kaso_mashin.server")
 
 
 def create_server(runtime: Runtime) -> fastapi.applications.FastAPI:
@@ -124,7 +125,6 @@ def main(args: typing.Optional[typing.List] = None) -> int:
     Returns:
         An exit code. 0 when successful, non-zero otherwise
     """
-    logger = logging.getLogger("kaso_mashin.server")
     config = Config()
     db = DB(config)
     runtime = Runtime(config=config, db=db)
@@ -160,6 +160,7 @@ def main(args: typing.Optional[typing.List] = None) -> int:
 
     parser.parse_args(args if args is not None else sys.argv[1:], namespace=parsed_args)
     logger.setLevel(logging.DEBUG if parsed_args.debug else logging.INFO)
+    logger.debug('Logging at DEBUG level')
     config.load(parsed_args.config)
     config.cli_override(parsed_args)
     try:

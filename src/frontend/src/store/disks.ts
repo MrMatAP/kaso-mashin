@@ -57,14 +57,14 @@ export const useDiskStore = defineStore('disks', {
   },
   actions: {
     async list() {
-      let disk_list = await diskAPI.get<DiskListSchema>();
+      const disk_list = await diskAPI.get<DiskListSchema>();
       this.disks = disk_list.entries;
       return this.disks;
     },
     async get(uid: string): Promise<DiskGetSchema> {
       try {
-        let instance = await diskAPI.get<DiskGetSchema>(uid);
-        let index = this.getIndexByUid(uid);
+        const instance = await diskAPI.get<DiskGetSchema>(uid);
+        const index = this.getIndexByUid(uid);
         if(index !== -1) {
           this.disks[index] = instance
         } else {
@@ -77,7 +77,7 @@ export const useDiskStore = defineStore('disks', {
     },
     async create(create: DiskCreateSchema): Promise<DiskGetSchema> {
       try {
-        let disk = await diskAPI.post<DiskGetSchema>(create);
+        const disk = await diskAPI.post<DiskGetSchema>(create);
         this.disks.push(disk)
         return disk;
       } catch(error: any) {
@@ -89,8 +89,8 @@ export const useDiskStore = defineStore('disks', {
       modify: DiskModifySchema,
     ): Promise<DiskGetSchema> {
       try {
-        let update = await diskAPI.put<DiskGetSchema>(uid, modify);
-        let index = this.getIndexByUid(uid);
+        const update = await diskAPI.put<DiskGetSchema>(uid, modify);
+        const index = this.getIndexByUid(uid);
         this.disks[index] = update
         return update
       } catch(error: any) {
@@ -100,7 +100,7 @@ export const useDiskStore = defineStore('disks', {
     async remove(uid: string): Promise<void> {
       try {
         await diskAPI.delete(uid);
-        let index = this.getIndexByUid(uid);
+        const index = this.getIndexByUid(uid);
         this.disks.splice(index, 1);
       } catch(error: any) {
         throw new EntityNotFoundException(error.body.status, error.body.msg);

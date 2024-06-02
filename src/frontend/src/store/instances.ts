@@ -7,12 +7,12 @@ import {
   Entity,
   EntityInvariantException,
   EntityNotFoundException,
-  ModifiableEntity
+  ModifiableEntity,
 } from "@/base_types";
 import { TaskGetSchema, useTaskStore } from "@/store/tasks";
 
 const instanceAPI = mande("/api/instances/");
-const taskStore = useTaskStore()
+const taskStore = useTaskStore();
 
 export enum InstanceState {
   STOPPING = "STOPPING",
@@ -75,53 +75,49 @@ export const useInstanceStore = defineStore("instances", {
   },
   actions: {
     async list() {
-      let instance_list = await instanceAPI.get<InstanceListSchema>();
+      const instance_list = await instanceAPI.get<InstanceListSchema>();
       this.instances = instance_list.entries;
       return this.instances;
     },
     async get(uid: string): Promise<InstanceGetSchema> {
       try {
-        let instance = await instanceAPI.get<InstanceGetSchema>(uid);
-        let index = this.getIndexByUid(uid);
-        if(index !== -1) {
-          this.instances[index] = instance
+        const instance = await instanceAPI.get<InstanceGetSchema>(uid);
+        const index = this.getIndexByUid(uid);
+        if (index !== -1) {
+          this.instances[index] = instance;
         } else {
-          this.instances.push(instance)
+          this.instances.push(instance);
         }
         return instance;
-      } catch(error: any) {
-        throw new EntityNotFoundException(error.body.status, error.body.msg)
+      } catch (error: any) {
+        throw new EntityNotFoundException(error.body.status, error.body.msg);
       }
     },
     async create(create: InstanceCreateSchema): Promise<TaskGetSchema> {
       try {
-        let task = await instanceAPI.post<TaskGetSchema>(create);
+        const task = await instanceAPI.post<TaskGetSchema>(create);
         this.pendingInstances.set(task.uid, create);
-        await taskStore.track(task)
         return task;
-      } catch(error: any) {
+      } catch (error: any) {
         throw new EntityInvariantException(error.body.status, error.body.msg);
       }
     },
-    async modify(
-      uid: string,
-      modify: InstanceModifySchema,
-    ): Promise<InstanceGetSchema> {
+    async modify(uid: string, modify: InstanceModifySchema): Promise<InstanceGetSchema> {
       try {
-        let update = await instanceAPI.put<InstanceGetSchema>(uid, modify);
-        let index = this.getIndexByUid(uid);
-        this.instances[index] = update
-        return update
-      } catch(error: any) {
-        throw new EntityInvariantException(error.body.status, error.body.msg)
+        const update = await instanceAPI.put<InstanceGetSchema>(uid, modify);
+        const index = this.getIndexByUid(uid);
+        this.instances[index] = update;
+        return update;
+      } catch (error: any) {
+        throw new EntityInvariantException(error.body.status, error.body.msg);
       }
     },
     async remove(uid: string): Promise<void> {
       try {
         await instanceAPI.delete(uid);
-        let index = this.getIndexByUid(uid);
+        const index = this.getIndexByUid(uid);
         this.instances.splice(index, 1);
-      } catch(error: any) {
+      } catch (error: any) {
         throw new EntityNotFoundException(error.body.status, error.body.msg);
       }
     },

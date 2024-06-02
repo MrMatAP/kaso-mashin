@@ -8,11 +8,7 @@ import {
   useImageStore,
 } from "@/store/images";
 import { TaskGetSchema, useTaskStore } from "@/store/tasks";
-import {
-  ConfigSchema,
-  PredefinedImageSchema,
-  useConfigStore,
-} from "@/store/config";
+import { ConfigSchema, PredefinedImageSchema, useConfigStore } from "@/store/config";
 import { BinaryScale } from "@/base_types";
 
 const imageStore = useImageStore();
@@ -22,8 +18,8 @@ const router = useRouter();
 const route = useRoute();
 
 const readMode: Ref<boolean> = ref(true);
-const modifyMode: Ref<boolean> = ref(false)
-const createMode: Ref<boolean> = ref(false)
+const modifyMode: Ref<boolean> = ref(false);
+const createMode: Ref<boolean> = ref(false);
 const busy: Ref<boolean> = ref(false);
 const showRemoveConfirmationDialog: Ref<boolean> = ref(false);
 const editForm = ref(null);
@@ -31,13 +27,11 @@ const editForm = ref(null);
 const title: Ref<string> = ref("Image Detail");
 
 const config: Ref<ConfigSchema> = ref({} as ConfigSchema);
-const predefined_images: Ref<PredefinedImageSchema[]> = ref(
-  [] as PredefinedImageSchema[],
-);
+const predefined_images: Ref<PredefinedImageSchema[]> = ref([] as PredefinedImageSchema[]);
 const predefined_image: Ref<PredefinedImageSchema | null> = ref(null);
 const uid: Ref<string> = ref("");
 const original: Ref<ImageGetSchema> = ref({} as ImageGetSchema);
-const model: Ref<any> = ref(new ImageGetSchema())
+const model: Ref<any> = ref(new ImageGetSchema());
 
 async function onBack() {
   await router.push({ name: "Images" });
@@ -96,44 +90,33 @@ onMounted(async () => {
     createMode.value = false;
     uid.value = route.params.uid as string;
     original.value = await imageStore.get(uid.value);
-    model.value = original.value
+    model.value = original.value;
     title.value = "Image: " + model.value.name;
   } else {
     // We're creating a new entity
     readMode.value = false;
     modifyMode.value = false;
     createMode.value = true;
-    model.value = new ImageCreateSchema()
+    model.value = new ImageCreateSchema();
     title.value = "Create Image";
   }
 });
 </script>
 
 <template>
-    <q-dialog v-model="showRemoveConfirmationDialog" persistent>
-      <q-card>
-        <q-card-section class="row items-center">
-          <span class="q-ml-sm">Are you sure you want to remove this image?</span>
-        </q-card-section>
-        <q-card-actions align="right">
-          <q-btn flat label="Cancel" color="primary" v-close-popup />
-          <q-btn
-            flat
-            label="Remove"
-            color="primary"
-            v-close-popup
-            @click="onRemove"
-          />
-        </q-card-actions>
-      </q-card>
-    </q-dialog>
+  <q-dialog v-model="showRemoveConfirmationDialog" persistent>
+    <q-card>
+      <q-card-section class="row items-center">
+        <span class="q-ml-sm">Are you sure you want to remove this image?</span>
+      </q-card-section>
+      <q-card-actions align="right">
+        <q-btn flat label="Cancel" color="primary" v-close-popup />
+        <q-btn flat label="Remove" color="primary" v-close-popup @click="onRemove" />
+      </q-card-actions>
+    </q-card>
+  </q-dialog>
 
-  <q-form
-    ref="editForm"
-    autofocus
-    @submit.prevent="onSubmit"
-    style="max-width: 600px"
-  >
+  <q-form ref="editForm" autofocus @submit.prevent="onSubmit" style="max-width: 600px">
     <div class="row nowrap">
       <q-btn flat icon="arrow_back_ios" @click="onBack"></q-btn>
       <h4>{{ title }}</h4>
@@ -154,7 +137,7 @@ onMounted(async () => {
         <q-input
           name="name"
           label="Name"
-          tabindex="0"
+          tabindex="1"
           autofocus
           :hint="readMode ? '' : 'A unique name for the image'"
           :clearable="modifyMode || createMode"
@@ -168,7 +151,7 @@ onMounted(async () => {
         <q-input
           name="path"
           label="Path"
-          tabindex="2"
+          tabindex="-1"
           :hint="readMode ? '' : 'The image path on local disk'"
           :clearable="modifyMode"
           :readonly="readMode"
@@ -183,7 +166,7 @@ onMounted(async () => {
           name="predefined"
           label="Predefined Image URLs"
           clearable
-          tabindex="3"
+          tabindex="2"
           emit-value
           map-options
           :hint="readMode ? '' : 'Predefined image URLs'"
@@ -192,7 +175,7 @@ onMounted(async () => {
           option-label="name"
           option-value="url"
           v-show="createMode"
-          v-model="model.url"
+          v-model="predefined_image"
         />
       </div>
     </div>
@@ -201,24 +184,22 @@ onMounted(async () => {
         <q-input
           name="url"
           label="Custom Image URL"
-          tabindex="4"
+          tabindex="3"
           :hint="readMode ? '' : 'Image URL'"
           :clearable="createMode"
-          :readonly="readMode || !predefined_image"
+          :readonly="readMode"
           v-show="createMode || readMode"
           v-model="model.url"
         />
       </div>
     </div>
-    <div
-      class="row q-col-gutter-x-md q-col-gutter-y-xl"
-      style="padding-top: 30px"
-    >
+    <div class="row q-col-gutter-x-md q-col-gutter-y-xl">
       <div class="col-xs-12 col-sm-12 col-md-12 col-lg-12 col-xl-12">
         <q-slider
           name="min_vcpu"
           label
           label-always
+          switch-label-side
           markers
           snap
           tabindex="4"
@@ -232,15 +213,13 @@ onMounted(async () => {
         />
       </div>
     </div>
-    <div
-      class="row q-col-gutter-x-md q-col-gutter-y-md"
-      style="padding-top: 30px"
-    >
+    <div class="row q-col-gutter-x-md q-col-gutter-y-md" style="padding-top: 30px">
       <div class="col-xs-8 col-sm-8 col-md-8 col-lg-8 col-xl-8">
         <q-slider
           name="min_ram_value"
           label
           label-always
+          switch-label-side
           markers
           snap
           tabindex="5"
@@ -249,9 +228,7 @@ onMounted(async () => {
           :min="0"
           :step="1"
           :max="16"
-          :label-value="
-            'Minimum RAM: ' + model.min_ram.value + ' ' + model.min_ram.scale
-          "
+          :label-value="'Minimum RAM: ' + model.min_ram.value + ' ' + model.min_ram.scale"
           v-model="model.min_ram.value"
         />
       </div>
@@ -266,26 +243,22 @@ onMounted(async () => {
         />
       </div>
     </div>
-    <div
-      class="row q-col-gutter-x-md q-col-gutter-y-md"
-      style="padding-top: 30px"
-    >
+    <div class="row q-col-gutter-x-md q-col-gutter-y-md" style="padding-top: 30px">
       <div class="col-xs-8 col-sm-8 col-md-8 col-lg-8 col-xl-8">
         <q-slider
           name="min_disk_value"
           label
           label-always
+          switch-label-side
           markers
           snap
-          tabindex="5"
+          tabindex="7"
           :hint="readMode ? '' : 'Minimum Disk size'"
           :readonly="readMode"
           :min="0"
           :step="1"
           :max="16"
-          :label-value="
-            'Minimum Disk: ' + model.min_disk.value + ' ' + model.min_disk.scale
-          "
+          :label-value="'Minimum Disk: ' + model.min_disk.value + ' ' + model.min_disk.scale"
           v-model="model.min_disk.value"
         />
       </div>
@@ -293,44 +266,52 @@ onMounted(async () => {
         <q-select
           name="min_disk_scale"
           label="Scale"
-          tabindex="6"
+          tabindex="8"
           :readonly="readMode"
           :options="Object.values(BinaryScale)"
           v-model="model.min_disk.scale"
         />
       </div>
     </div>
-    <div class="row q-gutter-xl justify-end">
+    <div
+      class="row q-gutter-xl q-col-gutter-x-md q-col-gutter-y-md justify-end"
+      style="padding-top: 30px"
+    >
       <q-btn
-        flat
+        class="form-button"
         padding="lg"
+        size="md"
         label="Edit"
-        color="primary"
+        color="accent"
+        tabindex="8"
         v-show="readMode"
         @click="onEdit"
       />
       <q-btn
-        flat
+        class="form-button"
         padding="lg"
         label="Remove"
-        color="primary"
+        color="warning"
+        tabindex="9"
         v-show="readMode"
         @click="showRemoveConfirmationDialog = true"
       />
       <q-btn
-        flat
+        class="form-button"
         padding="lg"
         label="Cancel"
         color="secondary"
+        tabindex="10"
         v-show="modifyMode || createMode"
         @click="onCancel"
       />
       <q-btn
-        flat
+        class="form-button"
         padding="lg"
         :label="createMode ? 'Create' : 'Modify'"
         type="submit"
         color="primary"
+        tabindex="11"
         v-show="modifyMode || createMode"
         :loading="busy"
       >
@@ -342,4 +323,8 @@ onMounted(async () => {
   </q-form>
 </template>
 
-<style scoped></style>
+<style scoped>
+.form-button {
+  min-width: 200px;
+}
+</style>

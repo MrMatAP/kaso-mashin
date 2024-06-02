@@ -1,35 +1,37 @@
 <script lang="ts" setup>
 import { onMounted } from "vue";
-import { useQuasar } from "quasar";
+import { useQuasar, useInterval } from "quasar";
 import { useConfigStore } from "@/store/config";
-import { useTaskStore } from '@/store/tasks';
+import { useTaskStore } from "@/store/tasks";
 import { useNetworkStore } from "@/store/networks";
-import { useImageStore } from '@/store/images';
+import { useImageStore } from "@/store/images";
 import { useBootstrapStore } from "@/store/bootstraps";
+import { useErrorStore, ErrorSchema } from "@/store/errors";
 
 const quasar = useQuasar();
+const { registerInterval } = useInterval();
 const configStore = useConfigStore();
 const taskStore = useTaskStore();
 const networkStore = useNetworkStore();
 const imageStore = useImageStore();
 const bootstrapStore = useBootstrapStore();
+const errorStore = useErrorStore();
 
 onMounted(async () => {
   quasar.loading.show({
     delay: 400, // ms
     message: "Connecting to Kaso Mashin server...",
   });
-  await configStore.get()
-  await networkStore.list()
-  await imageStore.list()
-  await bootstrapStore.list()
+  await configStore.get();
+  await networkStore.list();
+  await imageStore.list();
+  await bootstrapStore.list();
+  await taskStore.list();
 
-  const taskSocket = new WebSocket('ws://localhost:3000/api/tasks/notify')
-  taskSocket.onopen = (evt) => { console.dir(evt) }
-  taskSocket.onerror = (evt) => { console.dir(evt) }
-  taskSocket.onclose = (evt) => { console.dir(evt)}
-  taskSocket.onmessage = (evt) => { console.dir(evt) }
+  registerInterval(async () => taskStore.list(), 3000);
 
+  errorStore.errors.push(new ErrorSchema());
+  errorStore.errors.push(new ErrorSchema());
   quasar.loading.hide();
 });
 </script>

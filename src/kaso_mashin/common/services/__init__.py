@@ -1,2 +1,2 @@
-from .messaging import MessagingService
+from .event import EventService
 from .qemu import QEMUService

@@ -1,6 +1,6 @@
 import { defineStore } from "pinia";
 import { mande } from "mande";
-import { Entity, EntityInvariantException, EntityNotFoundException } from "@/base_types";
+import { Entity, EntityNotFoundException } from "@/base_types";
 
 const taskAPI = mande("/api/tasks/");
 
@@ -10,65 +10,60 @@ export enum TaskState {
   FAILED = "failed",
 }
 
+export enum TaskRelation {
+  BOOTSTRAPS = "bootstraps",
+  DISKS = "disks",
+  IDENTITIES = "identities",
+  IMAGES = "images",
+  INSTANCES = "instances",
+  NETWORKS = "networks",
+  GENERAL = "general",
+}
+
 export interface TaskListSchema {
   entries: TaskGetSchema[];
 }
 
 export class TaskGetSchema extends Entity {
+  relation: TaskRelation = TaskRelation.GENERAL;
   state: TaskState = TaskState.RUNNING;
   msg: string = "";
   percent_complete: number = 0;
-  outcome?: string = ''
+  outcome?: string = "";
 }
 
 export const useTaskStore = defineStore("tasks", {
   state: () => ({
-    tasks: [] as TaskGetSchema[],
+    tasks: new Map<string, TaskGetSchema>(),
   }),
   getters: {
-    getIndexByUid: (state) => {
-      return (uid: string) => state.tasks.findIndex((task) => task.uid === uid);
-    },
-    getTaskByUid: (state) => {
-      return (uid: string) => state.tasks.find((task) => task.uid === uid);
-    },
-    pendingNumber: (state) =>
-      state.tasks.filter((task) => task.state === TaskState.RUNNING).length,
-    pendingTasks: (state) : TaskGetSchema[] => state.tasks.filter( (task) => task.state === TaskState.RUNNING),
-    failedTasks: (state) : TaskGetSchema[] => state.tasks.filter( (task) => task.state === TaskState.FAILED),
-    doneTasks: (state) : TaskGetSchema[] => state.tasks.filter( (task) => task.state === TaskState.DONE),
+    allTasks: (state): TaskGetSchema[] => Array.from(state.tasks.values()),
+    runningTasks: (state): TaskGetSchema[] =>
+      Array.from(state.tasks.values()).filter((task) => task.state === TaskState.RUNNING),
+    failedTasks: (state): TaskGetSchema[] =>
+      Array.from(state.tasks.values()).filter((task) => task.state === TaskState.FAILED),
+    doneTasks: (state): TaskGetSchema[] =>
+      Array.from(state.tasks.values()).filter((task) => task.state === TaskState.DONE,
   },
   actions: {
     async list() {
-      let task_list: TaskListSchema = await taskAPI.get();
-      this.tasks = task_list.entries;
+      const task_list: TaskListSchema = await taskAPI.get();
+      const update = new Set<TaskGetSchema>(task_list.entries);
+      this.$patch((state) => {
+        update.forEach((task) => state.tasks.set(task.uid, task));
+      });
       return this.tasks;
     },
     async get(uid: string): Promise<TaskGetSchema> {
       try {
-        let task = await taskAPI.get<TaskGetSchema>(uid);
-        let index = this.tasks.findIndex((task) => task.uid === uid);
-        if(index !== -1) {
-          this.tasks[index] = task
-        } else {
-          this.tasks.push(task)
-        }
+        const cached_task = this.tasks.get(uid);
+        if (cached_task !== undefined) return cached_task;
+        const task = await taskAPI.get<TaskGetSchema>(uid);
+        this.$patch((state) => state.tasks.set(uid, task));
         return task;
       } catch (error: any) {
         throw new EntityNotFoundException(error.body.status, error.body.msg);
       }
     },
-    async track(task: TaskGetSchema) {
-      try {
-        let index = this.tasks.findIndex((task) => task.uid === task.uid);
-        if(index !== -1) {
-          this.tasks[index] = task
-        } else {
-          this.tasks.push(task)
-        }
-      } catch(error: any) {
-        throw new EntityInvariantException(error.body.status, error.body.msg)
-      }
-    }
   },
 });

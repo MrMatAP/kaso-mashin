@@ -66,14 +66,14 @@ export const useNetworkStore = defineStore("networks", {
   },
   actions: {
     async list(): Promise<NetworkGetSchema[]> {
-      let network_list = await networkAPI.get<NetworkListSchema>();
+      const network_list = await networkAPI.get<NetworkListSchema>();
       this.networks = network_list.entries;
       return this.networks;
     },
     async get(uid: string): Promise<NetworkGetSchema> {
       try {
-        let network = await networkAPI.get<NetworkGetSchema>(uid);
-        let index = this.getIndexByUid(uid);
+        const network = await networkAPI.get<NetworkGetSchema>(uid);
+        const index = this.getIndexByUid(uid);
         if(index !== -1) {
           this.networks[index] = network
         } else {
@@ -96,8 +96,8 @@ export const useNetworkStore = defineStore("networks", {
       modify: NetworkModifySchema,
     ): Promise<NetworkGetSchema> {
       try {
-        let update = await networkAPI.put<NetworkGetSchema>(uid, modify);
-        let index = this.getIndexByUid(uid);
+        const update = await networkAPI.put<NetworkGetSchema>(uid, modify);
+        const index = this.getIndexByUid(uid);
         this.networks[index] = update
         return update
       } catch(error: any) {
@@ -107,7 +107,7 @@ export const useNetworkStore = defineStore("networks", {
     async remove(uid: string): Promise<void> {
       try {
         await networkAPI.delete(uid);
-        let index = this.getIndexByUid(uid);
+        const index = this.getIndexByUid(uid);
         this.networks.splice(index, 1);
       } catch(error: any) {
         throw new EntityNotFoundException(error.body.status, error.body.msg);

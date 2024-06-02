@@ -1,18 +1,19 @@
-import { defineStore } from 'pinia';
-import { mande } from 'mande';
+import { defineStore } from "pinia";
+import { mande } from "mande";
 import {
   CreatableEntity,
   Entity,
   EntityInvariantException,
-  EntityNotFoundException, UIEntitySelectOptions,
-  ModifiableEntity
+  EntityNotFoundException,
+  UIEntitySelectOptions,
+  ModifiableEntity,
 } from "@/base_types";
 
-const bootstrapAPI = mande('/api/bootstraps/');
+const bootstrapAPI = mande("/api/bootstraps/");
 
 export enum BootstrapKind {
   IGNITION = "ignition",
-  CLOUD_INIT = "cloud-init"
+  CLOUD_INIT = "cloud-init",
 }
 
 export interface BootstrapListSchema {
@@ -41,7 +42,7 @@ export class BootstrapModifySchema extends ModifiableEntity<BootstrapGetSchema> 
   }
 }
 
-export const useBootstrapStore = defineStore('bootstraps', {
+export const useBootstrapStore = defineStore("bootstraps", {
   state: () => ({
     bootstraps: [] as BootstrapGetSchema[],
   }),
@@ -52,53 +53,54 @@ export const useBootstrapStore = defineStore('bootstraps', {
     getBootstrapByUid: (state) => {
       return (uid: string) => state.bootstraps.find((bootstrap) => bootstrap.uid === uid);
     },
-    bootstrapOptions: (state) => state.bootstraps.map((bootstrap) => new UIEntitySelectOptions(bootstrap.uid, bootstrap.name))
+    bootstrapOptions: (state) =>
+      state.bootstraps.map((bootstrap) => new UIEntitySelectOptions(bootstrap.uid, bootstrap.name)),
   },
   actions: {
     async list(): Promise<BootstrapGetSchema[]> {
-      let bootstrap_list = await bootstrapAPI.get<BootstrapListSchema>();
+      const bootstrap_list = await bootstrapAPI.get<BootstrapListSchema>();
       this.bootstraps = bootstrap_list.entries;
       return this.bootstraps;
     },
     async get(uid: string): Promise<BootstrapGetSchema> {
       try {
-        let bootstrap = await bootstrapAPI.get<BootstrapGetSchema>(uid);
-        let index = this.getIndexByUid(uid)
-        if(index !== -1) {
-          this.bootstraps[index] = bootstrap
+        const bootstrap = await bootstrapAPI.get<BootstrapGetSchema>(uid);
+        const index = this.getIndexByUid(uid);
+        if (index !== -1) {
+          this.bootstraps[index] = bootstrap;
         } else {
           this.bootstraps.push(bootstrap);
         }
-        return bootstrap
-      } catch(error: any) {
-        throw new EntityNotFoundException(error.body.status, error.body.msg)
+        return bootstrap;
+      } catch (error: any) {
+        throw new EntityNotFoundException(error.body.status, error.body.msg);
       }
     },
     async create(create: BootstrapCreateSchema): Promise<BootstrapGetSchema> {
       try {
-        return await bootstrapAPI.post<BootstrapGetSchema>(create)
-      } catch(error: any) {
+        return await bootstrapAPI.post<BootstrapGetSchema>(create);
+      } catch (error: any) {
         throw new EntityInvariantException(error.body.status, error.body.msg);
       }
     },
     async modify(uid: string, modify: BootstrapModifySchema): Promise<BootstrapGetSchema> {
       try {
-        let update = await bootstrapAPI.put<BootstrapGetSchema>(uid, modify);
-        let index = this.getIndexByUid(uid)
-        this.bootstraps[index] = update
-        return update
-      } catch(error: any) {
+        const update = await bootstrapAPI.put<BootstrapGetSchema>(uid, modify);
+        const index = this.getIndexByUid(uid);
+        this.bootstraps[index] = update;
+        return update;
+      } catch (error: any) {
         throw new EntityInvariantException(error.body.status, error.body.msg);
       }
     },
     async remove(uid: string): Promise<void> {
       try {
         await bootstrapAPI.delete(uid);
-        let index = this.getIndexByUid(uid)
+        const index = this.getIndexByUid(uid);
         this.bootstraps.splice(index, 1);
-      } catch(error: any) {
-        throw new EntityNotFoundException(error.body.status, error.body.msg)
+      } catch (error: any) {
+        throw new EntityNotFoundException(error.body.status, error.body.msg);
       }
     },
   },
-})
+});

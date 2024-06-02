@@ -67,14 +67,14 @@ export const useIdentityStore = defineStore("identities", {
   },
   actions: {
     async list() {
-      let identity_list: IdentityListSchema = await identityAPI.get();
+      const identity_list: IdentityListSchema = await identityAPI.get();
       this.identities = identity_list.entries;
       return this.identities;
     },
     async get(uid: string): Promise<IdentityGetSchema> {
       try {
-        let identity = await identityAPI.get<IdentityGetSchema>(uid);
-        let index = this.getIndexByUid(uid);
+        const identity = await identityAPI.get<IdentityGetSchema>(uid);
+        const index = this.getIndexByUid(uid);
         if(index !== -1) {
           this.identities[index] = identity
         } else {
@@ -97,8 +97,8 @@ export const useIdentityStore = defineStore("identities", {
       modify: IdentityModifySchema,
     ): Promise<IdentityGetSchema> {
       try {
-        let update = await identityAPI.put<IdentityGetSchema>(uid, modify);
-        let index = this.getIndexByUid(uid);
+        const update = await identityAPI.put<IdentityGetSchema>(uid, modify);
+        const index = this.getIndexByUid(uid);
         this.identities[index] = update;
         return update;
       } catch(error: any) {
@@ -108,7 +108,7 @@ export const useIdentityStore = defineStore("identities", {
     async remove(uid: string): Promise<void> {
       try {
         await identityAPI.delete(uid);
-        let index = this.getIndexByUid(uid);
+        const index = this.getIndexByUid(uid);
         this.identities.splice(index, 1);
       } catch(error: any) {
         throw new EntityNotFoundException(error.body.status, error.body.msg);

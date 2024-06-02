@@ -196,6 +196,8 @@ class Entity:
     """
 
     def __init__(self):
+        super().__init__()
+        self._logger = logging.getLogger(f"{self.__class__.__module__}.{self.__class__.__name__}")
         self._uid = uuid.uuid4()
 
     @property

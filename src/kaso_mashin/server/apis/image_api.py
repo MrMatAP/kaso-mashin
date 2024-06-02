@@ -5,6 +5,7 @@ from uuid import UUID
 import fastapi
 
 from kaso_mashin.common import AsyncRepository
+from kaso_mashin.common.entities.tasks import TaskRelation
 from kaso_mashin.server.apis import BaseAPI
 from kaso_mashin.server.runtime import Runtime
 from kaso_mashin.common.entities import (
@@ -50,6 +51,7 @@ class ImageAPI(
     ) -> TaskGetSchema:
         task = await TaskEntity.create(
             name=f"Download image {schema.name} from URL {schema.url}",
+            relation=TaskRelation.IMAGES,
             msg="Downloading image",
         )
         now = datetime.datetime.now().strftime("%Y-%m-%d-%H%M")

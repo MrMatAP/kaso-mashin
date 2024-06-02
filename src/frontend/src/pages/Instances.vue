@@ -15,7 +15,7 @@ async function onSelected(uid: string) {
 }
 
 async function onCreate() {
-  await router.push({ name: 'InstanceCreate' })
+  await router.push({ name: "InstanceCreate" });
 }
 
 onMounted(() => {
@@ -38,8 +38,10 @@ onMounted(() => {
     />
     <InstancePending
       v-for="[taskUid, instance] in instanceStore.pendingInstances"
+      v-bind:key="taskUid"
       :taskUid="taskUid"
-      :instance="instance"/>
+      :instance="instance"
+    />
 
     <CreateCard @onCreate="onCreate" />
     <q-inner-loading :showing="loading">

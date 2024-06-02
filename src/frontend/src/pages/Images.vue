@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { onMounted, ref } from "vue";
+import { ref } from "vue";
 import { useRouter } from "vue-router";
 import { useImageStore } from "@/store/images";
 import ImageCard from "@/components/ImageCard.vue";
@@ -8,21 +8,14 @@ import ImagePending from "@/components/ImagePending.vue";
 
 const router = useRouter();
 const imageStore = useImageStore();
-const loading = ref(true);
 
 async function onSelected(uid: string) {
   await router.push({ name: "ImageDetail", params: { uid: uid } });
 }
 
 async function onCreate() {
-  await router.push({ name: 'ImageCreate' });
+  await router.push({ name: "ImageCreate" });
 }
-
-onMounted(() => {
-  imageStore.list().then(() => {
-    loading.value = false;
-  });
-});
 </script>
 
 <template>
@@ -39,11 +32,9 @@ onMounted(() => {
     <ImagePending
       v-for="[taskUid, image] in imageStore.pendingImages"
       :taskUid="taskUid"
-      :image="image"/>
+      :image="image"
+    />
 
-    <CreateCard @onCreate="onCreate"/>
-    <q-inner-loading :showing="loading">
-      <q-spinner-gears size="50px" color="primary" />
-    </q-inner-loading>
+    <CreateCard @onCreate="onCreate" />
   </div>
 </template>
