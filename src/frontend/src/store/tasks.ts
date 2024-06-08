@@ -43,7 +43,7 @@ export const useTaskStore = defineStore("tasks", {
     failedTasks: (state): TaskGetSchema[] =>
       Array.from(state.tasks.values()).filter((task) => task.state === TaskState.FAILED),
     doneTasks: (state): TaskGetSchema[] =>
-      Array.from(state.tasks.values()).filter((task) => task.state === TaskState.DONE,
+      Array.from(state.tasks.values()).filter((task) => task.state === TaskState.DONE),
   },
   actions: {
     async list() {
