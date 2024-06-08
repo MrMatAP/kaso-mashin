@@ -88,8 +88,7 @@ def create_server(runtime: Runtime) -> fastapi.applications.FastAPI:
         )
         return fastapi.responses.JSONResponse(
             status_code=exc.status,
-            content=ExceptionSchema(status=exc.status, msg=f"{exc.msg}").model_dump(),
-        )
+            content=ExceptionSchema.model_validate(exc))
 
     @app.exception_handler(EntityInvariantException)
     async def entity_invariant_exception_handler(
@@ -101,8 +100,7 @@ def create_server(runtime: Runtime) -> fastapi.applications.FastAPI:
         )
         return fastapi.responses.JSONResponse(
             status_code=exc.status,
-            content=ExceptionSchema(status=exc.status, msg=f"{exc.msg}").model_dump(),
-        )
+            content=ExceptionSchema.model_validate(exc))
 
     @app.exception_handler(sqlalchemy.exc.SQLAlchemyError)
     async def sqlalchemy_exception_handler(
@@ -112,8 +110,7 @@ def create_server(runtime: Runtime) -> fastapi.applications.FastAPI:
         logging.getLogger("kaso_mashin.server").error("(500) Database exception %s", str(exc))
         return fastapi.responses.JSONResponse(
             status_code=500,
-            content=ExceptionSchema(status=500, msg=f"Database exception {exc}").model_dump(),
-        )
+            content=ExceptionSchema.model_validate(exc))
 
     return app
 

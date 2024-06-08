@@ -136,6 +136,7 @@ class ExceptionSchema(pydantic.BaseModel):
     Schema for an exception
     """
 
+    kind: str = pydantic.Field(description="Kind of exception")
     status: int = pydantic.Field(description="The exception status code", default=500)
     msg: str = pydantic.Field(description="A user-readable error description")
 

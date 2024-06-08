@@ -69,6 +69,10 @@ class KasoMashinException(Exception):
             self._task.msg = msg
 
     @property
+    def kind(self) -> str:
+        return self.__class__.__name__
+
+    @property
     def status(self) -> int:
         return self._status
 
