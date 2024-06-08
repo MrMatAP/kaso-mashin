@@ -1,12 +1,6 @@
 import { defineStore } from "pinia";
 import { mande } from "mande";
-import {
-  Entity,
-  EntityInvariantException,
-  EntityNotFoundException,
-  ExceptionKind,
-  KasoMashinException,
-} from "@/base_types";
+import { Entity, KasoMashinException } from "@/base_types";
 
 const taskAPI = mande("/api/tasks/");
 
