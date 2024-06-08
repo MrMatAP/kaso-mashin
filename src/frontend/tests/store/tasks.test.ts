@@ -1,4 +1,5 @@
-import { createPinia, setActivePinia } from "pinia";
+import { test } from "vitest";
+import { createPinia, setActivePinia, Store, StoreDefinition } from "pinia";
 import { TaskGetSchema, TaskRelation, TaskState, useTaskStore } from "@/store/tasks";
 import { http, HttpHandler, HttpResponse } from "msw";
 import { setupServer } from "msw/node";
@@ -66,34 +67,40 @@ beforeAll(() => server.listen({ onUnhandledRequest: "error" }));
 afterAll(() => server.close());
 afterEach(() => server.resetHandlers());
 
+type TaskStore = ReturnType<typeof useTaskStore>;
+declare module "vitest" {
+  export interface TestContext {
+    taskStore: TaskStore;
+  }
+}
+
+const storeTest = test.extend({
+  taskStore: async ({}, use) => {
+    const taskStore = useTaskStore();
+    expect(taskStore.tasks.size).toBe(0);
+    await taskStore.list();
+    expect(taskStore.tasks.size).toBe(seed.length);
+    await use(taskStore);
+  },
+});
+
 describe("Task Store Tests", () => {
   beforeEach(() => {
     setActivePinia(createPinia());
   });
 
-  it("fetches tasks", async () => {
-    const taskStore = useTaskStore();
-    expect(taskStore.tasks.size).toBe(0);
-    await taskStore.list();
-    expect(taskStore.tasks.size).toBe(seed.length);
+  storeTest("fetches tasks", async ({ taskStore }) => {
+    expect(taskStore.tasks.size).toBe(seed.length); // fixture does this already
   });
 
-  it("returns a cached task", async () => {
-    const taskStore = useTaskStore();
-    expect(taskStore.tasks.size).toBe(0);
-    await taskStore.list();
-    expect(taskStore.tasks.size).toBe(seed.length);
+  storeTest("returns a cached task", async ({ taskStore }) => {
     expect(taskStore.tasks.get(seed[0].uid)).toStrictEqual(seed[0]);
     const cached_value = seed[0].percent_complete;
     seed[0].percent_complete = 80;
     expect((await taskStore.get(seed[0].uid)).percent_complete).toEqual(cached_value); // no forced update
   });
 
-  it("can be forced to update the task", async () => {
-    const taskStore = useTaskStore();
-    expect(taskStore.tasks.size).toBe(0);
-    await taskStore.list();
-    expect(taskStore.tasks.size).toBe(seed.length);
+  storeTest("can be forced to update the task", async ({ taskStore }) => {
     expect(taskStore.tasks.get(seed[0].uid)).toStrictEqual(seed[0]);
     seed[0].percent_complete = 80;
     expect((await taskStore.get(seed[0].uid, true)).percent_complete).toEqual(
