@@ -66,9 +66,18 @@ export class EntityInvariantException extends KasoMashinException {
   }
 }
 
+export interface ListableEntity {
+  entries: any;
+}
+
 export abstract class Entity {
   readonly uid: string = "";
   name: string = "";
+
+  constructor(uid: string, name: string = "") {
+    this.uid = uid;
+    this.name = name;
+  }
 }
 
 export abstract class ModifiableEntity<T extends Entity> {
@@ -81,6 +90,10 @@ export abstract class ModifiableEntity<T extends Entity> {
 
 export abstract class CreatableEntity {
   name: string = "";
+
+  constructor(name: string) {
+    this.name = name;
+  }
 }
 
 export class UIEntitySelectOptions {

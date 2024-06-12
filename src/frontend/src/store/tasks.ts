@@ -1,6 +1,6 @@
 import { defineStore } from "pinia";
 import { mande } from "mande";
-import { Entity, KasoMashinException } from "@/base_types";
+import { Entity, KasoMashinException, ListableEntity } from "@/base_types";
 
 const taskAPI = mande("/api/tasks/");
 
@@ -20,16 +20,33 @@ export enum TaskRelation {
   GENERAL = "general",
 }
 
-export interface TaskListSchema {
+export interface TaskListSchema extends ListableEntity {
   entries: TaskGetSchema[];
 }
 
 export class TaskGetSchema extends Entity {
-  relation: TaskRelation = TaskRelation.GENERAL;
-  state: TaskState = TaskState.RUNNING;
-  msg: string = "";
-  percent_complete: number = 0;
-  outcome?: string = "";
+  relation: TaskRelation;
+  state: TaskState;
+  msg: string;
+  percent_complete: number;
+  outcome?: string;
+
+  constructor(
+    uid: string,
+    name: string,
+    relation: TaskRelation = TaskRelation.GENERAL,
+    state: TaskState = TaskState.RUNNING,
+    msg: string = "",
+    percent_complete: number = 0,
+    outcome: string = "",
+  ) {
+    super(uid, name);
+    this.relation = relation;
+    this.state = state;
+    this.msg = msg;
+    this.percent_complete = percent_complete;
+    this.outcome = outcome;
+  }
 }
 
 export const useTaskStore = defineStore("tasks", {
@@ -46,9 +63,9 @@ export const useTaskStore = defineStore("tasks", {
       Array.from(state.tasks.values()).filter((task) => task.state === TaskState.DONE),
   },
   actions: {
-    async list() {
+    async list(): Promise<Map<string, TaskGetSchema>> {
       try {
-        const task_list: TaskListSchema = await taskAPI.get();
+        const task_list = await taskAPI.get<TaskListSchema>();
         const update = new Set<TaskGetSchema>(task_list.entries);
         this.$patch((state) => {
           update.forEach((task) => state.tasks.set(task.uid, task));
@@ -61,8 +78,8 @@ export const useTaskStore = defineStore("tasks", {
     async get(uid: string, force: boolean = false): Promise<TaskGetSchema> {
       try {
         if (!force) {
-          const cached_task = this.tasks.get(uid);
-          if (cached_task !== undefined) return cached_task;
+          const cached = this.tasks.get(uid);
+          if (cached !== undefined) return cached;
         }
         const task = await taskAPI.get<TaskGetSchema>(uid);
         this.$patch((state) => state.tasks.set(uid, task));

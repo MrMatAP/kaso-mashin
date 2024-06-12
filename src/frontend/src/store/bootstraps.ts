@@ -3,10 +3,10 @@ import { mande } from "mande";
 import {
   CreatableEntity,
   Entity,
-  EntityInvariantException,
-  EntityNotFoundException,
   UIEntitySelectOptions,
   ModifiableEntity,
+  KasoMashinException,
+  ListableEntity,
 } from "@/base_types";
 
 const bootstrapAPI = mande("/api/bootstraps/");
@@ -16,19 +16,38 @@ export enum BootstrapKind {
   CLOUD_INIT = "cloud-init",
 }
 
-export interface BootstrapListSchema {
+export interface BootstrapListSchema extends ListableEntity {
   entries: BootstrapGetSchema[];
 }
 
 export class BootstrapGetSchema extends Entity {
-  kind: BootstrapKind = BootstrapKind.IGNITION;
-  content: string = "";
-  required_keys: Array<string> = [];
+  kind: BootstrapKind;
+  content: string;
+  required_keys: Array<string>;
+
+  constructor(
+    uid: string,
+    name: string = "",
+    kind: BootstrapKind = BootstrapKind.IGNITION,
+    content: string = "",
+    required_keys: Array<string> = [],
+  ) {
+    super(uid, name);
+    this.kind = kind;
+    this.content = content;
+    this.required_keys = required_keys;
+  }
 }
 
 export class BootstrapCreateSchema extends CreatableEntity {
-  kind: BootstrapKind = BootstrapKind.IGNITION;
-  content: string = "";
+  kind: BootstrapKind;
+  content: string;
+
+  constructor(name: string, kind: BootstrapKind = BootstrapKind.IGNITION, content: string) {
+    super(name);
+    this.kind = kind;
+    this.content = content;
+  }
 }
 
 export class BootstrapModifySchema extends ModifiableEntity<BootstrapGetSchema> {
@@ -44,62 +63,68 @@ export class BootstrapModifySchema extends ModifiableEntity<BootstrapGetSchema> 
 
 export const useBootstrapStore = defineStore("bootstraps", {
   state: () => ({
-    bootstraps: [] as BootstrapGetSchema[],
+    bootstraps: new Map<string, BootstrapGetSchema>(),
   }),
   getters: {
-    getIndexByUid: (state) => {
-      return (uid: string) => state.bootstraps.findIndex((bootstrap) => bootstrap.uid === uid);
-    },
-    getBootstrapByUid: (state) => {
-      return (uid: string) => state.bootstraps.find((bootstrap) => bootstrap.uid === uid);
-    },
-    bootstrapOptions: (state) =>
-      state.bootstraps.map((bootstrap) => new UIEntitySelectOptions(bootstrap.uid, bootstrap.name)),
+    bootstrapOptions: (state): UIEntitySelectOptions[] =>
+      Array.from(state.bootstraps.values()).map(
+        (bootstrap) => new UIEntitySelectOptions(bootstrap.uid, bootstrap.name),
+      ),
   },
   actions: {
-    async list(): Promise<BootstrapGetSchema[]> {
+    async list(): Promise<Map<string, BootstrapGetSchema>> {
       const bootstrap_list = await bootstrapAPI.get<BootstrapListSchema>();
-      this.bootstraps = bootstrap_list.entries;
+      const update = new Set<BootstrapGetSchema>(bootstrap_list.entries);
+      this.$patch((state) => {
+        update.forEach((bootstrap: BootstrapGetSchema) =>
+          state.bootstraps.set(bootstrap.uid, bootstrap),
+        );
+      });
       return this.bootstraps;
     },
-    async get(uid: string): Promise<BootstrapGetSchema> {
+    async get(uid: string, force: boolean = false): Promise<BootstrapGetSchema> {
       try {
-        const bootstrap = await bootstrapAPI.get<BootstrapGetSchema>(uid);
-        const index = this.getIndexByUid(uid);
-        if (index !== -1) {
-          this.bootstraps[index] = bootstrap;
-        } else {
-          this.bootstraps.push(bootstrap);
+        if (!force) {
+          const cached = this.bootstraps.get(uid);
+          if (cached !== undefined) return cached;
         }
+        const bootstrap = await bootstrapAPI.get<BootstrapGetSchema>(uid);
+        this.$patch((state) => state.bootstraps.set(uid, bootstrap));
         return bootstrap;
       } catch (error: any) {
-        throw new EntityNotFoundException(error.body.status, error.body.msg);
+        throw KasoMashinException.fromError(error);
       }
     },
     async create(create: BootstrapCreateSchema): Promise<BootstrapGetSchema> {
       try {
-        return await bootstrapAPI.post<BootstrapGetSchema>(create);
+        const entity = await bootstrapAPI.post<BootstrapGetSchema>(create);
+        this.$patch((state) => {
+          state.bootstraps.set(entity.uid, entity);
+        });
+        return entity;
       } catch (error: any) {
-        throw new EntityInvariantException(error.body.status, error.body.msg);
+        throw KasoMashinException.fromError(error);
       }
     },
     async modify(uid: string, modify: BootstrapModifySchema): Promise<BootstrapGetSchema> {
       try {
-        const update = await bootstrapAPI.put<BootstrapGetSchema>(uid, modify);
-        const index = this.getIndexByUid(uid);
-        this.bootstraps[index] = update;
-        return update;
+        const entity = await bootstrapAPI.put<BootstrapGetSchema>(uid, modify);
+        this.$patch((state) => {
+          state.bootstraps.set(uid, entity);
+        });
+        return entity;
       } catch (error: any) {
-        throw new EntityInvariantException(error.body.status, error.body.msg);
+        throw KasoMashinException.fromError(error);
       }
     },
     async remove(uid: string): Promise<void> {
       try {
         await bootstrapAPI.delete(uid);
-        const index = this.getIndexByUid(uid);
-        this.bootstraps.splice(index, 1);
+        this.$patch((state) => {
+          state.bootstraps.delete(uid);
+        });
       } catch (error: any) {
-        throw new EntityNotFoundException(error.body.status, error.body.msg);
+        throw KasoMashinException.fromError(error);
       }
     },
   },
