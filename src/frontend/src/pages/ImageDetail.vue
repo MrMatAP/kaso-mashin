@@ -28,7 +28,7 @@ const title: Ref<string> = ref("Image Detail");
 
 const config: Ref<ConfigSchema> = ref({} as ConfigSchema);
 const predefined_images: Ref<PredefinedImageSchema[]> = ref([] as PredefinedImageSchema[]);
-const predefined_image: Ref<PredefinedImageSchema | null> = ref(null);
+const predefined_url: Ref<string> = ref("");
 const uid: Ref<string> = ref("");
 const original: Ref<ImageGetSchema> = ref({} as ImageGetSchema);
 const model: Ref<any> = ref(new ImageGetSchema());
@@ -76,6 +76,12 @@ async function onSubmit() {
       readMode.value = false;
       onBack();
     });
+  }
+}
+
+function onPredefinedImageUpdate() {
+  if (predefined_url.value !== "") {
+    model.value.url = predefined_url.value;
   }
 }
 
@@ -164,7 +170,7 @@ onMounted(async () => {
       <div class="col-xs-12 col-sm-6 col-md-6 col-lg-6 col-xl-6">
         <q-select
           name="predefined"
-          label="Predefined Image URLs"
+          label="Predefined Image"
           clearable
           tabindex="2"
           emit-value
@@ -175,7 +181,8 @@ onMounted(async () => {
           option-label="name"
           option-value="url"
           v-show="createMode"
-          v-model="predefined_image"
+          v-model="predefined_url"
+          @update:model-value="onPredefinedImageUpdate"
         />
       </div>
     </div>
