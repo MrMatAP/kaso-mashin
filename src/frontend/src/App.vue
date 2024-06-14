@@ -15,7 +15,6 @@ const taskStore = useTaskStore();
 const networkStore = useNetworkStore();
 const imageStore = useImageStore();
 const bootstrapStore = useBootstrapStore();
-const errorStore = useErrorStore();
 
 onMounted(async () => {
   quasar.loading.show({
@@ -30,8 +29,6 @@ onMounted(async () => {
 
   registerInterval(async () => taskStore.list(), 3000);
 
-  errorStore.errors.push(new ErrorSchema());
-  errorStore.errors.push(new ErrorSchema());
   quasar.loading.hide();
 });
 </script>
