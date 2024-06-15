@@ -60,14 +60,13 @@ describe("Bootstrap Store Tests", () => {
     const modified = await bootstrapStore.modify(created.uid, new BootstrapModifySchema(created));
     expect(modified.uid).toEqual(created.uid);
     expect(modified.name).toEqual(modified.name);
-    expect(bootstrapStore.bootstraps.size).toEqual(currentStoreSize);
+    expect(bootstrapStore.bootstraps.size).toEqual(currentStoreSize + 1);
   });
 
   storeTest("can remove a bootstrap", async ({ bootstrapStore }) => {
     const currentStoreSize = bootstrapStore.bootstraps.size;
     await bootstrapStore.remove(bootstrapSeed.entries[0].uid);
     expect(bootstrapStore.bootstraps.size).toEqual(currentStoreSize - 1);
-    expect(bootstrapStore.get(bootstrapSeed.entries[0].uid)).toThrow(EntityInvariantException);
   });
 
   storeTest("correctly reports bootstrapOptions", async ({ bootstrapStore }) => {

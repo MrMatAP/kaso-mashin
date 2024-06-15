@@ -1,27 +1,12 @@
 <component name="ProjectRunConfigurationManager">
-  <configuration default="false" name="build" type="PythonConfigurationType" factoryName="Python">
-    <module name="kaso-mashin" />
-    <option name="ENV_FILES" value="" />
-    <option name="INTERPRETER_OPTIONS" value="" />
-    <option name="PARENT_ENVS" value="true" />
-    <envs>
-      <env name="PYTHONUNBUFFERED" value="1" />
-    </envs>
-    <option name="SDK_HOME" value="/opt/dyn/python/kaso-mashin/bin/python" />
-    <option name="WORKING_DIRECTORY" value="$PROJECT_DIR$" />
-    <option name="IS_MODULE_SDK" value="true" />
-    <option name="ADD_CONTENT_ROOTS" value="true" />
-    <option name="ADD_SOURCE_ROOTS" value="true" />
-    <EXTENSION ID="PythonCoverageRunConfigurationExtension" runner="coverage.py" />
-    <option name="SCRIPT_NAME" value="build" />
-    <option name="PARAMETERS" value="-n --wheel" />
-    <option name="SHOW_COMMAND_LINE" value="false" />
-    <option name="EMULATE_TERMINAL" value="false" />
-    <option name="MODULE_MODE" value="true" />
-    <option name="REDIRECT_INPUT" value="false" />
-    <option name="INPUT_FILE" value="" />
-    <method v="2">
-      <option name="RunConfigurationTask" enabled="true" run_configuration_name="package" run_configuration_type="js.build_tools.npm" />
-    </method>
+  <configuration default="false" name="build" type="js.build_tools.npm" nameIsGenerated="true">
+    <package-json value="$PROJECT_DIR$/src/frontend/package.json" />
+    <command value="run" />
+    <scripts>
+      <script value="build" />
+    </scripts>
+    <node-interpreter value="project" />
+    <envs />
+    <method v="2" />
   </configuration>
 </component>

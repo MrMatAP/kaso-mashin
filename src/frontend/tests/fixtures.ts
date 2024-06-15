@@ -43,6 +43,7 @@ function mockAPIResourceHandler(base: string, seed: ListableEntity): HttpHandler
 const mockAPIHandlers: HttpHandler[] = [
   mockAPICollectionHandler("/api/tasks/", taskSeed),
   mockAPIResourceHandler("/api/tasks/:uid", taskSeed),
+
   mockAPICollectionHandler("/api/bootstraps/", bootstrapSeed),
   mockAPIResourceHandler("/api/bootstraps/:uid", bootstrapSeed),
   http.post("/api/bootstraps/", async ({ request }) => {
@@ -52,8 +53,14 @@ const mockAPIHandlers: HttpHandler[] = [
       { status: 201 },
     );
   }),
-  http.put("/api/bootstraps/:uid", async ({ request }) => {
-    const modify = (await request.json) as BootstrapModifySchema;
+  http.put("/api/bootstraps/:uid", async ({ params, request }) => {
+    const modify = (await request.json()) as BootstrapModifySchema;
+    return HttpResponse.json(
+      new BootstrapGetSchema(params.uid as string, modify.name, modify.kind, modify.content, []),
+    );
+  }),
+  http.delete("/api/bootstraps/:uid", async () => {
+    return HttpResponse.json({}, { status: 204 });
   }),
 ];
 const server = setupServer(...mockAPIHandlers);
