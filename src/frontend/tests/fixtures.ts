@@ -1,13 +1,7 @@
 import { test } from "vitest";
 import { http, HttpHandler, HttpResponse } from "msw";
 import { setupServer } from "msw/node";
-import {
-  BootstrapCreateSchema,
-  BootstrapGetSchema,
-  BootstrapModifySchema,
-  useBootstrapStore,
-} from "@/store/bootstraps";
-import { useTaskStore } from "@/store/tasks";
+
 import {
   EntityInvariantException,
   EntityNotFoundException,
@@ -15,7 +9,17 @@ import {
   KasoMashinException,
   ListableEntity,
 } from "@/base_types";
-import { bootstrapSeed, taskSeed } from "./seeds";
+
+import { useTaskStore } from "@/store/tasks";
+import {
+  BootstrapCreateSchema,
+  BootstrapGetSchema,
+  BootstrapModifySchema,
+  useBootstrapStore,
+} from "@/store/bootstraps";
+import { NetworkCreateSchema, NetworkGetSchema, useNetworkStore } from "@/store/networks";
+
+import { bootstrapSeed, networkSeed, taskSeed } from "./seeds";
 
 function mockAPICollectionHandler(base: string, seed: ListableEntity): HttpHandler {
   return http.get(base, () => HttpResponse.json(seed));
@@ -59,9 +63,21 @@ const mockAPIHandlers: HttpHandler[] = [
       new BootstrapGetSchema(params.uid as string, modify.name, modify.kind, modify.content, []),
     );
   }),
-  http.delete("/api/bootstraps/:uid", async () => {
-    return HttpResponse.json({}, { status: 204 });
+  http.delete("/api/bootstraps/:uid", () => HttpResponse.json(null, { status: 204 })),
+
+  mockAPICollectionHandler("/api/networks/", networkSeed),
+  mockAPIResourceHandler("/api/networks/:uid", networkSeed),
+  http.post("/api/networks/", async ({ request }) => {
+    const create = (await request.json()) as NetworkCreateSchema;
+    return HttpResponse.json(new NetworkGetSchema(crypto.randomUUID(), create.name), {
+      status: 201,
+    });
   }),
+  http.put("/api/networks/:uid", async ({ params, request }) => {
+    const modify = (await request.json()) as BootstrapModifySchema;
+    return HttpResponse.json(new NetworkGetSchema(params.uid as string, modify.name));
+  }),
+  http.delete("/api/networks/:uid", () => HttpResponse.json(null, { status: 204 })),
 ];
 const server = setupServer(...mockAPIHandlers);
 beforeAll(() => server.listen({ onUnhandledRequest: "error" }));
@@ -70,10 +86,12 @@ afterEach(() => server.resetHandlers());
 
 type TaskStore = ReturnType<typeof useTaskStore>;
 type BootstrapStore = ReturnType<typeof useBootstrapStore>;
+type NetworkStore = ReturnType<typeof useNetworkStore>;
 
 interface StoreFixtures {
   taskStore: TaskStore;
   bootstrapStore: BootstrapStore;
+  networkStore: NetworkStore;
 }
 
 export const storeTest = test.extend<StoreFixtures>({
@@ -90,5 +108,12 @@ export const storeTest = test.extend<StoreFixtures>({
     await bootstrapStore.list();
     expect(bootstrapStore.bootstraps.size).toBe(bootstrapSeed.entries.length);
     await use(bootstrapStore);
+  },
+  networkStore: async ({}, use) => {
+    const networkStore = useNetworkStore();
+    expect(networkStore.networks.size).toBe(0);
+    await networkStore.list();
+    expect(networkStore.networks.size).toBe(networkSeed.entries.length);
+    await use(networkStore);
   },
 });

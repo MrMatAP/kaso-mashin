@@ -13,19 +13,13 @@ describe("Bootstrap Store Tests", () => {
     setActivePinia(createPinia());
   });
 
-  storeTest("returns a cached task", async ({ bootstrapStore }) => {
-    expect(bootstrapStore.bootstraps.get(bootstrapSeed.entries[0].uid)).toEqual(
-      bootstrapSeed.entries[0],
-    );
-    const cached_value = bootstrapSeed.entries[0].content;
+  storeTest("returns a cached entity", async ({ bootstrapStore }) => {
+    const cached = bootstrapSeed.entries[0].content;
     bootstrapSeed.entries[0].content = "updated";
-    expect((await bootstrapStore.get(bootstrapSeed.entries[0].uid)).content).toEqual(cached_value); // no forced update
+    expect((await bootstrapStore.get(bootstrapSeed.entries[0].uid)).content).toEqual(cached); // no forced update
   });
 
-  storeTest("can be forced to update the task", async ({ bootstrapStore }) => {
-    expect(bootstrapStore.bootstraps.get(bootstrapSeed.entries[0].uid)).toEqual(
-      bootstrapSeed.entries[0],
-    );
+  storeTest("can be forced to update the entity", async ({ bootstrapStore }) => {
     bootstrapSeed.entries[0].content = "updated again";
     expect((await bootstrapStore.get(bootstrapSeed.entries[0].uid, true)).content).toEqual(
       bootstrapSeed.entries[0].content,
