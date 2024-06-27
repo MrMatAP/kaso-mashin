@@ -6,7 +6,7 @@ import {
   ModifiableEntity,
   CreatableEntity,
   EntityNotFoundException,
-  EntityInvariantException
+  EntityInvariantException,
 } from "@/base_types";
 
 const identityAPI = mande("/api/identities/");
@@ -63,7 +63,7 @@ export const useIdentityStore = defineStore("identities", {
     },
     getIdentityByUid: (state) => {
       return (uid: string) => state.identities.find((identity) => identity.uid === uid);
-    }
+    },
   },
   actions: {
     async list() {
@@ -75,33 +75,30 @@ export const useIdentityStore = defineStore("identities", {
       try {
         const identity = await identityAPI.get<IdentityGetSchema>(uid);
         const index = this.getIndexByUid(uid);
-        if(index !== -1) {
-          this.identities[index] = identity
+        if (index !== -1) {
+          this.identities[index] = identity;
         } else {
-          this.identities.push(identity)
+          this.identities.push(identity);
         }
-        return identity
-      } catch(error: any) {
+        return identity;
+      } catch (error: any) {
         throw new EntityNotFoundException(error.body.status, error.body.msg);
       }
     },
     async create(create: IdentityCreateSchema): Promise<IdentityGetSchema> {
       try {
         return await identityAPI.post<IdentityGetSchema>(create);
-      } catch(error: any) {
+      } catch (error: any) {
         throw new EntityInvariantException(error.body.status, error.body.msg);
       }
     },
-    async modify(
-      uid: string,
-      modify: IdentityModifySchema,
-    ): Promise<IdentityGetSchema> {
+    async modify(uid: string, modify: IdentityModifySchema): Promise<IdentityGetSchema> {
       try {
         const update = await identityAPI.put<IdentityGetSchema>(uid, modify);
         const index = this.getIndexByUid(uid);
         this.identities[index] = update;
         return update;
-      } catch(error: any) {
+      } catch (error: any) {
         throw new EntityInvariantException(error.body.status, error.body.msg);
       }
     },
@@ -110,7 +107,7 @@ export const useIdentityStore = defineStore("identities", {
         await identityAPI.delete(uid);
         const index = this.getIndexByUid(uid);
         this.identities.splice(index, 1);
-      } catch(error: any) {
+      } catch (error: any) {
         throw new EntityNotFoundException(error.body.status, error.body.msg);
       }
     },

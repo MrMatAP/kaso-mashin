@@ -66,8 +66,8 @@ export class EntityInvariantException extends KasoMashinException {
   }
 }
 
-export interface ListableEntity {
-  entries: any;
+export interface ListableEntity<E = Entity> {
+  entries: E[];
 }
 
 export abstract class Entity {

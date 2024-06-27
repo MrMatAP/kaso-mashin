@@ -107,7 +107,7 @@ export const useBootstrapStore = defineStore("bootstraps", {
     async modify(uid: string, modify: BootstrapModifySchema): Promise<BootstrapGetSchema> {
       try {
         const entity = await bootstrapAPI.put<BootstrapGetSchema>(uid, modify);
-        this.$patch((state) => state.bootstraps.set(uid, entity));
+        this.$patch((state) => state.bootstraps.set(entity.uid, entity));
         return entity;
       } catch (error: any) {
         throw KasoMashinException.fromError(error);

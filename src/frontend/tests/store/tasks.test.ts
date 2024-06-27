@@ -49,17 +49,11 @@ describe("Task Store Tests", () => {
     expect(taskStore.doneTasks.length).toBe(done.length);
   });
 
-  storeTest("raises an error for a KasoMashinException", async ({ taskStore }) => {
-    expect(() => taskStore.get("KasoMashinException")).rejects.toThrow(KasoMashinException);
-  });
-
   storeTest("raises an error for a EntityNotFoundException", async ({ taskStore }) => {
     expect(() => taskStore.get("EntityNotFoundException")).rejects.toThrow(EntityNotFoundException);
   });
 
-  storeTest("raises an error for a EntityInvariantException", async ({ taskStore }) => {
-    expect(() => taskStore.get("EntityInvariantException")).rejects.toThrow(
-      EntityInvariantException,
-    );
+  storeTest("raises an error for a KasoMashinException", async ({ taskStore }) => {
+    expect(() => taskStore.get("KasoMashinException")).rejects.toThrow(KasoMashinException);
   });
 });

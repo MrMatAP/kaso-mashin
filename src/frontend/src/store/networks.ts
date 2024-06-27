@@ -71,6 +71,7 @@ export class NetworkCreateSchema extends CreatableEntity {
 }
 
 export class NetworkModifySchema extends ModifiableEntity<NetworkGetSchema> {
+  kind: NetworkKind;
   cidr: string;
   gateway: string;
   dhcp_start: string;
@@ -78,6 +79,7 @@ export class NetworkModifySchema extends ModifiableEntity<NetworkGetSchema> {
 
   constructor(original: NetworkGetSchema) {
     super(original);
+    this.kind = original.kind;
     this.cidr = original.cidr;
     this.gateway = original.gateway;
     this.dhcp_start = original.dhcp_start;
@@ -108,7 +110,7 @@ export const useNetworkStore = defineStore("networks", {
       try {
         if (!force) {
           const cached = this.networks.get(uid);
-          if (cached !== undefined) return cached;
+          if (cached !== undefined) return cached as NetworkGetSchema;
         }
         const network = await networkAPI.get<NetworkGetSchema>(uid);
         this.$patch((state) => state.networks.set(uid, network));
