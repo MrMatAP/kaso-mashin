@@ -5,8 +5,9 @@ import {
   Entity,
   ModifiableEntity,
   CreatableEntity,
-  EntityNotFoundException,
-  EntityInvariantException,
+  ListableEntity,
+  UIEntitySelectOptions,
+  KasoMashinException,
 } from "@/base_types";
 
 const identityAPI = mande("/api/identities/");
@@ -16,24 +17,55 @@ export enum IdentityKind {
   PASSWORD = "password",
 }
 
-export interface IdentityListSchema {
-  entries: IdentityGetSchema[];
-}
+export interface IdentityListSchema extends ListableEntity<IdentityGetSchema> {}
 
 export class IdentityGetSchema extends Entity {
-  kind: IdentityKind = IdentityKind.PUBKEY;
-  gecos: string = "";
-  homedir: string = "";
-  shell: string = "";
-  credential: string = "";
+  kind: IdentityKind;
+  gecos: string;
+  homedir: string;
+  shell: string;
+  credential: string;
+
+  constructor(
+    uid: string = "",
+    name: string = "",
+    kind: IdentityKind = IdentityKind.PUBKEY,
+    gecos: string = "",
+    homedir: string = "",
+    shell: string = "",
+    credential: string = "",
+  ) {
+    super(uid, name);
+    this.kind = kind;
+    this.gecos = gecos;
+    this.homedir = homedir;
+    this.shell = shell;
+    this.credential = credential;
+  }
 }
 
 export class IdentityCreateSchema extends CreatableEntity {
-  kind: IdentityKind = IdentityKind.PUBKEY;
-  gecos: string = "";
-  homedir: string = "";
-  shell: string = "";
-  credential: string = "";
+  kind: IdentityKind;
+  gecos: string;
+  homedir: string;
+  shell: string;
+  credential: string;
+
+  constructor(
+    name: string = "",
+    kind: IdentityKind = IdentityKind.PUBKEY,
+    gecos: string = "",
+    homedir: string = "",
+    shell: string = "",
+    credential: string = "",
+  ) {
+    super(name);
+    this.kind = kind;
+    this.gecos = gecos;
+    this.homedir = homedir;
+    this.shell = shell;
+    this.credential = credential;
+  }
 }
 
 export class IdentityModifySchema extends ModifiableEntity<IdentityGetSchema> {
@@ -55,60 +87,62 @@ export class IdentityModifySchema extends ModifiableEntity<IdentityGetSchema> {
 
 export const useIdentityStore = defineStore("identities", {
   state: () => ({
-    identities: [] as IdentityGetSchema[],
+    identities: new Map<string, IdentityGetSchema>(),
   }),
   getters: {
-    getIndexByUid: (state) => {
-      return (uid: string) => state.identities.findIndex((identity) => identity.uid === uid);
-    },
-    getIdentityByUid: (state) => {
-      return (uid: string) => state.identities.find((identity) => identity.uid === uid);
-    },
+    identityOptions: (state) =>
+      Array.from(state.identities.values()).map((i) => new UIEntitySelectOptions(i.uid, i.name)),
   },
   actions: {
-    async list() {
-      const identity_list: IdentityListSchema = await identityAPI.get();
-      this.identities = identity_list.entries;
-      return this.identities;
-    },
-    async get(uid: string): Promise<IdentityGetSchema> {
+    async list(): Promise<Map<string, IdentityGetSchema>> {
       try {
-        const identity = await identityAPI.get<IdentityGetSchema>(uid);
-        const index = this.getIndexByUid(uid);
-        if (index !== -1) {
-          this.identities[index] = identity;
-        } else {
-          this.identities.push(identity);
+        const identity_list: IdentityListSchema = await identityAPI.get<IdentityListSchema>();
+        const update = new Set<IdentityGetSchema>(identity_list.entries);
+        this.$patch((state) => {
+          update.forEach((i: IdentityGetSchema) => state.identities.set(i.uid, i));
+        });
+        return this.identities;
+      } catch (error: any) {
+        throw KasoMashinException.fromError(error);
+      }
+    },
+    async get(uid: string, force: boolean = false): Promise<IdentityGetSchema> {
+      try {
+        if (!force) {
+          const cached = this.identities.get(uid);
+          if (cached !== undefined) return cached as IdentityGetSchema;
         }
+        const identity = await identityAPI.get<IdentityGetSchema>(uid);
+        this.$patch((state) => state.identities.set(uid, identity));
         return identity;
       } catch (error: any) {
-        throw new EntityNotFoundException(error.body.status, error.body.msg);
+        throw KasoMashinException.fromError(error);
       }
     },
     async create(create: IdentityCreateSchema): Promise<IdentityGetSchema> {
       try {
-        return await identityAPI.post<IdentityGetSchema>(create);
+        const entity = await identityAPI.post<IdentityGetSchema>(create);
+        this.$patch((state) => state.identities.set(entity.uid, entity));
+        return entity;
       } catch (error: any) {
-        throw new EntityInvariantException(error.body.status, error.body.msg);
+        throw KasoMashinException.fromError(error);
       }
     },
     async modify(uid: string, modify: IdentityModifySchema): Promise<IdentityGetSchema> {
       try {
-        const update = await identityAPI.put<IdentityGetSchema>(uid, modify);
-        const index = this.getIndexByUid(uid);
-        this.identities[index] = update;
-        return update;
+        const entity = await identityAPI.put<IdentityGetSchema>(uid, modify);
+        this.$patch((state) => state.identities.set(entity.uid, entity));
+        return entity;
       } catch (error: any) {
-        throw new EntityInvariantException(error.body.status, error.body.msg);
+        throw KasoMashinException.fromError(error);
       }
     },
     async remove(uid: string): Promise<void> {
       try {
         await identityAPI.delete(uid);
-        const index = this.getIndexByUid(uid);
-        this.identities.splice(index, 1);
+        this.$patch((state) => state.identities.delete(uid));
       } catch (error: any) {
-        throw new EntityNotFoundException(error.body.status, error.body.msg);
+        throw KasoMashinException.fromError(error);
       }
     },
   },

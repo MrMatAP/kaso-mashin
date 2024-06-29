@@ -16,9 +16,7 @@ export enum BootstrapKind {
   CLOUD_INIT = "cloud-init",
 }
 
-export interface BootstrapListSchema extends ListableEntity {
-  entries: BootstrapGetSchema[];
-}
+export interface BootstrapListSchema extends ListableEntity<BootstrapGetSchema> {}
 
 export class BootstrapGetSchema extends Entity {
   kind: BootstrapKind;
@@ -73,14 +71,18 @@ export const useBootstrapStore = defineStore("bootstraps", {
   },
   actions: {
     async list(): Promise<Map<string, BootstrapGetSchema>> {
-      const bootstrap_list = await bootstrapAPI.get<BootstrapListSchema>();
-      const update = new Set<BootstrapGetSchema>(bootstrap_list.entries);
-      this.$patch((state) => {
-        update.forEach((bootstrap: BootstrapGetSchema) =>
-          state.bootstraps.set(bootstrap.uid, bootstrap),
-        );
-      });
-      return this.bootstraps;
+      try {
+        const bootstrap_list = await bootstrapAPI.get<BootstrapListSchema>();
+        const update = new Set<BootstrapGetSchema>(bootstrap_list.entries);
+        this.$patch((state) => {
+          update.forEach((bootstrap: BootstrapGetSchema) =>
+            state.bootstraps.set(bootstrap.uid, bootstrap),
+          );
+        });
+        return this.bootstraps;
+      } catch (error: any) {
+        throw KasoMashinException.fromError(error);
+      }
     },
     async get(uid: string, force: boolean = false): Promise<BootstrapGetSchema> {
       try {

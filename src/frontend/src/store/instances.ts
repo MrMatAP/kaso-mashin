@@ -7,12 +7,14 @@ import {
   Entity,
   EntityInvariantException,
   EntityNotFoundException,
+  KasoMashinException,
+  ListableEntity,
   ModifiableEntity,
+  UIEntitySelectOptions,
 } from "@/base_types";
 import { TaskGetSchema, useTaskStore } from "@/store/tasks";
 
 const instanceAPI = mande("/api/instances/");
-const taskStore = useTaskStore();
 
 export enum InstanceState {
   STOPPING = "STOPPING",
@@ -21,36 +23,79 @@ export enum InstanceState {
   STARTED = "STARTED",
 }
 
-export interface InstanceListSchema {
-  entries: InstanceGetSchema[];
-}
+export interface InstanceListSchema extends ListableEntity<InstanceGetSchema> {}
 
 export class InstanceGetSchema extends Entity {
-  path: string = "";
-  vcpu: number = 0;
-  ram: BinarySizedValue = new BinarySizedValue();
-  mac: string = "";
-  os_disk_uid: string = "";
-  os_disk_size: BinarySizedValue = new BinarySizedValue();
-  network_uid: string = "";
-  bootstrap_uid: string = "";
-  bootstrap_file: string = "";
-  state: InstanceState = InstanceState.STOPPED;
+  path: string;
+  vcpu: number;
+  ram: BinarySizedValue;
+  mac: string;
+  os_disk_uid: string;
+  os_disk_size: BinarySizedValue;
+  network_uid: string;
+  bootstrap_uid: string;
+  bootstrap_file: string;
+  state: InstanceState;
+
+  constructor(
+    uid: string = "",
+    name: string = "",
+    path: string = "",
+    vcpu: number = 0,
+    ram: BinarySizedValue = new BinarySizedValue(),
+    mac: string = "",
+    os_disk_uid: string = "",
+    os_disk_size: BinarySizedValue = new BinarySizedValue(10, BinaryScale.G),
+    network_uid: string = "",
+    bootstrap_uid: string = "",
+    bootstrap_file: string = "",
+    state: InstanceState = InstanceState.STOPPED,
+  ) {
+    super(uid, name);
+    this.path = path;
+    this.vcpu = vcpu;
+    this.ram = ram;
+    this.mac = mac;
+    this.os_disk_uid = os_disk_uid;
+    this.os_disk_size = os_disk_size;
+    this.network_uid = network_uid;
+    this.bootstrap_uid = bootstrap_uid;
+    this.bootstrap_file = bootstrap_file;
+    this.state = state;
+  }
 }
 
 export class InstanceCreateSchema extends CreatableEntity {
-  vcpu: number = 1;
-  ram: BinarySizedValue = new BinarySizedValue(2, BinaryScale.G);
-  os_disk_size: BinarySizedValue = new BinarySizedValue(10, BinaryScale.G);
-  image_uid: string = "";
-  network_uid: string = "";
-  bootstrap_uid: string = "";
+  vcpu: number;
+  ram: BinarySizedValue;
+  os_disk_size: BinarySizedValue;
+  image_uid: string;
+  network_uid: string;
+  bootstrap_uid: string;
+
+  constructor(
+    name: string = "",
+    vcpu: number = 1,
+    ram: BinarySizedValue = new BinarySizedValue(2, BinaryScale.G),
+    os_disk_size: BinarySizedValue = new BinarySizedValue(10, BinaryScale.G),
+    image_uid: string = "",
+    network_uid: string = "",
+    bootstrap_uid: string = "",
+  ) {
+    super(name);
+    this.vcpu = vcpu;
+    this.ram = ram;
+    this.os_disk_size = os_disk_size;
+    this.image_uid = image_uid;
+    this.network_uid = network_uid;
+    this.bootstrap_uid = bootstrap_uid;
+  }
 }
 
 export class InstanceModifySchema extends ModifiableEntity<InstanceGetSchema> {
-  state: InstanceState = InstanceState.STOPPED;
-  vcpu: number = 0;
-  ram: BinarySizedValue = new BinarySizedValue();
+  state: InstanceState;
+  vcpu: number;
+  ram: BinarySizedValue;
 
   constructor(original: InstanceGetSchema) {
     super(original);
@@ -62,63 +107,63 @@ export class InstanceModifySchema extends ModifiableEntity<InstanceGetSchema> {
 
 export const useInstanceStore = defineStore("instances", {
   state: () => ({
-    instances: [] as InstanceGetSchema[],
+    instances: new Map<string, InstanceGetSchema>(),
     pendingInstances: new Map<string, InstanceCreateSchema>(),
   }),
   getters: {
-    getIndexByUid: (state) => {
-      return (uid: string) => state.instances.findIndex((instance) => instance.uid === uid);
-    },
-    getInstanceByUid: (state) => {
-      return (uid: string) => state.instances.find((instance) => instance.uid === uid);
-    },
+    instanceOptions: (state) =>
+      Array.from(state.instances.values()).map((i) => new UIEntitySelectOptions(i.uid, i.name)),
   },
   actions: {
     async list() {
-      const instance_list = await instanceAPI.get<InstanceListSchema>();
-      this.instances = instance_list.entries;
-      return this.instances;
-    },
-    async get(uid: string): Promise<InstanceGetSchema> {
       try {
-        const instance = await instanceAPI.get<InstanceGetSchema>(uid);
-        const index = this.getIndexByUid(uid);
-        if (index !== -1) {
-          this.instances[index] = instance;
-        } else {
-          this.instances.push(instance);
+        const instance_list = await instanceAPI.get<InstanceListSchema>();
+        const update = new Set<InstanceGetSchema>(instance_list.entries);
+        this.$patch((state) =>
+          update.forEach((i: InstanceGetSchema) => state.instances.set(i.uid, i)),
+        );
+        return this.instances;
+      } catch (error: any) {
+        throw KasoMashinException.fromError(error);
+      }
+    },
+    async get(uid: string, force: boolean = false): Promise<InstanceGetSchema> {
+      try {
+        if (!force) {
+          const cached = this.instances.get(uid);
+          if (cached) return cached as InstanceGetSchema;
         }
+        const instance = await instanceAPI.get<InstanceGetSchema>(uid);
+        this.$patch((state) => state.instances.set(uid, instance));
         return instance;
       } catch (error: any) {
-        throw new EntityNotFoundException(error.body.status, error.body.msg);
+        throw KasoMashinException.fromError(error);
       }
     },
     async create(create: InstanceCreateSchema): Promise<TaskGetSchema> {
       try {
         const task = await instanceAPI.post<TaskGetSchema>(create);
-        this.pendingInstances.set(task.uid, create);
+        this.$patch((state) => state.pendingInstances.set(task.uid, create));
         return task;
       } catch (error: any) {
-        throw new EntityInvariantException(error.body.status, error.body.msg);
+        throw KasoMashinException.fromError(error);
       }
     },
     async modify(uid: string, modify: InstanceModifySchema): Promise<InstanceGetSchema> {
       try {
-        const update = await instanceAPI.put<InstanceGetSchema>(uid, modify);
-        const index = this.getIndexByUid(uid);
-        this.instances[index] = update;
-        return update;
+        const entity = await instanceAPI.put<InstanceGetSchema>(uid, modify);
+        this.$patch((state) => state.instances.set(entity.uid, entity));
+        return entity;
       } catch (error: any) {
-        throw new EntityInvariantException(error.body.status, error.body.msg);
+        throw KasoMashinException.fromError(error);
       }
     },
     async remove(uid: string): Promise<void> {
       try {
         await instanceAPI.delete(uid);
-        const index = this.getIndexByUid(uid);
-        this.instances.splice(index, 1);
+        this.$patch((state) => state.instances.delete(uid));
       } catch (error: any) {
-        throw new EntityNotFoundException(error.body.status, error.body.msg);
+        throw KasoMashinException.fromError(error);
       }
     },
   },

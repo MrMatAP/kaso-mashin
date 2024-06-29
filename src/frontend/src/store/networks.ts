@@ -17,9 +17,7 @@ export enum NetworkKind {
   VMNET_BRIDGED = "vmnet-bridged",
 }
 
-export interface NetworkListSchema extends ListableEntity {
-  entries: NetworkGetSchema[];
-}
+export interface NetworkListSchema extends ListableEntity<NetworkGetSchema> {}
 
 export class NetworkGetSchema extends Entity {
   kind: NetworkKind;
@@ -99,12 +97,16 @@ export const useNetworkStore = defineStore("networks", {
   },
   actions: {
     async list(): Promise<Map<string, NetworkGetSchema>> {
-      const network_list = await networkAPI.get<NetworkListSchema>();
-      const update = new Set<NetworkGetSchema>(network_list.entries);
-      this.$patch((state) => {
-        update.forEach((network: NetworkGetSchema) => state.networks.set(network.uid, network));
-      });
-      return this.networks;
+      try {
+        const network_list = await networkAPI.get<NetworkListSchema>();
+        const update = new Set<NetworkGetSchema>(network_list.entries);
+        this.$patch((state) => {
+          update.forEach((network: NetworkGetSchema) => state.networks.set(network.uid, network));
+        });
+        return this.networks;
+      } catch (error: any) {
+        throw KasoMashinException.fromError(error);
+      }
     },
     async get(uid: string, force: boolean = false): Promise<NetworkGetSchema> {
       try {

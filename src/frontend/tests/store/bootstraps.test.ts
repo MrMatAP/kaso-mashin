@@ -1,8 +1,8 @@
 import { createPinia, setActivePinia } from "pinia";
 import { storeTest } from "../fixtures";
 import { bootstrapSeed } from "../seeds";
-import { BootstrapCreateSchema, BootstrapKind, BootstrapModifySchema } from "@/store/bootstraps";
 import { EntityNotFoundException } from "@/base_types";
+import { BootstrapCreateSchema, BootstrapKind, BootstrapModifySchema } from "@/store/bootstraps";
 
 describe("Bootstrap Store Tests", () => {
   beforeEach(() => {
