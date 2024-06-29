@@ -38,6 +38,7 @@
       </indentOptions>
     </codeStyleSettings>
     <codeStyleSettings language="JavaScript">
+      <option name="RIGHT_MARGIN" value="100" />
       <option name="SOFT_MARGINS" value="80" />
       <indentOptions>
         <option name="INDENT_SIZE" value="2" />
@@ -53,6 +54,7 @@
       <option name="SOFT_MARGINS" value="100" />
     </codeStyleSettings>
     <codeStyleSettings language="TypeScript">
+      <option name="RIGHT_MARGIN" value="100" />
       <option name="SOFT_MARGINS" value="80" />
       <indentOptions>
         <option name="INDENT_SIZE" value="2" />
