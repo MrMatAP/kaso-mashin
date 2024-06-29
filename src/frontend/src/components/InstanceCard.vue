@@ -1,37 +1,45 @@
 <script setup lang="ts">
-import { ref } from 'vue'
-import { Instance } from '@/store/instances'
+import { InstanceGetSchema } from "@/store/instances";
 
 defineProps<{
-    instance: Instance
-}>()
-
-let expand = ref()
+  instance: InstanceGetSchema;
+}>();
+defineEmits<{
+  (e: "onSelected", uid: string): void;
+}>();
 </script>
 
 <template>
-  <v-card class="pa-2 ma-2">
-    <template v-slot:title>{{ instance.name }}</template>
-    <template v-slot:subtitle>{{ instance.instance_id }}</template>
-    <v-expand-transition>
-      <div v-if="expand">
-        <v-list class="bg-transparent" density="compact">
-          <v-list-item>
-            <template v-slot:title>{{instance.mac}}</template>
-            <template v-slot:subtitle>MAC</template>
-          </v-list-item>
-        </v-list>
-      </div>
-    </v-expand-transition>
-    <v-divider/>
-    <v-card-actions>
-      <v-btn @click="expand = !expand">
-        {{ !expand ? 'Details' : 'Close' }}
-      </v-btn>
-    </v-card-actions>
-  </v-card>
+  <q-card
+    v-ripple
+    class="km-entity-card cursor-pointer q-hoverable"
+    @click="$emit('onSelected', instance.uid)"
+  >
+    <q-item>
+      <q-item-section side>
+        <q-avatar icon="developer_board" size="lg" color="primary" text-color="white"/>
+      </q-item-section>
+      <q-item-section>
+        <q-item-label>{{ instance.name }}</q-item-label>
+        <q-item-label caption>{{ instance.uid }}</q-item-label>
+      </q-item-section>
+    </q-item>
+    <q-separator />
+    <q-markup-table>
+      <tbody>
+        <tr>
+          <td class="text-left">State</td>
+          <td class="text-right">{{ instance.state }}</td>
+        </tr>
+        <tr>
+          <td class="text-left">vCPUs</td>
+          <td class="text-right">{{ instance.vcpu }}</td>
+        </tr>
+        <tr>
+          <td class="text-left">RAM</td>
+          <td class="text-right">{{ instance.ram.value }} {{ instance.ram.scale }}</td>
+        </tr>
+      </tbody>
+    </q-markup-table>
+  </q-card>
 </template>
-
-<style scoped>
-
-</style>

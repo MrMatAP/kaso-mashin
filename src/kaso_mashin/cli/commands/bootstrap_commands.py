@@ -25,13 +25,9 @@ class BootstrapCommands(BaseCommands[BootstrapListSchema, BootstrapGetSchema]):
 
     def register_commands(self, parser: argparse.ArgumentParser):
         bootstrap_subparser = parser.add_subparsers()
-        bootstrap_list_parser = bootstrap_subparser.add_parser(
-            name="list", help="List bootstraps"
-        )
+        bootstrap_list_parser = bootstrap_subparser.add_parser(name="list", help="List bootstraps")
         bootstrap_list_parser.set_defaults(cmd=self.list)
-        bootstrap_get_parser = bootstrap_subparser.add_parser(
-            name="get", help="Get bootstrap"
-        )
+        bootstrap_get_parser = bootstrap_subparser.add_parser(name="get", help="Get bootstrap")
         bootstrap_get_parser.add_argument(
             "--uid", dest="uid", type=uuid.UUID, help="The bootstrap uid"
         )

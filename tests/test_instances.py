@@ -10,7 +10,6 @@ from kaso_mashin.common.entities import (
     InstanceModel,
     InstanceEntity,
     InstanceListSchema,
-    InstanceListEntrySchema,
     InstanceGetSchema,
     InstanceModifySchema,
 )
@@ -44,7 +43,7 @@ class TestEmptyInstances:
 class TestSeededInstances(BaseTest[InstanceModel, InstanceEntity, InstanceGetSchema]):
 
     def assert_list_by_model(
-        self, obj: InstanceListEntrySchema | InstanceEntity, model: InstanceModel
+        self, obj: InstanceGetSchema | InstanceEntity, model: InstanceModel
     ):
         assert obj.uid == UniqueIdentifier(model.uid)
         assert obj.name == model.name

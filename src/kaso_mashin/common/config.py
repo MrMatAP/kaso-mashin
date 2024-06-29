@@ -7,6 +7,9 @@ import typing
 import pydantic
 import yaml
 
+from kaso_mashin.common import EntitySchema
+from kaso_mashin.common.base_types import CLIArgumentsHolder
+
 try:
     from yaml import (
         CLoader as Loader,
@@ -15,7 +18,116 @@ try:
 except ImportError:
     from yaml import Loader, Dumper  # pylint: disable=unused-import
 
-from kaso_mashin import KasoMashinException
+from kaso_mashin import __version__, KasoMashinException
+
+
+class PredefinedImageSchema(EntitySchema):
+    """
+    Schema for a predefined image
+    """
+
+    name: str = pydantic.Field(description="Name of the predefined image")
+    url: str = pydantic.Field(description="URL of the predefined image")
+
+
+class ConfigSchema(EntitySchema):
+    """
+    Configuration Schema
+    """
+
+    version: str = pydantic.Field(
+        description="The version of the kaso-mashin server",
+        examples=["1.0.0"],
+        default=__version__,
+    )
+    path: pathlib.Path = pydantic.Field(
+        description="Path on the local disk where Kaso Mashin keeps its files"
+    )
+    images_path: pathlib.Path = pydantic.Field(
+        description="Path on the local disk where OS images are stored"
+    )
+    instances_path: pathlib.Path = pydantic.Field(
+        description="Path on the local disk where instances are stored"
+    )
+    bootstrap_path: pathlib.Path = pydantic.Field(
+        description="Path on the local disk where bootstrap templates are stored"
+    )
+    default_os_disk_size: str = pydantic.Field(description="Default OS disk size", examples=["5G"])
+    default_phone_home_port: int = pydantic.Field(
+        description="Default phone home port", examples=[10200]
+    )
+    default_host_network_dhcp4_start: str = pydantic.Field(
+        description="Default host network dhcp4 start", examples=["172.16.4.10"]
+    )
+    default_host_network_dhcp4_end: str = pydantic.Field(
+        description="Default host network dhcp4 end", examples=["172.16.4.254"]
+    )
+    default_shared_network_dhcp4_start: str = pydantic.Field(
+        description="Default shared network dhcp4 start", examples=["172.16.5.10"]
+    )
+    default_shared_network_dhcp4_end: str = pydantic.Field(
+        description="Default shared network dhcp4 end", examples=["172.16.5.254"]
+    )
+    default_host_network_cidr: str = pydantic.Field(
+        description="Default host network cidr", examples=["172.16.4.0/24"]
+    )
+    default_shared_network_cidr: str = pydantic.Field(
+        description="Default shared network cidr", examples=["172.16.5.254/24"]
+    )
+    default_server_host: str = pydantic.Field(
+        description="Default server host", examples=["127.0.0.1"]
+    )
+    default_server_port: int = pydantic.Field(description="Default server port", examples=[8000])
+    uefi_code_url: str = pydantic.Field(description="URL to the UEFI code")
+    uefi_vars_url: str = pydantic.Field(description="URL to the UEFI vars")
+    butane_path: pathlib.Path = pydantic.Field(description="Path the local butane installation")
+    qemu_aarch64_path: pathlib.Path = pydantic.Field(
+        description="Path to the local qemu-aarch64 installation"
+    )
+    predefined_images: typing.List[PredefinedImageSchema] = pydantic.Field(
+        description="List of predefined images", default=[]
+    )
+
+
+Predefined_Images = [
+    PredefinedImageSchema(
+        name="ubuntu-bionic",
+        url="https://cloud-images.ubuntu.com/bionic/current/bionic-server-cloudimg-arm64.img",
+    ),
+    PredefinedImageSchema(
+        name="ubuntu-focal",
+        url="https://cloud-images.ubuntu.com/focal/current/focal-server-cloudimg-arm64.img",
+    ),
+    PredefinedImageSchema(
+        name="ubuntu-jammy",
+        url="https://cloud-images.ubuntu.com/jammy/current/jammy-server-cloudimg-arm64.img",
+    ),
+    PredefinedImageSchema(
+        name="ubuntu-kinetic",
+        url="https://cloud-images.ubuntu.com/kinetic/current/kinetic-server-cloudimg-arm64.img",
+    ),
+    PredefinedImageSchema(
+        name="ubuntu-lunar",
+        url="https://cloud-images.ubuntu.com/lunar/current/lunar-server-cloudimg-arm64.img",
+    ),
+    PredefinedImageSchema(
+        name="ubuntu-mantic",
+        url="https://cloud-images.ubuntu.com/mantic/current/mantic-server-cloudimg-arm64.img",
+    ),
+    PredefinedImageSchema(
+        name="freebsd-14",
+        url="https://download.freebsd.org/ftp/snapshots/VM-IMAGES/14.0-CURRENT/amd64/Latest/"
+        "FreeBSD-14.0-CURRENT-amd64.qcow2.xz",
+    ),
+    PredefinedImageSchema(
+        name="flatcar-arm64",
+        url="https://stable.release.flatcar-linux.net/arm64-usr/current/flatcar_production_qemu_uefi_image.img",
+    ),
+    PredefinedImageSchema(
+        name="flatcar-amd64",
+        url="https://stable.release.flatcar-linux.net/amd64-usr/current/flatcar_production_qemu_image.img",
+    ),
+]
 
 
 @dataclasses.dataclass(init=False)
@@ -24,9 +136,7 @@ class Config:
     Configuration handling for kaso_mashin
     """
 
-    path: pathlib.Path = dataclasses.field(
-        default=pathlib.Path("~/var/kaso").expanduser()
-    )
+    path: pathlib.Path = dataclasses.field(default=pathlib.Path("~/var/kaso").expanduser())
     images_path: pathlib.Path = dataclasses.field(
         default=pathlib.Path("~/var/kaso/images").expanduser()
     )
@@ -52,17 +162,15 @@ class Config:
     uefi_vars_url: str = dataclasses.field(
         default="https://stable.release.flatcar-linux.net/arm64-usr/current/flatcar_production_qemu_uefi_efi_vars.fd"
     )
-    butane_path: pathlib.Path = dataclasses.field(
-        default=pathlib.Path("/opt/homebrew/bin/butane")
-    )
+    butane_path: pathlib.Path = dataclasses.field(default=pathlib.Path("/opt/homebrew/bin/butane"))
     qemu_aarch64_path: pathlib.Path = dataclasses.field(
         default=pathlib.Path("/opt/homebrew/bin/qemu-system-aarch64")
     )
+    predefined_images: typing.List[PredefinedImageSchema] = dataclasses.field(default_factory=list)
 
     def __init__(self, config_file: typing.Optional[pathlib.Path] = None):
-        self._logger = logging.getLogger(
-            f"{self.__class__.__module__}.{self.__class__.__name__}"
-        )
+        self._logger = logging.getLogger(f"{self.__class__.__module__}.{self.__class__.__name__}")
+        self.predefined_images = Predefined_Images
         if config_file:
             self.load(config_file)
 
@@ -89,7 +197,7 @@ class Config:
         except yaml.YAMLError as exc:
             raise KasoMashinException(status=400, msg="Invalid config file") from exc
 
-    def cli_override(self, args: argparse.Namespace):
+    def cli_override(self, args: CLIArgumentsHolder):
         """
         Override the defaults and what has been set in the config file with CLI arguments
         Args:
@@ -105,16 +213,12 @@ class Config:
 
     def save(self, config_file: pathlib.Path):
         self._logger.debug("Saving configuration at %s", config_file)
-        configured = {
-            field.name: getattr(self, field.name) for field in dataclasses.fields(self)
-        }
+        configured = {field.name: getattr(self, field.name) for field in dataclasses.fields(self)}
         try:
             with open(config_file, "w+", encoding="UTF-8") as c:
                 yaml.dump(configured, c, Dumper=Dumper)
         except yaml.YAMLError as exc:
-            raise KasoMashinException(
-                status=500, msg="Failed to save config file"
-            ) from exc
+            raise KasoMashinException(status=500, msg="Failed to save config file") from exc
 
     @property
     def server_url(self) -> str:
@@ -124,44 +228,3 @@ class Config:
             The server URL to communicate with
         """
         return f"http://{self.default_server_host}:{self.default_server_port}"
-
-
-Predefined_Images = {
-    "ubuntu-bionic": "https://cloud-images.ubuntu.com/bionic/current/bionic-server-cloudimg-arm64.img",
-    "ubuntu-focal": "https://cloud-images.ubuntu.com/focal/current/focal-server-cloudimg-arm64.img",
-    "ubuntu-jammy": "https://cloud-images.ubuntu.com/jammy/current/jammy-server-cloudimg-arm64.img",
-    "ubuntu-kinetic": "https://cloud-images.ubuntu.com/kinetic/current/kinetic-server-cloudimg-arm64.img",
-    "ubuntu-lunar": "https://cloud-images.ubuntu.com/lunar/current/lunar-server-cloudimg-arm64.img",
-    "ubuntu-mantic": "https://cloud-images.ubuntu.com/mantic/current/mantic-server-cloudimg-arm64.img",
-    "freebsd-14": "https://download.freebsd.org/ftp/snapshots/VM-IMAGES/14.0-CURRENT/amd64/Latest/"
-    "FreeBSD-14.0-CURRENT-amd64.qcow2.xz",
-    "flatcar-arm64": "https://stable.release.flatcar-linux.net/arm64-usr/current/flatcar_production_qemu_uefi_image.img",
-    "flatcar-amd64": "https://stable.release.flatcar-linux.net/amd64-usr/current/flatcar_production_qemu_image.img",
-}
-
-
-class ImagePredefinedSchema(pydantic.BaseModel):
-    """
-    Output schema to get a list of predefined images
-    """
-
-    name: str = pydantic.Field(description="The image name", examples=["ubuntu-jammy"])
-    url: str = pydantic.Field(
-        description="The image URL",
-        examples=[
-            "https://cloud-images.ubuntu.com/jammy/current/jammy-server-cloudimg-arm64.img"
-        ],
-    )
-
-
-class ConfigSchema(pydantic.BaseModel):
-    """
-    Configuration Schema
-    """
-
-    version: str = pydantic.Field(
-        description="The version of the kaso-mashin server", examples=["1.0.0"]
-    )
-    predefined_images: typing.List[ImagePredefinedSchema] = pydantic.Field(
-        description="List of predefined images", default=[]
-    )

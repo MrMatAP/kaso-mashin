@@ -1,85 +1,137 @@
-import { defineStore } from 'pinia'
+import { defineStore } from "pinia";
 import { mande } from "mande";
+import {
+  BinarySizedValue,
+  CreatableEntity,
+  Entity,
+  UIEntitySelectOptions,
+  ModifiableEntity,
+  ListableEntity,
+  KasoMashinException,
+} from "@/base_types";
+import { TaskGetSchema } from "@/store/tasks";
 
-const images = mande('/api/images/')
-const predefined_images = mande('/api/images/predefined')
+const imageAPI = mande("/api/images/");
 
-export class Image {
-  image_id: number
-  name: string
-  url?: string
-  path: string
-  min_cpu: number
-  min_ram: number
-  min_space: number
+export interface ImageListSchema extends ListableEntity<ImageGetSchema> {}
 
-  constructor(image_id: number, name: string, path: string, min_cpu: number, min_ram: number, min_space: number, url?: string) {
-    this.image_id = image_id
-    this.name = name
-    this.path = path
-    this.min_cpu = min_cpu
-    this.min_ram = min_ram
-    this.min_space = min_space
-    this.url = url
-  }
+export class ImageGetSchema extends Entity {
+  path: string;
+  url: string;
+  min_vcpu: number;
+  min_ram: BinarySizedValue = new BinarySizedValue();
+  min_disk: BinarySizedValue = new BinarySizedValue();
 
-  static defaultImage(): Image {
-    return new Image(0, '', '', 0, 0, 0)
-  }
-}
-
-export class ImageCreateSchema {
-  name: string
-  url: string
-  min_cpu?: number
-  min_ram?: number
-  min_space?: number
-
-  constructor(name: string, url: string, min_cpu?: number, min_ram?: number, min_space?: number) {
-    this.name = name
-    this.url = url
-    this.min_cpu = min_cpu
-    this.min_ram = min_ram
-    this.min_space = min_space
-  }
-
-  static fromImage(image: Image): ImageCreateSchema {
-    if(image.url != undefined) {
-      return new ImageCreateSchema(image.name, image.url, image.min_cpu, image.min_ram, image.min_space)
-    }
-    throw new Error('Creating an image requires both name and url')
+  constructor(
+    uid: string = "",
+    name: string = "",
+    path: string = "",
+    url: string = "",
+    min_vcpu: number = 0,
+    min_ram: BinarySizedValue = new BinarySizedValue(),
+    min_disk: BinarySizedValue = new BinarySizedValue(),
+  ) {
+    super(uid, name);
+    this.path = path;
+    this.url = url;
+    this.min_vcpu = min_vcpu;
+    this.min_ram = min_ram;
+    this.min_disk = min_disk;
   }
 }
 
-export class PredefinedImage {
-  name: string
-  url: string
+export class ImageCreateSchema extends CreatableEntity {
+  url: string;
+  min_vcpu: number;
+  min_ram: BinarySizedValue;
+  min_disk: BinarySizedValue;
 
-  constructor(name: string, url: string) {
-    this.name = name
-    this.url = url
+  constructor(
+    name: string = "",
+    url: string = "",
+    min_vcpu: number = 0,
+    min_ram: BinarySizedValue = new BinarySizedValue(),
+    min_disk: BinarySizedValue = new BinarySizedValue(),
+  ) {
+    super(name);
+    this.url = url;
+    this.min_vcpu = min_vcpu;
+    this.min_ram = min_ram;
+    this.min_disk = min_disk;
   }
 }
 
-export const useImagesStore = defineStore('images', {
+export class ImageModifySchema extends ModifiableEntity<ImageGetSchema> {
+  min_vcpu: number;
+  min_ram: BinarySizedValue;
+  min_disk: BinarySizedValue;
+
+  constructor(original: ImageGetSchema) {
+    super(original);
+    this.min_vcpu = original.min_vcpu;
+    this.min_ram = original.min_ram;
+    this.min_disk = original.min_disk;
+  }
+}
+
+export const useImageStore = defineStore("images", {
   state: () => ({
-    images: [] as Image[],
-    predefined_images: [] as PredefinedImage[]
+    images: new Map<string, ImageGetSchema>(),
+    pendingImages: new Map<string, ImageCreateSchema>(),
   }),
+  getters: {
+    imageOptions: (state) =>
+      Array.from(state.images.values()).map((i) => new UIEntitySelectOptions(i.uid, i.name)),
+  },
   actions: {
-    async refresh() {
-      this.images = await images.get()
-      this.predefined_images = await predefined_images.get()
+    async list(): Promise<Map<string, ImageGetSchema>> {
+      try {
+        const image_list = await imageAPI.get<ImageListSchema>();
+        const update = new Set<ImageGetSchema>(image_list.entries);
+        this.$patch((state) => update.forEach((i: ImageGetSchema) => state.images.set(i.uid, i)));
+        return this.images;
+      } catch (error: any) {
+        throw KasoMashinException.fromError(error);
+      }
     },
-    async create(image: Image) {
-      const new_image = ImageCreateSchema.fromImage(image)
-      return images.post(new_image)
+    async get(uid: string, force: boolean = false): Promise<ImageGetSchema> {
+      try {
+        if (!force) {
+          const cached = this.images.get(uid);
+          if (cached !== undefined) return cached as ImageGetSchema;
+        }
+        const image = await imageAPI.get<ImageGetSchema>(uid);
+        this.$patch((state) => state.images.set(uid, image));
+        return image;
+      } catch (error: any) {
+        throw KasoMashinException.fromError(error);
+      }
     },
-    async modify(image: Image) {
-      return images.put(image.image_id, image)
+    async create(create: ImageCreateSchema): Promise<TaskGetSchema> {
+      try {
+        const task = await imageAPI.post<TaskGetSchema>(create);
+        this.$patch((state) => state.pendingImages.set(task.uid, create));
+        return task;
+      } catch (error: any) {
+        throw KasoMashinException.fromError(error);
+      }
     },
-    async remove(image: Image) {
-      return images.delete(image.image_id)
-    }
-  }
-})
+    async modify(uid: string, modify: ImageModifySchema): Promise<ImageGetSchema> {
+      try {
+        const entity = await imageAPI.put<ImageGetSchema>(uid, modify);
+        this.$patch((state) => state.images.set(entity.uid, entity));
+        return entity;
+      } catch (error: any) {
+        throw KasoMashinException.fromError(error);
+      }
+    },
+    async remove(uid: string): Promise<void> {
+      try {
+        await imageAPI.delete(uid);
+        this.$patch((state) => state.images.delete(uid));
+      } catch (error: any) {
+        throw KasoMashinException.fromError(error);
+      }
+    },
+  },
+});

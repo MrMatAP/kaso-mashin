@@ -27,20 +27,12 @@ class NetworkCommands(BaseCommands[NetworkListSchema, NetworkGetSchema]):
 
     def register_commands(self, parser: argparse.ArgumentParser):
         network_subparser = parser.add_subparsers()
-        network_list_parser = network_subparser.add_parser(
-            name="list", help="List networks"
-        )
+        network_list_parser = network_subparser.add_parser(name="list", help="List networks")
         network_list_parser.set_defaults(cmd=self.list)
-        network_get_parser = network_subparser.add_parser(
-            name="get", help="Get a network"
-        )
-        network_get_parser.add_argument(
-            "--uid", dest="uid", type=uuid.UUID, help="The network uid"
-        )
+        network_get_parser = network_subparser.add_parser(name="get", help="Get a network")
+        network_get_parser.add_argument("--uid", dest="uid", type=uuid.UUID, help="The network uid")
         network_get_parser.set_defaults(cmd=self.get)
-        network_create_parser = network_subparser.add_parser(
-            name="create", help="Create a network"
-        )
+        network_create_parser = network_subparser.add_parser(name="create", help="Create a network")
         network_create_parser.add_argument(
             "-n",
             "--name",
@@ -89,9 +81,7 @@ class NetworkCommands(BaseCommands[NetworkListSchema, NetworkGetSchema]):
             help="The DHCP end address",
         )
         network_create_parser.set_defaults(cmd=self.create)
-        network_modify_parser = network_subparser.add_parser(
-            "modify", help="Modify a network"
-        )
+        network_modify_parser = network_subparser.add_parser("modify", help="Modify a network")
         network_modify_parser.add_argument(
             "--uid", dest="uid", type=uuid.UUID, required=True, help="The network uid"
         )
@@ -137,9 +127,7 @@ class NetworkCommands(BaseCommands[NetworkListSchema, NetworkGetSchema]):
             help="The DHCP end address",
         )
         network_modify_parser.set_defaults(cmd=self.modify)
-        network_remove_parser = network_subparser.add_parser(
-            "remove", help="Remove a network"
-        )
+        network_remove_parser = network_subparser.add_parser("remove", help="Remove a network")
         network_remove_parser.add_argument(
             "--uid", dest="uid", type=uuid.UUID, required=True, help="The network uid"
         )

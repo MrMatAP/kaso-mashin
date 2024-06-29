@@ -32,38 +32,37 @@ class DiskFormat(enum.StrEnum):
     VDI = "vdi"
 
 
-class DiskListEntrySchema(EntitySchema):
+class DiskException(KasoMashinException):
     """
-    Schema for a disk list
+    Exception for disk-related issues
     """
 
-    uid: UniqueIdentifier = Field(
-        description="The unique identifier",
-        examples=["b430727e-2491-4184-bb4f-c7d6d213e093"],
+    pass
+
+
+class DiskCreateSchema(EntitySchema):
+    """
+    Schema to create a disk
+    """
+
+    name: str = Field(description="Disk name", examples=["root", "data-1", "data-2"])
+    # TODO: We should not have to specify the path
+    path: pathlib.Path = Field(
+        description="Path of the disk image on the local filesystem",
+        examples=["/var/kaso/instances/root.qcow2"],
     )
-    name: str = Field(
-        description="The disk name", examples=["root", "data-1", "data-2"]
+    size: BinarySizedValue = Field(
+        description="Disk size",
+        examples=[BinarySizedValue(value=2, scale=BinaryScale.G)],
     )
-
-
-class DiskListSchema(EntitySchema):
-    """
-    Schema to list disks
-    """
-
-    entries: typing.List[DiskListEntrySchema] = Field(
-        description="List of disks", default_factory=list
+    disk_format: DiskFormat = Field(
+        description="Disk image file format",
+        examples=[DiskFormat.QCoW2, DiskFormat.Raw],
     )
-
-    def __rich__(self):
-        table = rich.table.Table(box=rich.box.ROUNDED)
-        table.add_column("[blue]UID")
-        table.add_column("[blue]Kind")
-        table.add_column("[blue]Name")
-        table.add_column("[blue]CIDR")
-        for entry in self.entries:
-            table.add_row(str(entry.uid), entry.name)
-        return table
+    # TODO: This should be optional
+    image_uid: UniqueIdentifier = Field(
+        description="The image uid on which this disk is based on", default=None
+    )
 
 
 class DiskGetSchema(EntitySchema):
@@ -75,12 +74,14 @@ class DiskGetSchema(EntitySchema):
         description="The unique identifier",
         examples=["b430727e-2491-4184-bb4f-c7d6d213e093"],
     )
+    name: str = Field(description="Disk name", examples=["root", "data-1", "data-2"])
     path: pathlib.Path = Field(
         description="Path of the disk image on the local filesystem",
         examples=["/var/kaso/instances/root.qcow2"],
     )
     size: BinarySizedValue = Field(
-        description="Disk size", examples=[BinarySizedValue(2, BinaryScale.G)]
+        description="Disk size",
+        examples=[BinarySizedValue(value=2, scale=BinaryScale.G)],
     )
     disk_format: DiskFormat = Field(
         description="Disk image file format",
@@ -93,26 +94,22 @@ class DiskGetSchema(EntitySchema):
     )
 
 
-class DiskCreateSchema(EntitySchema):
+class DiskListSchema(EntitySchema):
     """
-    Schema to create a disk
+    Schema to list disks
     """
 
-    name: str = Field(description="Disk name", examples=["root", "data-1", "data-2"])
-    path: pathlib.Path = Field(
-        description="Path of the disk image on the local filesystem",
-        examples=["/var/kaso/instances/root.qcow2"],
-    )
-    size: BinarySizedValue = Field(
-        description="Disk size", examples=[BinarySizedValue(2, BinaryScale.G)]
-    )
-    disk_format: DiskFormat = Field(
-        description="Disk image file format",
-        examples=[DiskFormat.QCoW2, DiskFormat.Raw],
-    )
-    image_uid: UniqueIdentifier = Field(
-        description="The image uid on which this disk is based on", default=None
-    )
+    entries: typing.List[DiskGetSchema] = Field(description="List of disks", default_factory=list)
+
+    def __rich__(self):
+        table = rich.table.Table(box=rich.box.ROUNDED)
+        table.add_column("[blue]UID")
+        table.add_column("[blue]Kind")
+        table.add_column("[blue]Name")
+        table.add_column("[blue]CIDR")
+        for entry in self.entries:
+            table.add_row(str(entry.uid), entry.name)
+        return table
 
 
 class DiskModifySchema(EntitySchema):
@@ -122,18 +119,10 @@ class DiskModifySchema(EntitySchema):
 
     size: BinarySizedValue = Field(
         description="Disk size",
-        examples=[BinarySizedValue(2, BinaryScale.G)],
+        examples=[BinarySizedValue(value=2, scale=BinaryScale.G)],
         optional=True,
         default=None,
     )
-
-
-class DiskException(KasoMashinException):
-    """
-    Exception for disk-related issues
-    """
-
-    pass
 
 
 class DiskModel(EntityModel):
@@ -260,37 +249,33 @@ class DiskEntity(Entity, AggregateRoot):
         if path.exists():
             raise DiskException(status=400, msg=f"Disk at {path} already exists")
         if image is not None and size < image.min_disk:
-            raise DiskException(
-                status=400, msg=f"Disk size is less than image minimum size"
-            )
+            raise DiskException(status=400, msg=f"Disk size is less than image minimum size")
         try:
             path.parent.mkdir(parents=True, exist_ok=True)
             args = ["/opt/homebrew/bin/qemu-img", "create", "-f", str(disk_format)]
             if image is not None:
-                args.extend(
-                    ["-F", str(disk_format), "-b", str(image.path)]
-                )
+                args.extend(["-F", str(disk_format), "-b", str(image.path)])
             args.extend([str(path), str(size)])
             subprocess.run(args, check=True)
-            disk = DiskEntity(
-                name=name, path=path, size=size, disk_format=disk_format, image=image
-            )
+            disk = DiskEntity(name=name, path=path, size=size, disk_format=disk_format, image=image)
             return await DiskEntity.repository.create(disk)
         except subprocess.CalledProcessError as e:
             path.unlink(missing_ok=True)
-            raise DiskException(
-                status=500, msg=f"Failed to create disk: {e.output}"
-            ) from e
+            raise DiskException(status=500, msg=f"Failed to create disk: {e.output}") from e
         except EntityNotFoundException as e:
             path.unlink(missing_ok=True)
-            raise DiskException(
-                status=400, msg=f"The provided image does not exist"
-            ) from e
+            raise DiskException(status=400, msg=f"The provided image does not exist") from e
         except PermissionError as e:
             path.unlink(missing_ok=True)
             raise DiskException(
                 status=400,
                 msg=f"You have no permission to create a disk at path {path}",
+            ) from e
+        except Exception as e:
+            path.unlink(missing_ok=True)
+            raise DiskException(
+                status=500,
+                msg=f"An unknown error occurred: {e}",
             ) from e
 
     async def resize(self, value: BinarySizedValue) -> "DiskEntity":
@@ -304,9 +289,7 @@ class DiskEntity(Entity, AggregateRoot):
             await DiskEntity.repository.modify(self)
             return self
         except subprocess.CalledProcessError as e:
-            raise DiskException(
-                status=500, msg=f"Failed to resize disk: {e.output}"
-            ) from e
+            raise DiskException(status=500, msg=f"Failed to resize disk: {e.output}") from e
 
     async def modify(self, schema: DiskModifySchema) -> "DiskEntity":
         if schema.size is not None:

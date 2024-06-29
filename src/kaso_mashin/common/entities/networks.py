@@ -30,45 +30,12 @@ class NetworkKind(str, enum.Enum):
     VMNET_BRIDGED = "vmnet-bridged"
 
 
-class NetworkListEntrySchema(EntitySchema):
+class NetworkException(KasoMashinException):
     """
-    Schema for a network list
-    """
-
-    uid: UniqueIdentifier = Field(
-        description="The unique identifier",
-        examples=["b430727e-2491-4184-bb4f-c7d6d213e093"],
-    )
-    name: str = Field(description="The network name", examples=["foo", "bar", "baz"])
-    kind: NetworkKind = Field(
-        description="Network kind",
-        examples=[NetworkKind.VMNET_SHARED, NetworkKind.VMNET_HOST],
-    )
-    cidr: ipaddress.IPv4Network = Field(
-        description="The network CIDR", examples=["10.0.0.0/16", "172.16.2.0/24"]
-    )
-
-
-class NetworkListSchema(EntitySchema):
-    """
-    Schema to list networks
+    Exception for network-related issues
     """
 
-    entries: typing.List[NetworkListEntrySchema] = Field(
-        description="List of networks", default_factory=list
-    )
-
-    def __rich__(self):
-        table = rich.table.Table(box=rich.box.ROUNDED)
-        table.add_column("[blue]UID")
-        table.add_column("[blue]Kind")
-        table.add_column("[blue]Name")
-        table.add_column("[blue]CIDR")
-        for entry in self.entries:
-            table.add_row(
-                str(entry.uid), str(entry.kind.value), entry.name, str(entry.cidr)
-            )
-        return table
+    pass
 
 
 class NetworkCreateSchema(EntitySchema):
@@ -124,6 +91,26 @@ class NetworkGetSchema(NetworkCreateSchema):
         return table
 
 
+class NetworkListSchema(EntitySchema):
+    """
+    Schema to list networks
+    """
+
+    entries: typing.List[NetworkGetSchema] = Field(
+        description="List of networks", default_factory=list
+    )
+
+    def __rich__(self):
+        table = rich.table.Table(box=rich.box.ROUNDED)
+        table.add_column("[blue]UID")
+        table.add_column("[blue]Kind")
+        table.add_column("[blue]Name")
+        table.add_column("[blue]CIDR")
+        for entry in self.entries:
+            table.add_row(str(entry.uid), str(entry.kind.value), entry.name, str(entry.cidr))
+        return table
+
+
 class NetworkModifySchema(EntitySchema):
     """
     Schema to modify networks
@@ -159,14 +146,6 @@ class NetworkModifySchema(EntitySchema):
         optional=True,
         default=None,
     )
-
-
-class NetworkException(KasoMashinException):
-    """
-    Exception for network-related issues
-    """
-
-    pass
 
 
 class NetworkModel(EntityModel):
@@ -298,8 +277,8 @@ class NetworkEntity(Entity, AggregateRoot):
         kind: NetworkKind,
         cidr: ipaddress.IPv4Network,
         gateway: ipaddress.IPv4Address,
-        dhcp_start: ipaddress.IPv4Address = None,
-        dhcp_end: ipaddress.IPv4Address = None,
+        dhcp_start: ipaddress.IPv4Address | None = None,
+        dhcp_end: ipaddress.IPv4Address | None = None,
     ) -> "NetworkEntity":
         if dhcp_start is None or dhcp_end is None:
             network = ipaddress.IPv4Network(cidr)
@@ -324,6 +303,10 @@ class NetworkEntity(Entity, AggregateRoot):
             self._cidr = schema.cidr
         if schema.gateway is not None:
             self._gateway = schema.gateway
+        if schema.dhcp_start is not None:
+            self._dhcp_start = schema.dhcp_start
+        if schema.dhcp_end is not None:
+            self._dhcp_end = schema.dhcp_end
         return await self.repository.modify(self)
 
     async def remove(self):

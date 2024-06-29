@@ -8,6 +8,9 @@
     <node-interpreter value="project" />
     <package-manager value="npm" />
     <envs />
+    <EXTENSION ID="com.intellij.lang.javascript.buildTools.npm.rc.StartBrowserRunConfigurationExtension">
+      <browser name="ce287e30-04ae-4545-9465-87f39033eb7a" with-js-debugger="true" url="http://localhost:3000/" />
+    </EXTENSION>
     <method v="2" />
   </configuration>
 </component>

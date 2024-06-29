@@ -38,46 +38,12 @@ class ImageException(KasoMashinException):
     pass
 
 
-class ImageListEntrySchema(EntitySchema):
-    """
-    Schema for an image list
-    """
-
-    uid: UniqueIdentifier = Field(
-        description="The unique identifier",
-        examples=["b430727e-2491-4184-bb4f-c7d6d213e093"],
-    )
-    name: str = Field(
-        description="The image name", examples=["ubuntu", "flatpack", "debian"]
-    )
-
-
-class ImageListSchema(EntitySchema):
-    """
-    Schema to list images
-    """
-
-    entries: typing.List[ImageListEntrySchema] = Field(
-        description="List of images", default_factory=list
-    )
-
-    def __rich__(self):
-        table = rich.table.Table(box=rich.box.ROUNDED)
-        table.add_column("[blue]UID")
-        table.add_column("[blue]Name")
-        for entry in self.entries:
-            table.add_row(str(entry.uid), entry.name)
-        return table
-
-
 class ImageCreateSchema(EntitySchema):
     """
     Schema to create an image
     """
 
-    name: str = Field(
-        description="The image name", examples=["ubuntu", "flatpack", "debian"]
-    )
+    name: str = Field(description="The image name", examples=["ubuntu", "flatpack", "debian"])
     url: str = Field(
         description="URL from which the image is sourced",
         examples=[
@@ -92,12 +58,12 @@ class ImageCreateSchema(EntitySchema):
     min_ram: BinarySizedValue = Field(
         description="Optional minimum RAM size to run this image",
         default=DEFAULT_MIN_RAM,
-        examples=[DEFAULT_MIN_RAM, BinarySizedValue(2, BinaryScale.G)],
+        examples=[DEFAULT_MIN_RAM, BinarySizedValue(value=2, scale=BinaryScale.G)],
     )
     min_disk: BinarySizedValue = Field(
         description="Optional minimum disk size to run this image",
         default=DEFAULT_MIN_DISK,
-        examples=[DEFAULT_MIN_DISK, BinarySizedValue(10, BinaryScale.G)],
+        examples=[DEFAULT_MIN_DISK, BinarySizedValue(value=10, scale=BinaryScale.G)],
     )
 
 
@@ -125,22 +91,41 @@ class ImageGetSchema(ImageCreateSchema):
         return table
 
 
+class ImageListSchema(EntitySchema):
+    """
+    Schema to list images
+    """
+
+    entries: typing.List[ImageGetSchema] = Field(description="List of images", default_factory=list)
+
+    def __rich__(self):
+        table = rich.table.Table(box=rich.box.ROUNDED)
+        table.add_column("[blue]UID")
+        table.add_column("[blue]Name")
+        for entry in self.entries:
+            table.add_row(str(entry.uid), entry.name)
+        return table
+
+
 class ImageModifySchema(EntitySchema):
     """
     Schema to modify an existing image
     """
 
-    min_vcpu: int = Field(
+    name: typing.Optional[str] = Field(
+        description="The image name", examples=["ubuntu", "flatpack", "debian"]
+    )
+    min_vcpu: typing.Optional[int] = Field(
         description="Optional minimum number of CPU vcores to run this image",
         default=DEFAULT_MIN_VCPU,
         examples=[DEFAULT_MIN_VCPU, 2, 4],
     )
-    min_ram: BinarySizedValue = Field(
+    min_ram: typing.Optional[BinarySizedValue] = Field(
         description="Optional minimum RAM size to run this image",
         default=DEFAULT_MIN_RAM,
         examples=[DEFAULT_MIN_RAM, BinarySizedValue(2, BinaryScale.G)],
     )
-    min_disk: BinarySizedValue = Field(
+    min_disk: typing.Optional[BinarySizedValue] = Field(
         description="Optional minimum disk size to run this image",
         default=DEFAULT_MIN_DISK,
         examples=[DEFAULT_MIN_DISK, BinarySizedValue(10, BinaryScale.G)],
@@ -160,9 +145,7 @@ class ImageModel(EntityModel):
     min_ram: Mapped[int] = mapped_column(Integer, default=0)
     min_ram_scale: Mapped[str] = mapped_column(Enum(BinaryScale), default=BinaryScale.G)
     min_disk: Mapped[int] = mapped_column(Integer, default=0)
-    min_disk_scale: Mapped[str] = mapped_column(
-        Enum(BinaryScale), default=BinaryScale.G
-    )
+    min_disk_scale: Mapped[str] = mapped_column(Enum(BinaryScale), default=BinaryScale.G)
 
 
 class ImageEntity(Entity, AggregateRoot):
@@ -242,9 +225,7 @@ class ImageEntity(Entity, AggregateRoot):
             url=model.url,
             path=pathlib.Path(model.path),
             min_vcpu=model.min_vcpu,
-            min_ram=BinarySizedValue(
-                value=model.min_ram, scale=BinaryScale(model.min_ram_scale)
-            ),
+            min_ram=BinarySizedValue(value=model.min_ram, scale=BinaryScale(model.min_ram_scale)),
             min_disk=BinarySizedValue(
                 value=model.min_disk, scale=BinaryScale(model.min_disk_scale)
             ),
@@ -296,17 +277,16 @@ class ImageEntity(Entity, AggregateRoot):
             size = int(resp.headers.get("content-length"))
             current = 0
             client = httpx.AsyncClient(follow_redirects=True, timeout=60)
+            chunk_size = 32784  # 8196
             async with (
                 client.stream("GET", url=url) as resp,
                 aiofiles.open(path, mode="wb") as file,
             ):
-                async for chunk in resp.aiter_bytes(chunk_size=8196):
+                async for chunk in resp.aiter_bytes(chunk_size=chunk_size):
                     await file.write(chunk)
-                    current += 8196
+                    current += chunk_size
                     completed = int(current / size * 100)
-                    await task.progress(
-                        percent_complete=completed, msg=f"Downloaded {completed}%"
-                    )
+                    await task.progress(percent_complete=completed, msg=f"Downloaded {completed}%")
             shutil.chown(path, user)
             image = ImageEntity(
                 name=name,
@@ -317,31 +297,27 @@ class ImageEntity(Entity, AggregateRoot):
                 min_disk=min_disk,
             )
             outcome = await ImageEntity.repository.create(image)
-            await task.done(msg="Successfully downloaded")
+            await task.done(msg="Successfully downloaded", outcome=outcome.uid)
             return outcome
         except PermissionError as e:
-            await task.fail(
-                msg=f"You have no permission to create an image at path {path}"
-            )
+            await task.fail(msg=f"You have no permission to create an image at path {path}")
             raise ImageException(
                 status=400,
                 msg=f"You have no permission to create an image at path {path}",
             ) from e
         except Exception as e:
             await task.fail(msg=f"Exception occurred while downloading {e}")
-            raise ImageException(
-                status=500, msg=f"Exception occurred while downloading {e}"
-            )
+            raise ImageException(status=500, msg=f"Exception occurred while downloading {e}")
 
-    async def modify(
-        self,
-        min_vcpu: int = DEFAULT_MIN_VCPU,
-        min_ram: BinarySizedValue = DEFAULT_MIN_RAM,
-        min_disk: BinarySizedValue = DEFAULT_MIN_DISK,
-    ):
-        self._min_vcpu = min_vcpu
-        self._min_ram = min_ram
-        self._min_disk = min_disk
+    async def modify(self, schema: ImageModifySchema):
+        if schema.name is not None:
+            self._name = schema.name
+        if schema.min_vcpu is not None:
+            self._min_vcpu = schema.min_vcpu
+        if schema.min_ram is not None:
+            self._min_ram = schema.min_ram
+        if schema.min_disk is not None:
+            self._min_disk = schema.min_disk
         await self.repository.modify(self)
 
     async def remove(self):

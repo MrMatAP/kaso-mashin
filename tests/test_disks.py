@@ -2,7 +2,7 @@ import pathlib
 import uuid
 
 import pytest
-from conftest import seed, BaseTest
+from conftest import seed, BaseTest, qemu_img_available
 
 from kaso_mashin.common import (
     UniqueIdentifier,
@@ -14,7 +14,6 @@ from kaso_mashin.common.entities import (
     DiskModel,
     DiskEntity,
     DiskListSchema,
-    DiskListEntrySchema,
     DiskGetSchema,
     DiskModifySchema,
     DiskFormat,
@@ -50,7 +49,7 @@ class TestSeededDisks(BaseTest[DiskModel, DiskEntity, DiskGetSchema]):
     """
 
     def assert_list_by_model(
-        self, obj: DiskListEntrySchema | DiskEntity, model: DiskModel
+        self, obj: DiskGetSchema | DiskEntity, model: DiskModel
     ):
         assert obj.uid == UniqueIdentifier(model.uid)
         assert obj.name == model.name
@@ -99,6 +98,8 @@ class TestSeededDisks(BaseTest[DiskModel, DiskEntity, DiskGetSchema]):
         model = self.find_match_in_seeds(schema.uid, seed["disks"])
         self.assert_get_by_model(schema, model)
 
+    #@pytest.mark.skipif(not qemu_img_available, reason='qemu_img is unavailable')
+    @pytest.mark.skip(reason='Only local')
     async def test_modify(self, test_context_seeded):
         entity = None
         try:

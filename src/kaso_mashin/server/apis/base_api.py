@@ -8,7 +8,6 @@ import fastapi
 from kaso_mashin.server.runtime import Runtime
 from kaso_mashin.common import (
     T_EntityListSchema,
-    T_EntityListEntrySchema,
     T_EntityGetSchema,
     T_EntityCreateSchema,
     T_EntityModifySchema,
@@ -16,13 +15,12 @@ from kaso_mashin.common import (
     EntityNotFoundException,
 )
 from kaso_mashin.common.entities import TaskGetSchema
-from kaso_mashin.common.base_types import ExceptionSchema
+from kaso_mashin.common.base_types import ExceptionSchema, Entity, AggregateRoot
 
 
 class BaseAPI(
     Generic[
         T_EntityListSchema,
-        T_EntityListEntrySchema,
         T_EntityGetSchema,
         T_EntityCreateSchema,
         T_EntityModifySchema,
@@ -38,7 +36,6 @@ class BaseAPI(
         runtime: Runtime,
         name: str,
         list_schema_type: Type[T_EntityListSchema],
-        list_entry_schema_type: Type[T_EntityListEntrySchema],
         get_schema_type: Type[T_EntityGetSchema],
         create_schema_type: Type[T_EntityCreateSchema],
         modify_schema_type: Type[T_EntityModifySchema],
@@ -48,7 +45,6 @@ class BaseAPI(
         self._runtime = runtime
         self._name = name
         self._list_schema_type = list_schema_type
-        self._list_entry_schema_type = list_entry_schema_type
         self._get_schema_type = get_schema_type
         self._create_schema_type = create_schema_type
         self._modify_schema_type = modify_schema_type
@@ -114,15 +110,13 @@ class BaseAPI(
                 410: {"model": None, "description": "The entity was already gone"},
             },
         )
-        self._logger = logging.getLogger(
-            f"{self.__class__.__module__}.{self.__class__.__name__}"
-        )
+        self._logger = logging.getLogger(f"{self.__class__.__module__}.{self.__class__.__name__}")
         self._logger.info(f"Started API Router for {name}")
 
     async def list(self) -> T_EntityListSchema:
         entities = await self.repository.list()
         return self._list_schema_type(
-            entries=[self._list_entry_schema_type.model_validate(e) for e in entities]
+            entries=[self._get_schema_type.model_validate(e) for e in entities]
         )
 
     async def get(
@@ -136,7 +130,9 @@ class BaseAPI(
             ),
         ],
     ) -> T_EntityGetSchema:
-        entity = await self.repository.get_by_uid(uid)
+        entity: T_EntityGetSchema = await self.repository.get_by_uid(uid)
+        if not entity:
+            raise EntityNotFoundException(status=404, msg="No such entity")
         return self._get_schema_type.model_validate(entity)
 
     async def create(
@@ -181,7 +177,7 @@ class BaseAPI(
         response: fastapi.Response,
     ):
         try:
-            entity = await self.repository.get_by_uid(uid)
+            entity: AggregateRoot = await self.repository.get_by_uid(uid)
             await entity.remove()
             response.status_code = 204
         except EntityNotFoundException:

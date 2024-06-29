@@ -22,7 +22,7 @@ __log_config__ = {
     "handlers": {
         "server": {
             "()": "rich.logging.RichHandler",
-            "show_time": True,
+            "show_time": False,
             "show_path": False,
             "formatter": "server",
         },
@@ -39,15 +39,13 @@ __log_config__ = {
         "kaso_mashin.cui": {"level": "INFO", "handlers": ["cui"], "propagate": False},
         "httpx": {"level": "WARNING", "handlers": ["server"]},
         "httpcore": {"level": "WARNING", "handlers": ["server"]},
-        "uvicorn": {"level": "WARNING", "handlers": ["server"]},
+        "uvicorn": {"level": "INFO", "handlers": ["server"], "propagate": False},
     },
 }
 logging.config.dictConfig(__log_config__)
 log = logging.getLogger(__name__)
 
-default_config_file = pathlib.Path(
-    os.environ.get("KASO_MASHIN_CONFIG", "~/.kaso")
-).expanduser()
+default_config_file = pathlib.Path(os.environ.get("KASO_MASHIN_CONFIG", "~/.kaso")).expanduser()
 
 
 class Base(DeclarativeBase):  # pylint: disable=too-few-public-methods
@@ -61,9 +59,7 @@ class KasoMashinException(Exception):
     A dedicated exception for mrmat-playground
     """
 
-    def __init__(
-        self, status: int = 500, msg: str = "An unknown exception occurred", task=None
-    ):
+    def __init__(self, status: int = 500, msg: str = "An unknown exception occurred", task=None):
         super().__init__(msg)
         self._status = status
         self._msg = msg
@@ -71,6 +67,10 @@ class KasoMashinException(Exception):
             self._task = task
             self._task.state = "failed"
             self._task.msg = msg
+
+    @property
+    def kind(self) -> str:
+        return self.__class__.__name__
 
     @property
     def status(self) -> int:

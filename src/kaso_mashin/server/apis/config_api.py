@@ -1,12 +1,7 @@
 import fastapi
 
-from kaso_mashin import __version__
 from kaso_mashin.server.runtime import Runtime
-from kaso_mashin.common.config import (
-    Predefined_Images,
-    ImagePredefinedSchema,
-    ConfigSchema,
-)
+from kaso_mashin.common.config import ConfigSchema
 
 
 class ConfigAPI:
@@ -23,9 +18,7 @@ class ConfigAPI:
             self.get_config,
             methods=["GET"],
             summary="Get Configuration",
-            description="Get re-usable configuration to synchronise behaviour between the "
-            "kaso-mashin client and server as well as reduce querying for otherwise "
-            "static information.",
+            description="Get app configuration",
             response_description="Configuration data",
             status_code=200,
             response_model=ConfigSchema,
@@ -36,10 +29,4 @@ class ConfigAPI:
         return self._router
 
     async def get_config(self):
-        return ConfigSchema(
-            version=__version__,
-            predefined_images=[
-                ImagePredefinedSchema(name=k, url=v)
-                for k, v in Predefined_Images.items()
-            ],
-        )
+        return ConfigSchema.model_validate(self._runtime.config)

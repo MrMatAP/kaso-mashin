@@ -9,7 +9,6 @@ from kaso_mashin.server.runtime import Runtime
 from kaso_mashin.common.entities import (
     BootstrapEntity,
     BootstrapListSchema,
-    BootstrapListEntrySchema,
     BootstrapGetSchema,
     BootstrapCreateSchema,
     BootstrapModifySchema,
@@ -19,7 +18,6 @@ from kaso_mashin.common.entities import (
 class BootstrapAPI(
     BaseAPI[
         BootstrapListSchema,
-        BootstrapListEntrySchema,
         BootstrapGetSchema,
         BootstrapCreateSchema,
         BootstrapModifySchema,
@@ -34,7 +32,6 @@ class BootstrapAPI(
             runtime=runtime,
             name="Bootstrap Template",
             list_schema_type=BootstrapListSchema,
-            list_entry_schema_type=BootstrapListEntrySchema,
             get_schema_type=BootstrapGetSchema,
             create_schema_type=BootstrapCreateSchema,
             modify_schema_type=BootstrapModifySchema,

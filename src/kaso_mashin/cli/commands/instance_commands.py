@@ -35,13 +35,9 @@ class InstanceCommands(BaseCommands[InstanceListSchema, InstanceGetSchema]):
 
     def register_commands(self, parser: argparse.ArgumentParser):
         instance_subparser = parser.add_subparsers()
-        instance_list_parser = instance_subparser.add_parser(
-            name="list", help="List instances"
-        )
+        instance_list_parser = instance_subparser.add_parser(name="list", help="List instances")
         instance_list_parser.set_defaults(cmd=self.list)
-        instance_get_parser = instance_subparser.add_parser(
-            name="get", help="Get an instance"
-        )
+        instance_get_parser = instance_subparser.add_parser(name="get", help="Get an instance")
         instance_get_parser.add_argument(
             "--uid", dest="uid", type=uuid.UUID, help="The instance id"
         )
@@ -140,9 +136,7 @@ class InstanceCommands(BaseCommands[InstanceListSchema, InstanceGetSchema]):
             "--uid", dest="uid", type=uuid.UUID, required=True, help="The instance uid"
         )
         instance_start_parser.set_defaults(cmd=self.start)
-        instance_stop_parser = instance_subparser.add_parser(
-            name="stop", help="Stop an instance"
-        )
+        instance_stop_parser = instance_subparser.add_parser(name="stop", help="Stop an instance")
         instance_stop_parser.add_argument(
             "--id", dest="uid", type=uuid.UUID, required=True, help="The instance uid"
         )
@@ -169,9 +163,7 @@ class InstanceCommands(BaseCommands[InstanceListSchema, InstanceGetSchema]):
             return 1
         task = TaskGetSchema.model_validate(resp.json())
         with rich.progress.Progress() as progress:
-            create_task = progress.add_task(
-                f"[green]Creating instance {args.name}...", total=100
-            )
+            create_task = progress.add_task(f"[green]Creating instance {args.name}...", total=100)
             while not task.state == TaskState.DONE:
                 resp = self._api_client(
                     uri=f"/api/tasks/{task.uid}",
@@ -190,9 +182,7 @@ class InstanceCommands(BaseCommands[InstanceListSchema, InstanceGetSchema]):
                     )
                     return 1
                 else:
-                    progress.update(
-                        create_task, completed=task.percent_complete, refresh=True
-                    )
+                    progress.update(create_task, completed=task.percent_complete, refresh=True)
                 time.sleep(2)
         return 0
 

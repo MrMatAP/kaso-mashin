@@ -1,36 +1,45 @@
 <script setup lang="ts">
-import { ref } from 'vue'
-import {Image} from "@/store/images";
+import { ImageGetSchema } from "@/store/images";
 
 defineProps<{
-    image: Image
-}>()
-
-let expand = ref()
+  image: ImageGetSchema;
+}>();
+defineEmits<{
+  (e: "onSelected", uid: string): void;
+}>();
 </script>
 
 <template>
-  <v-card class="pa-2 ma-2">
-    <template v-slot:title>{{ image.name }}</template>
-    <template v-slot:subtitle>{{ image.image_id }}</template>
-    <v-expand-transition>
-      <div v-if="expand">
-        <v-list class="bg-transparent" density="compact">
-          <v-list-item :title="image.min_cpu" subtitle="Minimum CPU"/>
-          <v-list-item :title="image.min_ram" subtitle="Minimum RAM"/>
-          <v-list-item :title="image.min_space" subtitle="Minimum Space"/>
-        </v-list>
-      </div>
-    </v-expand-transition>
-    <v-divider/>
-    <v-card-actions>
-      <v-btn @click="expand = !expand">
-        {{ !expand ? 'Details' : 'Close' }}
-      </v-btn>
-    </v-card-actions>
-  </v-card>
+  <q-card
+    v-ripple
+    class="km-entity-card cursor-pointer q-hoverable"
+    @click="$emit('onSelected', image.uid)"
+  >
+    <q-item>
+      <q-item-section side>
+        <q-avatar icon="work_outline" size="lg" color="primary" text-color="white"/>
+      </q-item-section>
+      <q-item-section>
+        <q-item-label>{{ image.name }}</q-item-label>
+        <q-item-label caption>{{ image.uid }}</q-item-label>
+      </q-item-section>
+    </q-item>
+    <q-separator />
+    <q-markup-table>
+      <tbody>
+        <tr>
+          <td class="text-left">Minimum vCPU</td>
+          <td class="text-right">{{ image.min_vcpu }}</td>
+        </tr>
+        <tr>
+          <td class="text-left">Minimum RAM</td>
+          <td class="text-right">{{ image.min_ram.value }}</td>
+        </tr>
+        <tr>
+          <td class="text-left">Minimum Disk Space</td>
+          <td class="text-right">{{ image.min_disk.value }}</td>
+        </tr>
+      </tbody>
+    </q-markup-table>
+  </q-card>
 </template>
-
-<style scoped>
-
-</style>

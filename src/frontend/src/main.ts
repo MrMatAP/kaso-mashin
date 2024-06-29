@@ -4,18 +4,36 @@
  * Bootstraps Vuetify and other plugins then mounts the App`
  */
 
-// Plugins
-import { registerPlugins } from '@/plugins'
+import { createApp } from "vue";
+import { Quasar, Loading, Notify } from "quasar";
+import quasarLang from "quasar/lang/en-GB";
+import { createPinia } from 'pinia';
+import router from "@/router";
 
-// Components
-import App from './App.vue'
+//
+// Icon libraries
+import "@quasar/extras/roboto-font-latin-ext/roboto-font-latin-ext.css";
+import "@quasar/extras/material-icons/material-icons.css";
+import "@quasar/extras/fontawesome-v6/fontawesome-v6.css";
 
-// Composables
-import { createApp } from 'vue'
+//
+// Import Quasar css
+import "quasar/src/css/index.sass";
 
-const app = createApp(App)
+//
+// App Root Component
 
-registerPlugins(app)
+import App from "./App.vue";
+const app = createApp(App);
+app
+  .use(Quasar, {
+    plugins: {
+      Loading,
+      Notify
+    },
+    lang: quasarLang,
+  })
+  .use(createPinia())
+  .use(router);
 
-app.mount('#app')
-
+app.mount("#app");

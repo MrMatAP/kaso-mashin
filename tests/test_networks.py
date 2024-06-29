@@ -9,7 +9,6 @@ from kaso_mashin.common.entities import (
     NetworkModel,
     NetworkEntity,
     NetworkListSchema,
-    NetworkListEntrySchema,
     NetworkGetSchema,
     NetworkModifySchema,
     DEFAULT_HOST_NETWORK_NAME,
@@ -46,7 +45,7 @@ class TestEmptyNetworks:
 class TestSeededNetworks(BaseTest[NetworkModel, NetworkEntity, NetworkGetSchema]):
 
     def assert_list_by_model(
-        self, obj: NetworkListEntrySchema | NetworkEntity, model: NetworkModel
+        self, obj: NetworkGetSchema | NetworkEntity, model: NetworkModel
     ):
         assert obj.uid == UniqueIdentifier(model.uid)
         assert obj.name == model.name

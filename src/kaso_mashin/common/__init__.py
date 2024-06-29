@@ -1,7 +1,10 @@
-from .ddd_scaffold import (
+from .base_types import (
+    BinaryScale,
+    BinarySizedValue,
     UniqueIdentifier,
     EntityNotFoundException,
     EntityInvariantException,
+    Service,
     ValueObject,
     T_ValueObject,
     EntitySchema,
@@ -18,7 +21,4 @@ from .ddd_scaffold import (
     AggregateRoot,
     T_AggregateRoot,
     AsyncRepository,
-    Service,
 )
-
-from .base_types import BinaryScale, BinarySizedValueSchema, BinarySizedValue

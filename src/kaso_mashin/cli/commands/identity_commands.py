@@ -29,13 +29,9 @@ class IdentityCommands(BaseCommands[IdentityListSchema, IdentityGetSchema]):
 
     def register_commands(self, parser: argparse.ArgumentParser):
         identity_subparser = parser.add_subparsers()
-        identity_list_parser = identity_subparser.add_parser(
-            name="list", help="List identities"
-        )
+        identity_list_parser = identity_subparser.add_parser(name="list", help="List identities")
         identity_list_parser.set_defaults(cmd=self.list)
-        identity_get_parser = identity_subparser.add_parser(
-            name="get", help="Get an identity"
-        )
+        identity_get_parser = identity_subparser.add_parser(name="get", help="Get an identity")
         identity_get_parser.add_argument(
             "--uid", dest="uid", type=uuid.UUID, help="The identity uid"
         )
@@ -51,8 +47,8 @@ class IdentityCommands(BaseCommands[IdentityListSchema, IdentityGetSchema]):
             required=True,
             help="The identity name",
         )
-        identity_create_pass_or_pubkey = (
-            identity_create_parser.add_mutually_exclusive_group(required=True)
+        identity_create_pass_or_pubkey = identity_create_parser.add_mutually_exclusive_group(
+            required=True
         )
         identity_create_pass_or_pubkey.add_argument(
             "--public-key",
@@ -132,8 +128,8 @@ class IdentityCommands(BaseCommands[IdentityListSchema, IdentityGetSchema]):
             default=None,
             help="An optional shell to override the default",
         )
-        identity_modify_pass_or_pubkey = (
-            identity_modify_parser.add_mutually_exclusive_group(required=True)
+        identity_modify_pass_or_pubkey = identity_modify_parser.add_mutually_exclusive_group(
+            required=True
         )
         identity_modify_pass_or_pubkey.add_argument(
             "--public-key",
@@ -188,9 +184,7 @@ class IdentityCommands(BaseCommands[IdentityListSchema, IdentityGetSchema]):
                 schema.pubkey = p.readline().strip()
         else:
             schema.kind = IdentityKind.PASSWORD
-            schema.passwd = passlib.hash.sha512_crypt.using(rounds=4096).hash(
-                args.passwd
-            )
+            schema.passwd = passlib.hash.sha512_crypt.using(rounds=4096).hash(args.passwd)
         resp = self._api_client(
             uri=f"{self.prefix}/",
             method="POST",
@@ -223,9 +217,7 @@ class IdentityCommands(BaseCommands[IdentityListSchema, IdentityGetSchema]):
             with open(pubkey_path, "r", encoding="UTF-8") as p:
                 schema.pubkey = p.read().strip()
         if args.passwd:
-            schema.credential = passlib.hash.sha512_crypt.using(rounds=4096).hash(
-                args.passwd
-            )
+            schema.credential = passlib.hash.sha512_crypt.using(rounds=4096).hash(args.passwd)
         resp = self._api_client(
             uri=f"{self.prefix}/{args.uid}",
             method="PUT",
