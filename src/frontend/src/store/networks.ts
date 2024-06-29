@@ -52,7 +52,7 @@ export class NetworkCreateSchema extends CreatableEntity {
   dhcp_end: string;
 
   constructor(
-    name: string,
+    name: string = "",
     kind: NetworkKind = NetworkKind.VMNET_SHARED,
     cidr: string = "",
     gateway: string = "",

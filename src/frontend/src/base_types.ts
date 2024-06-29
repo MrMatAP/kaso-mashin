@@ -18,6 +18,12 @@ export class BinarySizedValue {
   }
 }
 
+export enum FormMode {
+  READ,
+  EDIT,
+  CREATE,
+}
+
 export enum ExceptionKind {
   KASOMASHIN = "KasoMashinException",
   ENTITYNOTFOUND = "EntityNotFoundException",
@@ -74,7 +80,7 @@ export abstract class Entity {
   readonly uid: string = "";
   name: string = "";
 
-  constructor(uid: string = "", name: string = "") {
+  protected constructor(uid: string = "", name: string = "") {
     this.uid = uid;
     this.name = name;
   }
@@ -91,7 +97,7 @@ export abstract class ModifiableEntity<T extends Entity> {
 export abstract class CreatableEntity {
   name: string = "";
 
-  constructor(name: string = "") {
+  protected constructor(name: string = "") {
     this.name = name;
   }
 }

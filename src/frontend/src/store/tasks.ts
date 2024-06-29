@@ -32,8 +32,8 @@ export class TaskGetSchema extends Entity {
   outcome?: string;
 
   constructor(
-    uid: string,
-    name: string,
+    uid: string = "",
+    name: string = "",
     relation: TaskRelation = TaskRelation.GENERAL,
     state: TaskState = TaskState.RUNNING,
     msg: string = "",

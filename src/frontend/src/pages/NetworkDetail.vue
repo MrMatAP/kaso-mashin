@@ -1,6 +1,7 @@
 <script setup lang="ts">
-import { onMounted, ref, Ref } from "vue";
+import { onMounted, ref, Ref, computed } from "vue";
 import { useRoute, useRouter } from "vue-router";
+import { FormMode } from "@/base_types";
 import {
   NetworkCreateSchema,
   NetworkGetSchema,
@@ -13,14 +14,24 @@ const networksStore = useNetworkStore();
 const router = useRouter();
 const route = useRoute();
 
-const readMode: Ref<boolean> = ref(true);
-const modifyMode: Ref<boolean> = ref(false)
-const createMode: Ref<boolean> = ref(false)
+const mode: Ref<FormMode> = ref(FormMode.READ);
 const busy: Ref<boolean> = ref(false);
-const pendingConfirmation: Ref<boolean> = ref(false);
-const editForm = ref(null);
+const showRemoveConfirmationDialog: Ref<boolean> = ref(false);
+const detailForm = ref(null);
 
-const title: Ref<string> = ref("Network Detail");
+const title = computed(() => {
+  switch (mode.value) {
+    case FormMode.READ:
+      return `Network: ${original.value.name}`;
+    case FormMode.EDIT:
+      return `Modify Network: ${original.value.name}`;
+    case FormMode.CREATE:
+      return "Create Network";
+    default:
+      return "Network Detail";
+  }
+});
+
 const uid: Ref<string> = ref("");
 const original: Ref<NetworkGetSchema> = ref(new NetworkGetSchema());
 const model: Ref<any> = ref(new NetworkGetSchema());
@@ -30,97 +41,74 @@ async function onBack() {
 }
 
 async function onCancel() {
-  if (createMode.value) {
-    createMode.value = false;
+  if (mode.value == FormMode.CREATE) {
     await onBack();
     return;
   }
   model.value = original.value;
-  title.value = "Network: " + model.value.name;
-  readMode.value = true;
-  modifyMode.value = false;
+  mode.value = FormMode.READ;
 }
 
 async function onRemove() {
   busy.value = true;
-  networksStore.remove(uid.value).then(() => {
+  networksStore.remove(uid.value).then(async () => {
     busy.value = false;
-    onBack();
+    await onBack();
   });
 }
 
 async function onEdit() {
-  title.value = "Modify Network: " + model.value.name;
   model.value = new NetworkModifySchema(original.value);
-  readMode.value = false;
-  modifyMode.value = true;
+  mode.value = FormMode.EDIT;
 }
 
 async function onSubmit() {
-  readMode.value = true;
-  if (createMode.value) {
+  busy.value = true;
+
+  if (mode.value == FormMode.CREATE) {
     networksStore.create(model.value).then(async () => {
-      readMode.value = false;
+      mode.value = FormMode.READ;
+      busy.value = false;
       await onBack();
     });
   } else {
     networksStore.modify(uid.value, model.value).then(async () => {
-      readMode.value = false;
+      mode.value = FormMode.READ;
+      busy.value = false;
       await onBack();
     });
   }
 }
 
 onMounted(async () => {
-  busy.value = true
+  busy.value = true;
   if ("uid" in route.params) {
-    // We're showing or editing an existing identity
-    readMode.value = true;
-    modifyMode.value = false;
-    createMode.value = false;
+    mode.value = FormMode.READ;
     uid.value = route.params.uid as string;
     original.value = await networksStore.get(uid.value);
     model.value = original.value;
-    title.value = "Network: " + model.value.name;
   } else {
-    // We're creating a new identity
-    readMode.value = false;
-    modifyMode.value = false;
-    createMode.value = true;
+    mode.value = FormMode.CREATE;
     model.value = new NetworkCreateSchema();
-    title.value = "Create Network";
   }
   busy.value = false;
 });
 </script>
 
 <template>
-  <q-dialog v-model="pendingConfirmation" persistent>
+  <q-dialog v-model="showRemoveConfirmationDialog" persistent>
     <q-card>
       <q-card-section class="row items-center">
-        <span class="q-ml-sm"
-          >Are you sure you want to remove this network?</span
-        >
+        <span class="q-ml-sm">Are you sure you want to remove this network?</span>
       </q-card-section>
       <q-card-actions align="right">
         <q-btn flat label="Cancel" color="primary" v-close-popup />
-        <q-btn
-          flat
-          label="Remove"
-          color="primary"
-          v-close-popup
-          @click="onRemove"
-        />
+        <q-btn flat label="Remove" color="negative" v-close-popup @click="onRemove" />
       </q-card-actions>
     </q-card>
   </q-dialog>
 
-  <q-form
-    ref="editForm"
-    autofocus
-    @submit.prevent="onSubmit"
-    style="max-width: 600px"
-  >
+  <q-form ref="detailForm" class="detail-form" autofocus @submit.prevent="onSubmit">
     <div class="row nowrap">
       <q-btn flat icon="arrow_back_ios" @click="onBack"></q-btn>
       <h4>{{ title }}</h4>
@@ -131,7 +119,7 @@ onMounted(async () => {
           name="uid"
           label="UID"
           readonly
-          v-show="uid"
+          v-show="mode !== FormMode.CREATE"
           :model-value="uid"
         />
       </div>
@@ -141,11 +129,11 @@ onMounted(async () => {
         <q-input
           name="name"
           label="Name"
-          tabindex="0"
+          tabindex="1"
           autofocus
-          :hint="readMode ? '' : 'A unique name for the network'"
-          :clearable="modifyMode || createMode"
-          :readonly="readMode"
+          :hint="mode == FormMode.READ ? '' : 'A unique name for the network'"
+          :clearable="mode !== FormMode.READ"
+          :readonly="mode == FormMode.READ"
           v-model="model.name"
         />
       </div>
@@ -153,11 +141,10 @@ onMounted(async () => {
         <q-select
           name="kind"
           label="Kind"
-          tabindex="1"
-          :hint="readMode ? '' : 'Network Kind'"
-          :readonly="readMode"
+          tabindex="2"
+          :hint="mode == FormMode.READ ? '' : 'Network Kind'"
+          :readonly="mode == FormMode.READ"
           :options="Object.values(NetworkKind)"
-          v-show="true"
           v-model="model.kind"
         />
       </div>
@@ -167,10 +154,10 @@ onMounted(async () => {
         <q-input
           name="cidr"
           label="CIDR"
-          tabindex="2"
-          :hint="readMode ? '' : 'The network CIDR'"
-          :clearable="modifyMode || createMode"
-          :readonly="readMode"
+          tabindex="3"
+          :hint="mode == FormMode.READ ? '' : 'The network CIDR'"
+          :clearable="mode !== FormMode.READ"
+          :readonly="mode == FormMode.READ"
           v-model="model.cidr"
         />
       </div>
@@ -178,10 +165,10 @@ onMounted(async () => {
         <q-input
           name="gateway"
           label="Gateway Address"
-          tabindex="3"
-          :hint="readMode ? '' : 'Network gateway address'"
-          :clearable="!readMode"
-          :readonly="readMode"
+          tabindex="4"
+          :hint="mode == FormMode.READ ? '' : 'Network gateway address'"
+          :clearable="mode !== FormMode.READ"
+          :readonly="mode == FormMode.READ"
           v-model="model.gateway"
         />
       </div>
@@ -191,10 +178,10 @@ onMounted(async () => {
         <q-input
           name="dhcp_start"
           label="DHCP Start Address"
-          tabindex="4"
-          :hint="readMode ? '' : 'DHCP start address'"
-          :clearable="modifyMode || createMode"
-          :readonly="readMode"
+          tabindex="5"
+          :hint="mode == FormMode.READ ? '' : 'DHCP start address'"
+          :clearable="mode !== FormMode.READ"
+          :readonly="mode == FormMode.READ"
           v-model="model.dhcp_start"
         />
       </div>
@@ -202,46 +189,46 @@ onMounted(async () => {
         <q-input
           name="dhcp_end"
           label="DHCP End Address"
-          tabindex="5"
-          :hint="readMode ? '' : 'DHCP end address'"
-          :clearable="modifyMode || createMode"
-          :readonly="readMode"
+          tabindex="6"
+          :hint="mode == FormMode.READ ? '' : 'DHCP end address'"
+          :clearable="mode !== FormMode.READ"
+          :readonly="mode == FormMode.READ"
           v-model="model.dhcp_end"
         />
       </div>
     </div>
     <div class="row q-gutter-xl justify-end">
       <q-btn
-        flat
-        padding="lg"
+        class="detail-form-button"
         label="Edit"
         color="primary"
-        v-show="readMode"
+        tabindex="7"
+        v-show="mode == FormMode.READ"
         @click="onEdit"
       />
       <q-btn
-        flat
-        padding="lg"
+        class="detail-form-button"
         label="Remove"
-        color="primary"
-        v-show="readMode"
-        @click="pendingConfirmation = true"
+        color="negative"
+        tabindex="8"
+        v-show="mode == FormMode.READ"
+        @click="showRemoveConfirmationDialog = true"
       />
       <q-btn
-        flat
-        padding="lg"
+        class="detail-form-button"
         label="Cancel"
-        color="secondary"
-        v-show="!readMode"
+        color="primary"
+        tabindex="9"
+        v-show="mode !== FormMode.READ"
         @click="onCancel"
       />
       <q-btn
-        flat
-        padding="lg"
-        :label="createMode ? 'Create' : 'Modify'"
+        class="detail-form-button"
+        :label="mode == FormMode.CREATE ? 'Create' : 'Modify'"
         type="submit"
-        color="primary"
-        v-show="!readMode"
+        color="positive"
+        tabindex="10"
+        v-show="mode !== FormMode.READ"
         :loading="busy"
       >
         <template v-slot:loading>
@@ -251,5 +238,3 @@ onMounted(async () => {
     </div>
   </q-form>
 </template>
-
-<style scoped></style>

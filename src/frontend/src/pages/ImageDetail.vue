@@ -1,80 +1,85 @@
 <script setup lang="ts">
-import { onMounted, ref, Ref } from "vue";
+import { onMounted, ref, Ref, computed } from "vue";
 import { useRoute, useRouter } from "vue-router";
+import { BinaryScale, FormMode } from "@/base_types";
 import {
   ImageGetSchema,
   ImageCreateSchema,
   ImageModifySchema,
   useImageStore,
 } from "@/store/images";
-import { TaskGetSchema, useTaskStore } from "@/store/tasks";
 import { ConfigSchema, PredefinedImageSchema, useConfigStore } from "@/store/config";
-import { BinaryScale } from "@/base_types";
 
 const imageStore = useImageStore();
-const taskStore = useTaskStore();
 const configStore = useConfigStore();
 const router = useRouter();
 const route = useRoute();
 
-const readMode: Ref<boolean> = ref(true);
-const modifyMode: Ref<boolean> = ref(false);
-const createMode: Ref<boolean> = ref(false);
+const mode: Ref<FormMode> = ref(FormMode.READ);
 const busy: Ref<boolean> = ref(false);
 const showRemoveConfirmationDialog: Ref<boolean> = ref(false);
-const editForm = ref(null);
+const detailForm = ref(null);
 
-const title: Ref<string> = ref("Image Detail");
+const title = computed(() => {
+  switch (mode.value) {
+    case FormMode.READ:
+      return `Image: ${original.value.name}`;
+    case FormMode.EDIT:
+      return `Modify Image: ${original.value.name}`;
+    case FormMode.CREATE:
+      return "Create Image";
+    default:
+      return "Image Detail";
+  }
+});
+
+const uid: Ref<string> = ref("");
+const original: Ref<ImageGetSchema> = ref({} as ImageGetSchema);
+const model: Ref<any> = ref(new ImageGetSchema());
 
 const config: Ref<ConfigSchema> = ref({} as ConfigSchema);
 const predefined_images: Ref<PredefinedImageSchema[]> = ref([] as PredefinedImageSchema[]);
 const predefined_url: Ref<string> = ref("");
-const uid: Ref<string> = ref("");
-const original: Ref<ImageGetSchema> = ref({} as ImageGetSchema);
-const model: Ref<any> = ref(new ImageGetSchema());
 
 async function onBack() {
   await router.push({ name: "Images" });
 }
 
 async function onCancel() {
-  if (createMode.value) {
-    createMode.value = false;
+  if (mode.value == FormMode.CREATE) {
     await onBack();
     return;
   }
   model.value = original.value;
-  title.value = "Image: " + model.value.name;
-  readMode.value = true;
-  modifyMode.value = false;
+  mode.value = FormMode.READ;
 }
 
 async function onRemove() {
   busy.value = true;
-  imageStore.remove(uid.value).then(() => {
+  imageStore.remove(uid.value).then(async () => {
     busy.value = false;
-    onBack();
+    await onBack();
   });
 }
 
 async function onEdit() {
-  title.value = "Modify Image: " + model.value.name;
   model.value = new ImageModifySchema(original.value);
-  readMode.value = false;
-  modifyMode.value = true;
+  mode.value = FormMode.EDIT;
 }
 
 async function onSubmit() {
-  readMode.value = true;
-  if (createMode.value) {
+  busy.value = true;
+  if (mode.value == FormMode.CREATE) {
     imageStore.create(model.value).then(async () => {
-      readMode.value = false;
+      mode.value = FormMode.READ;
+      busy.value = false;
       await onBack();
     });
   } else {
-    imageStore.modify(uid.value, model.value).then(() => {
-      readMode.value = false;
-      onBack();
+    imageStore.modify(uid.value, model.value).then(async () => {
+      mode.value = FormMode.READ;
+      busy.value = false;
+      await onBack();
     });
   }
 }
@@ -86,26 +91,20 @@ function onPredefinedImageUpdate() {
 }
 
 onMounted(async () => {
+  busy.value = true;
   config.value = await configStore.get();
   predefined_images.value = config.value.predefined_images;
 
   if ("uid" in route.params) {
-    // We're showing or editing an existing entity
-    readMode.value = true;
-    modifyMode.value = false;
-    createMode.value = false;
+    mode.value = FormMode.READ;
     uid.value = route.params.uid as string;
     original.value = await imageStore.get(uid.value);
     model.value = original.value;
-    title.value = "Image: " + model.value.name;
   } else {
-    // We're creating a new entity
-    readMode.value = false;
-    modifyMode.value = false;
-    createMode.value = true;
+    mode.value = FormMode.CREATE;
     model.value = new ImageCreateSchema();
-    title.value = "Create Image";
   }
+  busy.value = false;
 });
 </script>
 
@@ -117,12 +116,12 @@ onMounted(async () => {
       </q-card-section>
       <q-card-actions align="right">
         <q-btn flat label="Cancel" color="primary" v-close-popup />
-        <q-btn flat label="Remove" color="primary" v-close-popup @click="onRemove" />
+        <q-btn flat label="Remove" color="negative" v-close-popup @click="onRemove" />
       </q-card-actions>
     </q-card>
   </q-dialog>
 
-  <q-form ref="editForm" autofocus @submit.prevent="onSubmit" style="max-width: 600px">
+  <q-form ref="detailForm" class="detail-form" autofocus @submit.prevent="onSubmit">
     <div class="row nowrap">
       <q-btn flat icon="arrow_back_ios" @click="onBack"></q-btn>
       <h4>{{ title }}</h4>
@@ -133,7 +132,7 @@ onMounted(async () => {
           name="uid"
           label="UID"
           readonly
-          v-show="readMode || modifyMode"
+          v-show="mode !== FormMode.CREATE"
           :model-value="uid"
         />
       </div>
@@ -145,24 +144,10 @@ onMounted(async () => {
           label="Name"
           tabindex="1"
           autofocus
-          :hint="readMode ? '' : 'A unique name for the image'"
-          :clearable="modifyMode || createMode"
-          :readonly="readMode"
+          :hint="mode == FormMode.READ ? '' : 'A unique name for this image'"
+          :clearable="mode !== FormMode.READ"
+          :readonly="mode == FormMode.READ"
           v-model="model.name"
-        />
-      </div>
-    </div>
-    <div class="row q-col-gutter-x-md q-col-gutter-y-md">
-      <div class="col-xs-12 col-sm-12 col-md-12 col-lg-12 col-xl-12">
-        <q-input
-          name="path"
-          label="Path"
-          tabindex="-1"
-          :hint="readMode ? '' : 'The image path on local disk'"
-          :clearable="modifyMode"
-          :readonly="readMode"
-          v-show="readMode"
-          v-model="model.path"
         />
       </div>
     </div>
@@ -175,12 +160,12 @@ onMounted(async () => {
           tabindex="2"
           emit-value
           map-options
-          :hint="readMode ? '' : 'Predefined image URLs'"
-          :readonly="readMode"
+          :hint="mode == FormMode.READ ? '' : 'Predefined image URLs'"
+          :readonly="mode == FormMode.READ"
           :options="predefined_images"
           option-label="name"
           option-value="url"
-          v-show="createMode"
+          v-show="mode == FormMode.CREATE"
           v-model="predefined_url"
           @update:model-value="onPredefinedImageUpdate"
         />
@@ -192,10 +177,10 @@ onMounted(async () => {
           name="url"
           label="Custom Image URL"
           tabindex="3"
-          :hint="readMode ? '' : 'Image URL'"
-          :clearable="createMode"
-          :readonly="readMode"
-          v-show="createMode || readMode"
+          :hint="mode == FormMode.READ ? '' : 'Image URL'"
+          :clearable="mode == FormMode.CREATE"
+          :readonly="mode !== FormMode.CREATE"
+          v-show="mode == FormMode.CREATE"
           v-model="model.url"
         />
       </div>
@@ -210,8 +195,8 @@ onMounted(async () => {
           markers
           snap
           tabindex="4"
-          :hint="readMode ? '' : 'Minimum vCPUs'"
-          :readonly="readMode"
+          :hint="mode == FormMode.READ ? '' : 'Minimum vCPUs'"
+          :readonly="mode == FormMode.READ"
           :min="0"
           :step="1"
           :max="10"
@@ -230,8 +215,8 @@ onMounted(async () => {
           markers
           snap
           tabindex="5"
-          :hint="readMode ? '' : 'Minimum RAM'"
-          :readonly="readMode"
+          :hint="mode == FormMode.READ ? '' : 'Minimum RAM'"
+          :readonly="mode == FormMode.READ"
           :min="0"
           :step="1"
           :max="16"
@@ -244,7 +229,7 @@ onMounted(async () => {
           name="min_ram_scale"
           label="Scale"
           tabindex="6"
-          :readonly="readMode"
+          :readonly="mode == FormMode.READ"
           :options="Object.values(BinaryScale)"
           v-model="model.min_ram.scale"
         />
@@ -260,8 +245,8 @@ onMounted(async () => {
           markers
           snap
           tabindex="7"
-          :hint="readMode ? '' : 'Minimum Disk size'"
-          :readonly="readMode"
+          :hint="mode == FormMode.READ ? '' : 'Minimum Disk size'"
+          :readonly="mode == FormMode.READ"
           :min="0"
           :step="1"
           :max="16"
@@ -274,7 +259,7 @@ onMounted(async () => {
           name="min_disk_scale"
           label="Scale"
           tabindex="8"
-          :readonly="readMode"
+          :readonly="mode == FormMode.READ"
           :options="Object.values(BinaryScale)"
           v-model="model.min_disk.scale"
         />
@@ -285,41 +270,36 @@ onMounted(async () => {
       style="padding-top: 30px"
     >
       <q-btn
-        class="form-button"
-        padding="lg"
-        size="md"
+        class="detail-form-button"
         label="Edit"
-        color="accent"
+        color="primary"
         tabindex="8"
-        v-show="readMode"
+        v-show="mode == FormMode.READ"
         @click="onEdit"
       />
       <q-btn
-        class="form-button"
-        padding="lg"
+        class="detail-form-button"
         label="Remove"
-        color="warning"
+        color="negative"
         tabindex="9"
-        v-show="readMode"
+        v-show="mode == FormMode.READ"
         @click="showRemoveConfirmationDialog = true"
       />
       <q-btn
-        class="form-button"
-        padding="lg"
+        class="detail-form-button"
         label="Cancel"
-        color="secondary"
+        color="primary"
         tabindex="10"
-        v-show="modifyMode || createMode"
+        v-show="mode !== FormMode.READ"
         @click="onCancel"
       />
       <q-btn
-        class="form-button"
-        padding="lg"
-        :label="createMode ? 'Create' : 'Modify'"
+        class="detail-form-button"
+        :label="mode == FormMode.CREATE ? 'Create' : 'Modify'"
         type="submit"
-        color="primary"
+        color="positive"
         tabindex="11"
-        v-show="modifyMode || createMode"
+        v-show="mode !== FormMode.READ"
         :loading="busy"
       >
         <template v-slot:loading>
@@ -328,10 +308,22 @@ onMounted(async () => {
       </q-btn>
     </div>
   </q-form>
-</template>
 
-<style scoped>
-.form-button {
-  min-width: 200px;
-}
-</style>
+  <q-markup-table v-show="mode == FormMode.READ" class="detail-metadata">
+    <thead>
+      <tr>
+        <th colspan="2" class="text-left"><h6>Metadata</h6></th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td class="text-left">Image Path</td>
+        <td class="text-left">{{ model.path }}</td>
+      </tr>
+      <tr>
+        <td class="text-left">Image Source URL</td>
+        <td class="text-left">{{ model.url }}</td>
+      </tr>
+    </tbody>
+  </q-markup-table>
+</template>

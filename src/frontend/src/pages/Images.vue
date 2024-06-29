@@ -1,5 +1,4 @@
 <script setup lang="ts">
-import { ref } from "vue";
 import { useRouter } from "vue-router";
 import { useImageStore } from "@/store/images";
 import ImageCard from "@/components/ImageCard.vue";
@@ -24,7 +23,7 @@ async function onCreate() {
   </div>
   <div class="q-pa-md row items-start q-gutter-md">
     <ImageCard
-      v-for="image in imageStore.images"
+      v-for="image in imageStore.images.values()"
       :key="image.uid"
       :image="image"
       @onSelected="onSelected"
@@ -34,7 +33,6 @@ async function onCreate() {
       :taskUid="taskUid"
       :image="image"
     />
-
     <CreateCard @onCreate="onCreate" />
   </div>
 </template>

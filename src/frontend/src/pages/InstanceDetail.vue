@@ -1,29 +1,17 @@
 <script setup lang="ts">
-import { onMounted, Ref, ref } from "vue";
+import { onMounted, Ref, ref, computed } from "vue";
 import { useRoute, useRouter } from "vue-router";
+import { BinaryScale, FormMode } from "@/base_types";
 import {
   InstanceGetSchema,
   InstanceCreateSchema,
   InstanceModifySchema,
   useInstanceStore,
 } from "@/store/instances";
-import {
-  NetworkGetSchema,
-  useNetworkStore
-} from "@/store/networks";
-import {
-  DiskGetSchema,
-  useDiskStore,
-} from "@/store/disks";
-import {
-  ImageGetSchema,
-  useImageStore
-} from '@/store/images'
-import {
-  BootstrapGetSchema,
-  useBootstrapStore
-} from "@/store/bootstraps";
-import { BinaryScale } from '@/base_types'
+import { NetworkGetSchema, useNetworkStore } from "@/store/networks";
+import { DiskGetSchema, useDiskStore } from "@/store/disks";
+import { ImageGetSchema, useImageStore } from "@/store/images";
+import { BootstrapGetSchema, useBootstrapStore } from "@/store/bootstraps";
 
 const instanceStore = useInstanceStore();
 const networkStore = useNetworkStore();
@@ -33,33 +21,43 @@ const bootstrapStore = useBootstrapStore();
 const router = useRouter();
 const route = useRoute();
 
-const readMode: Ref<boolean> = ref(true);
-const modifyMode: Ref<boolean> = ref(false)
-const createMode: Ref<boolean> = ref(false)
+const mode: Ref<FormMode> = ref(FormMode.READ);
 const busy: Ref<boolean> = ref(false);
 const showRemoveConfirmationDialog: Ref<boolean> = ref(false);
-const editForm = ref(null)
+const detailForm = ref(null);
 
-const title: Ref<string> = ref("Instance Detail");
+const title = computed(() => {
+  switch (mode.value) {
+    case FormMode.READ:
+      return `Instance: ${original.value.name}`;
+    case FormMode.EDIT:
+      return `Modify Instance: ${original.value.name}`;
+    case FormMode.CREATE:
+      return "Create Instance";
+    default:
+      return "Instance Detail";
+  }
+});
 
 const uid: Ref<string> = ref("");
 const original: Ref<InstanceGetSchema> = ref({} as InstanceGetSchema);
 const model: Ref<any> = ref(new InstanceGetSchema());
+
 const networkModel: Ref<NetworkGetSchema> = ref(new NetworkGetSchema());
 const osDiskModel: Ref<DiskGetSchema> = ref(new DiskGetSchema());
 const imageModel: Ref<ImageGetSchema> = ref(new ImageGetSchema());
 const bootstrapModel: Ref<BootstrapGetSchema> = ref(new BootstrapGetSchema());
 
 async function onGoNetwork() {
-  await router.push({ name: "NetworkDetail", params: { uid: model.value.network_uid } })
+  await router.push({ name: "NetworkDetail", params: { uid: model.value.network_uid } });
 }
 
 async function onGoImage() {
-  await router.push({ name: 'ImageDetail', params: { uid: osDiskModel.value.image_uid } })
+  await router.push({ name: "ImageDetail", params: { uid: model.value.image_uid } });
 }
 
 async function onGoBootstrap() {
-  await router.push({ name: 'BootstrapDetail', params: { uid: model.value.bootstrap_uid } });
+  await router.push({ name: "BootstrapDetail", params: { uid: model.value.bootstrap_uid } });
 }
 
 async function onBack() {
@@ -67,69 +65,60 @@ async function onBack() {
 }
 
 async function onCancel() {
-  if (createMode.value) {
-    createMode.value = false;
+  if (mode.value == FormMode.CREATE) {
     await onBack();
     return;
   }
   model.value = original.value;
-  title.value = "Instance: " + model.value.name;
-  readMode.value = true;
-  modifyMode.value = false;
+  mode.value = FormMode.READ;
 }
 
 async function onRemove() {
   busy.value = true;
-  instanceStore.remove(uid.value).then(() => {
+  instanceStore.remove(uid.value).then(async () => {
     busy.value = false;
-    onBack();
+    await onBack();
   });
 }
 
 async function onEdit() {
-  title.value = "Modify Instance: " + model.value.name;
   model.value = new InstanceModifySchema(original.value);
-  readMode.value = false;
-  modifyMode.value = true;
+  mode.value = FormMode.EDIT;
 }
 
 async function onSubmit() {
-  readMode.value = true;
-  if (createMode.value) {
+  busy.value = true;
+  if (mode.value == FormMode.CREATE) {
     instanceStore.create(model.value).then(async () => {
-      readMode.value = false;
+      mode.value = FormMode.READ;
+      busy.value = false;
       await onBack();
     });
   } else {
-    instanceStore.modify(uid.value, model.value).then(() => {
-      readMode.value = false;
-      onBack();
+    instanceStore.modify(uid.value, model.value).then(async () => {
+      mode.value = FormMode.READ;
+      busy.value = false;
+      await onBack();
     });
   }
 }
 
 onMounted(async () => {
+  busy.value = true;
   if ("uid" in route.params) {
-    // We're showing or editing an existing entity
-    readMode.value = true;
-    modifyMode.value = false;
-    createMode.value = false;
+    mode.value = FormMode.READ;
     uid.value = route.params.uid as string;
     original.value = await instanceStore.get(uid.value);
     model.value = original.value;
-    imageModel.value = await imageStore.get(model.value.image_uid)
-    networkModel.value = await networkStore.get(model.value.network_uid)
-    osDiskModel.value = await diskStore.get(model.value.os_disk_uid)
-    bootstrapModel.value = await bootstrapStore.get(model.value.bootstrap_uid)
-    title.value = "Instance: " + model.value.name;
+    imageModel.value = await imageStore.get(model.value.image_uid);
+    networkModel.value = await networkStore.get(model.value.network_uid);
+    osDiskModel.value = await diskStore.get(model.value.os_disk_uid);
+    bootstrapModel.value = await bootstrapStore.get(model.value.bootstrap_uid);
   } else {
-    // We're creating a new entity
-    readMode.value = false;
-    modifyMode.value = false;
-    createMode.value = true;
+    mode.value = FormMode.CREATE;
     model.value = new InstanceCreateSchema();
-    title.value = "Create Instance";
   }
+  busy.value = false;
 });
 </script>
 
@@ -141,23 +130,12 @@ onMounted(async () => {
       </q-card-section>
       <q-card-actions align="right">
         <q-btn flat label="Cancel" color="primary" v-close-popup />
-        <q-btn
-          flat
-          label="Remove"
-          color="primary"
-          v-close-popup
-          @click="onRemove"
-        />
+        <q-btn flat label="Remove" color="negative" v-close-popup @click="onRemove" />
       </q-card-actions>
     </q-card>
   </q-dialog>
 
-  <q-form
-    ref="editForm"
-    autofocus
-    @submit.prevent="onSubmit"
-    style="max-width: 600px"
-  >
+  <q-form ref="detailForm" class="detail-form" autofocus @submit.prevent="onSubmit">
     <div class="row nowrap">
       <q-btn flat icon="arrow_back_ios" @click="onBack"></q-btn>
       <h4>{{ title }}</h4>
@@ -168,7 +146,7 @@ onMounted(async () => {
           name="uid"
           label="UID"
           readonly
-          v-show="readMode || modifyMode"
+          v-show="mode !== FormMode.CREATE"
           :model-value="uid"
         />
       </div>
@@ -176,19 +154,16 @@ onMounted(async () => {
         <q-input
           name="name"
           label="Name"
-          tabindex="0"
+          tabindex="1"
           autofocus
-          :hint="readMode ? '' : 'A unique name for the instance'"
-          :clearable="modifyMode || createMode"
-          :readonly="readMode"
+          :hint="mode == FormMode.READ ? '' : 'A unique name for the instance'"
+          :clearable="mode !== FormMode.READ"
+          :readonly="mode == FormMode.READ"
           v-model="model.name"
         />
       </div>
     </div>
-    <div
-      class="row q-col-gutter-x-md q-col-gutter-y-xl"
-      style="padding-top: 30px"
-    >
+    <div class="row q-col-gutter-x-md q-col-gutter-y-xl" style="padding-top: 30px">
       <div class="col-xs-12 col-sm-12 col-md-12 col-lg-12 col-xl-12">
         <q-slider
           name="vcpu"
@@ -197,9 +172,9 @@ onMounted(async () => {
           switch-label-side
           markers
           snap
-          tabindex="4"
-          :hint="readMode ? '' : 'vCPUs'"
-          :readonly="readMode"
+          tabindex="2"
+          :hint="mode == FormMode.READ ? '' : 'vCPUs'"
+          :readonly="mode == FormMode.READ"
           :min="0"
           :step="1"
           :max="10"
@@ -208,10 +183,7 @@ onMounted(async () => {
         />
       </div>
     </div>
-    <div
-      class="row q-col-gutter-x-md q-col-gutter-y-xl"
-      style="padding-top: 30px"
-    >
+    <div class="row q-col-gutter-x-md q-col-gutter-y-xl" style="padding-top: 30px">
       <div class="col-xs-8 col-sm-8 col-md-8 col-lg-8 col-xl-8">
         <q-slider
           name="ram_value"
@@ -220,15 +192,13 @@ onMounted(async () => {
           switch-label-side
           markers
           snap
-          tabindex="5"
-          :hint="readMode ? '' : 'RAM'"
-          :readonly="readMode"
+          tabindex="3"
+          :hint="mode == FormMode.READ ? '' : 'RAM'"
+          :readonly="mode == FormMode.READ"
           :min="0"
           :step="1"
           :max="16"
-          :label-value="
-              'RAM: ' + model.ram.value + ' ' + model.ram.scale
-            "
+          :label-value="'RAM: ' + model.ram.value + ' ' + model.ram.scale"
           v-model="model.ram.value"
         />
       </div>
@@ -236,8 +206,8 @@ onMounted(async () => {
         <q-select
           name="ram_scale"
           label="Scale"
-          tabindex="6"
-          :readonly="readMode"
+          tabindex="4"
+          :readonly="mode == FormMode.READ"
           :options="Object.values(BinaryScale)"
           v-model="model.ram.scale"
         />
@@ -248,8 +218,8 @@ onMounted(async () => {
         <q-select
           name="network"
           label="Network"
-          tabindex="6"
-          :readonly="readMode"
+          tabindex="5"
+          :readonly="mode == FormMode.READ"
           :options="networkStore.networkOptions"
           option-label="name"
           option-value="uid"
@@ -259,32 +229,40 @@ onMounted(async () => {
         />
       </div>
       <div class="col-xs-2 col-sm-2 col-md-2 col-lg-2 col-xl-2">
-        <q-btn flat
-               icon="arrow_forward_ios"
-               :disable="createMode || modifyMode"
-               @click="onGoNetwork"></q-btn>
+        <q-btn
+          flat
+          icon="arrow_forward_ios"
+          tabindex="6"
+          v-show="mode == FormMode.READ"
+          @click="onGoNetwork"
+        ></q-btn>
       </div>
     </div>
     <div class="row q-col-gutter-x-md q-col-gutter-y-md">
       <div class="col-xs-10 col-sm-10 col-md-10 col-lg-10 col-xl-10">
-        <q-select name="os_disk_image"
-                 label="OS Disk Image"
-                 tabindex="3"
-                 :hint="readMode ? '' : 'The OS Disk Image'"
-                 :readonly="readMode"
-                 :options="imageStore.imageOptions"
-                 option-label="name"
-                 option-value="uid"
-                 emit-value
-                 map-options
-                 v-show="readMode || createMode"
-                 v-model="model.image_uid"/>
+        <q-select
+          name="os_disk_image"
+          label="OS Disk Image"
+          tabindex="7"
+          :hint="mode == FormMode.READ ? '' : 'The OS Disk Image'"
+          :readonly="mode == FormMode.READ"
+          :options="imageStore.imageOptions"
+          option-label="name"
+          option-value="uid"
+          emit-value
+          map-options
+          v-show="mode !== FormMode.EDIT"
+          v-model="model.image_uid"
+        />
       </div>
       <div class="col-xs-2 col-sm-2 col-md-2 col-lg-2 col-xl-2">
-        <q-btn flat
-               icon="arrow_forward_ios"
-               :disable="createMode || modifyMode"
-               @click="onGoImage"></q-btn>
+        <q-btn
+          flat
+          icon="arrow_forward_ios"
+          tabindex="8"
+          v-show="mode == FormMode.READ"
+          @click="onGoImage"
+        ></q-btn>
       </div>
     </div>
     <div class="row q-col-gutter-x-md q-col-gutter-y-md">
@@ -296,15 +274,15 @@ onMounted(async () => {
           switch-label-side
           markers
           snap
-          tabindex="5"
-          :hint="readMode ? '' : 'OS Disk Size'"
-          :readonly="readMode"
+          tabindex="9"
+          :hint="mode == FormMode.READ ? '' : 'OS Disk Size'"
+          :readonly="mode == FormMode.READ"
           :min="0"
           :step="1"
           :max="16"
           :label-value="
-                'OS Disk Size: ' + model.os_disk_size.value + ' ' + model.os_disk_size.scale
-              "
+            'OS Disk Size: ' + model.os_disk_size.value + ' ' + model.os_disk_size.scale
+          "
           v-model="model.os_disk_size.value"
         />
       </div>
@@ -312,8 +290,8 @@ onMounted(async () => {
         <q-select
           name="os_disk_size_scale"
           label="Scale"
-          tabindex="6"
-          :readonly="readMode"
+          tabindex="10"
+          :readonly="mode == FormMode.READ"
           :options="Object.values(BinaryScale)"
           v-model="model.os_disk_size.scale"
         />
@@ -322,58 +300,62 @@ onMounted(async () => {
 
     <div class="row q-col-gutter-x-md q-col-gutter-y-md">
       <div class="col-xs-10 col-sm-10 col-md-10 col-lg-10 col-xl-10">
-        <q-select name="bootstrap_uid"
-                  label="Bootstrap"
-                  tabindex="3"
-                  :hint="readMode ? '' : 'The Bootstrapper'"
-                  :readonly="readMode"
-                  :options="bootstrapStore.bootstrapOptions"
-                  option-label="name"
-                  option-value="uid"
-                  emit-value
-                  map-options
-                  v-show="readMode || createMode"
-                  v-model="model.bootstrap_uid"/>
+        <q-select
+          name="bootstrap_uid"
+          label="Bootstrap"
+          tabindex="11"
+          :hint="mode == FormMode.READ ? '' : 'The Bootstrapper'"
+          :readonly="mode == FormMode.READ"
+          :options="bootstrapStore.bootstrapOptions"
+          option-label="name"
+          option-value="uid"
+          emit-value
+          map-options
+          v-show="mode !== FormMode.EDIT"
+          v-model="model.bootstrap_uid"
+        />
       </div>
       <div class="col-xs-2 col-sm-2 col-md-2 col-lg-2 col-xl-2">
-        <q-btn flat
-               icon="arrow_forward_ios"
-               :disable="createMode || modifyMode"
-               @click="onGoBootstrap"></q-btn>
+        <q-btn
+          flat
+          icon="arrow_forward_ios"
+          tabindex="12"
+          v-show="mode == FormMode.READ"
+          @click="onGoBootstrap"
+        ></q-btn>
       </div>
     </div>
     <div class="row q-gutter-xl justify-end">
       <q-btn
-        flat
-        padding="lg"
+        class="detail-form-button"
         label="Edit"
         color="primary"
-        v-show="readMode"
+        tabindex="13"
+        v-show="mode == FormMode.READ"
         @click="onEdit"
       />
       <q-btn
-        flat
-        padding="lg"
+        class="detail-form-button"
         label="Remove"
-        color="primary"
-        v-show="readMode"
+        color="negative"
+        tabindex="14"
+        v-show="mode == FormMode.READ"
         @click="showRemoveConfirmationDialog = true"
       />
       <q-btn
-        flat
-        padding="lg"
+        class="detail-form-button"
         label="Cancel"
-        color="secondary"
-        v-show="modifyMode || createMode"
+        color="primary"
+        tabindex="15"
+        v-show="mode !== FormMode.READ"
         @click="onCancel"
       />
       <q-btn
-        flat
-        padding="lg"
-        :label="createMode ? 'Create' : 'Modify'"
+        class="detail-form-button"
+        :label="mode == FormMode.CREATE ? 'Create' : 'Modify'"
         type="submit"
-        color="primary"
-        v-show="!readMode"
+        color="positive"
+        v-show="mode !== FormMode.READ"
         :loading="busy"
       >
         <template v-slot:loading>
@@ -382,28 +364,30 @@ onMounted(async () => {
       </q-btn>
     </div>
   </q-form>
-  <q-separator/>
-  <h5>Instance Metadata</h5>
-  <q-markup-table>
+
+  <q-markup-table v-show="mode == FormMode.READ" class="detail-metadata">
+    <thead>
+      <tr>
+        <th colspan="2" class="text-left"><h6>Metadata</h6></th>
+      </tr>
+    </thead>
     <tbody>
-    <tr>
-      <td class="text-left">Instance Path</td>
-      <td class="text-right">{{ model.path }}</td>
-    </tr>
-    <tr>
-      <td class="text-left">OS Disk Path</td>
-      <td class="text-right">{{ osDiskModel.path }}</td>
-    </tr>
-    <tr>
-      <td class="text-left">Bootstrap File Path</td>
-      <td class="text-right">{{ model.bootstrap_file }}</td>
-    </tr>
-    <tr>
-      <td class="text-left">MAC Address</td>
-      <td class="text-right">{{ model.mac }}</td>
-    </tr>
+      <tr>
+        <td class="text-left">Instance Path</td>
+        <td class="text-left">{{ model.path }}</td>
+      </tr>
+      <tr>
+        <td class="text-left">OS Disk Path</td>
+        <td class="text-left">{{ osDiskModel.path }}</td>
+      </tr>
+      <tr>
+        <td class="text-left">Bootstrap File Path</td>
+        <td class="text-left">{{ model.bootstrap_file }}</td>
+      </tr>
+      <tr>
+        <td class="text-left">MAC Address</td>
+        <td class="text-left">{{ model.mac }}</td>
+      </tr>
     </tbody>
   </q-markup-table>
 </template>
-
-<style scoped></style>

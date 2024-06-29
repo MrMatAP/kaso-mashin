@@ -24,7 +24,7 @@ export class BootstrapGetSchema extends Entity {
   required_keys: Array<string>;
 
   constructor(
-    uid: string,
+    uid: string = "",
     name: string = "",
     kind: BootstrapKind = BootstrapKind.IGNITION,
     content: string = "",
@@ -41,7 +41,11 @@ export class BootstrapCreateSchema extends CreatableEntity {
   kind: BootstrapKind;
   content: string;
 
-  constructor(name: string, kind: BootstrapKind = BootstrapKind.IGNITION, content: string) {
+  constructor(
+    name: string = "",
+    kind: BootstrapKind = BootstrapKind.IGNITION,
+    content: string = "",
+  ) {
     super(name);
     this.kind = kind;
     this.content = content;
