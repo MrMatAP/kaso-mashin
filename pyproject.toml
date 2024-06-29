@@ -45,7 +45,7 @@ dependencies = [
 dynamic = ["version"]
 
 [tool.setuptools.dynamic]
-version = { attr = "ci.version "}
+version = { attr = "ci.version"}
 
 [tool.setuptools.packages.find]
 where = ["src"]
