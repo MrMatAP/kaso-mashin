@@ -19,7 +19,7 @@ types-passlib==1.7.7.20240327       # Apache 2.0
 # Runtime requirements
 
 rich==13.7.1                        # MIT
-requests==2.32.2                    # Apache 2.0
+requests==2.32.3                    # Apache 2.0
 pyyaml==6.0.1                       # MIT
 netifaces==0.11.0                   # MIT
 aiosqlite==0.20.0                   # MIT
