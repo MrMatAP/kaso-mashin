@@ -50,6 +50,7 @@
     </codeStyleSettings>
     <codeStyleSettings language="Python">
       <option name="RIGHT_MARGIN" value="100" />
+      <option name="SOFT_MARGINS" value="100" />
     </codeStyleSettings>
     <codeStyleSettings language="TypeScript">
       <option name="SOFT_MARGINS" value="80" />
