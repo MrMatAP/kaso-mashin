@@ -196,3 +196,7 @@ async def test_context_seeded() -> KasoTestContext:
         )
     shutil.rmtree(temp_dir, ignore_errors=True)
     logging.getLogger().info(f"Removed seeded Kaso Mashin context at {temp_dir}")
+
+
+def has_qemu_img() -> bool:
+    return pathlib.Path('/opt/homebrew/bin/qemu-img').exists()
