@@ -1,11 +1,10 @@
-// Plugins
-import vue from '@vitejs/plugin-vue'
-import vuetify, { transformAssetUrls } from 'vite-plugin-vuetify'
-import ViteFonts from 'unplugin-fonts/vite'
+/// <reference types="vitest"/>
 
-// Utilities
-import { defineConfig } from 'vite'
-import { fileURLToPath, URL } from 'node:url'
+// Plugins
+import vue from "@vitejs/plugin-vue";
+import { defineConfig } from "vite";
+import { fileURLToPath, URL } from "node:url";
+import { quasar, transformAssetUrls } from "@quasar/vite-plugin";
 
 // https://vitejs.dev/config/
 export default defineConfig({
@@ -13,35 +12,44 @@ export default defineConfig({
     vue({
       template: { transformAssetUrls },
     }),
-    // https://github.com/vuetifyjs/vuetify-loader/tree/master/packages/vite-plugin#readme
-    vuetify({
-      autoImport: true,
-      styles: {
-        configFile: 'src/styles/settings.scss',
-      },
-    }),
-    ViteFonts({
-      google: {
-        families: [
-          {
-            name: 'Roboto',
-            styles: 'wght@100;300;400;500;700;900',
-          },
-        ],
-      },
+    quasar({
+      sassVariables: "src/quasar-variables.sass",
     }),
   ],
-  define: { 'process.env': {} },
+  define: { "process.env": {} },
   resolve: {
     alias: {
-      '@': fileURLToPath(new URL('./src', import.meta.url)),
+      "@": fileURLToPath(new URL("./src", import.meta.url)),
     },
-    extensions: ['.js', '.json', '.jsx', '.mjs', '.ts', '.tsx', '.vue'],
+    extensions: [".js", ".json", ".jsx", ".mjs", ".ts", ".tsx", ".vue"],
+  },
+  test: {
+    globals: true,
+    environment: "happy-dom",
+    coverage: {
+      provider: "istanbul",
+      include: ["src"],
+      reporter: [
+        ["lcov", { file: "frontend.lcov", projectRoot: "./src" }],
+        ["json", { file: "frontend.json" }],
+        ["text"],
+      ],
+      reportsDirectory: "../../build/frontend/",
+      clean: true,
+    },
+    reporters: ["default", "junit"],
+    outputFile: {
+      junit: "../../build/frontend/junit.xml",
+    },
   },
   server: {
     port: 3000,
     proxy: {
-      '/api': 'http://localhost:8000'
-    }
+      "/api/notifications": {
+        target: "ws://localhost:8000",
+        ws: true,
+      },
+      "/api": "http://localhost:8000",
+    },
   },
-})
+});

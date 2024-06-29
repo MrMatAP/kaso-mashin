@@ -69,11 +69,11 @@ jobs:
       run: |
         cd ${GITHUB_WORKSPACE}/src/frontend
         npm install
+        npm run coverage
         npm run package
 
         cd ${GITHUB_WORKSPACE}
         pip install --user -r dev-requirements.txt
-        pylint --rcfile ${GITHUB_WORKSPACE}/.pylintrc ${GITHUB_WORKSPACE}/src/kaso_mashin --exit-zero
         python -m build --wheel -n
         PYTHONPATH=${GITHUB_WORKSPACE}/src python -m pytest
 
@@ -85,6 +85,8 @@ jobs:
         path: |
           build/junit.xml
           build/coverage.xml
+          build/frontend/junit.xml
+          build/frontend/frontend.lcov
 
     - name: Conditional Release
       uses: marvinpinto/action-automatic-releases@latest

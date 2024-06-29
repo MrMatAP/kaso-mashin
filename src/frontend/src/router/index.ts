@@ -1,51 +1,97 @@
 // Composables
-import { createRouter, createWebHistory } from 'vue-router'
+import { createRouter, createWebHistory } from "vue-router";
 
 const routes = [
   {
-    path: '/',
-    component: () => import('@/layouts/default/Default.vue'),
+    path: "/",
+    component: () => import("@/layouts/default/Default.vue"),
     children: [
       {
-        path: '/',
-        name: 'Home',
-        // route level code-splitting
-        // this generates a separate chunk (Home-[hash].js) for this route
-        // which is lazy-loaded when the route is visited.
-        component: () => import('@/views/Home.vue'),
+        path: "/",
+        component: () => import("@/pages/Landing.vue"),
       },
       {
-        path: '/instances',
-        name: 'Instances',
-        component: () => import('@/views/Instances.vue')
+        path: "/instances",
+        name: "Instances",
+        component: () => import("@/pages/Instances.vue"),
       },
       {
-        path: '/identities',
-        name: 'Identities',
-        component: () => import('@/views/Identities.vue')
+        path: "/instances/:uid",
+        name: "InstanceDetail",
+        component: () => import("@/pages/InstanceDetail.vue"),
       },
       {
-        path: '/networks',
-        name: 'Networks',
-        component: () => import('@/views/Networks.vue')
+        path: "/instances/?create",
+        name: "InstanceCreate",
+        component: () => import("@/pages/InstanceDetail.vue"),
       },
       {
-        path: '/images',
-        name: 'Images',
-        component: () => import('@/views/Images.vue')
+        path: "/identities",
+        name: "Identities",
+        component: () => import("@/pages/Identities.vue"),
       },
       {
-        path: '/images-grid',
-        name: 'Images-Grid',
-        component: () => import('@/views/Images-Grid.vue')
+        path: "/identities/:uid",
+        name: "IdentityDetail",
+        component: () => import("@/pages/IdentityDetail.vue"),
+      },
+      {
+        path: "/identities/?create",
+        name: "IdentityCreate",
+        component: () => import("@/pages/IdentityDetail.vue"),
+      },
+      {
+        path: "/networks",
+        name: "Networks",
+        component: () => import("@/pages/Networks.vue"),
+      },
+      {
+        path: "/networks/:uid",
+        name: "NetworkDetail",
+        component: () => import("@/pages/NetworkDetail.vue"),
+      },
+      {
+        path: "/networks/?create",
+        name: "NetworkCreate",
+        component: () => import("@/pages/NetworkDetail.vue"),
+      },
+      {
+        path: "/images",
+        name: "Images",
+        component: () => import("@/pages/Images.vue"),
+      },
+      {
+        path: "/images/:uid",
+        name: "ImageDetail",
+        component: () => import("@/pages/ImageDetail.vue"),
+      },
+      {
+        path: "/images/?create",
+        name: "ImageCreate",
+        component: () => import("@/pages/ImageDetail.vue"),
+      },
+      {
+        path: '/bootstraps',
+        name: 'Bootstraps',
+        component: () => import('@/pages/Bootstraps.vue'),
+      },
+      {
+        path: '/bootstraps/:uid',
+        name: 'BootstrapDetail',
+        component: () => import("@/pages/BootstrapDetail.vue"),
+      },
+      {
+        path: '/bootstraps/?create',
+        name: 'BootstrapCreate',
+        component: () => import('@/pages/BootstrapDetail.vue'),
       }
     ],
   },
-]
+];
 
 const router = createRouter({
   history: createWebHistory(process.env.BASE_URL),
   routes,
-})
+});
 
-export default router
+export default router;

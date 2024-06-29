@@ -1,17 +1,50 @@
-import shutil
-import getpass
-import os
 import ipaddress
+import logging
+import os
+import pathlib
+import shutil
+import contextlib
+from ipaddress import IPv4Network
 
-import netifaces
+import fastapi
+import getpass
+import httpx
+import aiofiles
 
 from kaso_mashin.common.config import Config
 from kaso_mashin.server.db import DB
-from kaso_mashin.server.controllers import (
-    BootstrapController, OsDiskController, IdentityController, ImageController,
-    InstanceController,
-    NetworkController, PhoneHomeController, TaskController)
-from kaso_mashin.common.model import NetworkKind, NetworkModel
+
+from kaso_mashin.common.entities import (
+    TaskRepository,
+    TaskModel,
+    TaskEntity,
+    DiskRepository,
+    DiskModel,
+    DiskEntity,
+    ImageRepository,
+    ImageModel,
+    ImageEntity,
+    NetworkRepository,
+    NetworkModel,
+    NetworkEntity,
+    NetworkKind,
+    DEFAULT_SHARED_NETWORK_NAME,
+    DEFAULT_BRIDGED_NETWORK_NAME,
+    DEFAULT_HOST_NETWORK_NAME,
+    InstanceRepository,
+    InstanceModel,
+    InstanceEntity,
+    BootstrapRepository,
+    BootstrapModel,
+    BootstrapEntity,
+    BootstrapKind,
+    DEFAULT_K8S_MASTER_TEMPLATE_NAME,
+    DEFAULT_K8S_SLAVE_TEMPLATE_NAME,
+    IdentityRepository,
+    IdentityModel,
+    IdentityEntity,
+)
+from kaso_mashin.common.services import QEMUService, EventService
 
 
 class Runtime:
@@ -20,64 +53,192 @@ class Runtime:
     """
 
     def __init__(self, config: Config, db: DB):
+        self._logger = logging.getLogger(f"{self.__class__.__module__}.{self.__class__.__name__}")
         self._config = config
         self._db = db
         self._effective_user = getpass.getuser()
-        self._owning_user = os.environ.get('SUDO_USER', self._effective_user)
+        self._owning_user = os.environ.get("SUDO_USER", self._effective_user)
         self._db.owning_user = self._owning_user
-        self._server_url = None
-        self._bootstrap_controller = BootstrapController(runtime=self)
-        self._os_disk_controller = OsDiskController(runtime=self)
-        self._identity_controller = IdentityController(runtime=self)
-        self._image_controller = ImageController(runtime=self)
-        self._instance_controller = InstanceController(runtime=self)
-        self._network_controller = NetworkController(runtime=self)
-        self._phonehome_controller = PhoneHomeController(runtime=self)
-        self._task_controller = TaskController(runtime=self)
+        self._task_repository: TaskRepository | None = None
+        self._disk_repository: DiskRepository | None = None
+        self._image_repository: ImageRepository | None = None
+        self._network_repository: NetworkRepository | None = None
+        self._instance_repository: InstanceRepository | None = None
+        self._bootstrap_repository: BootstrapRepository | None = None
+        self._identity_repository: IdentityRepository | None = None
+        self._uefi_code_path = config.bootstrap_path / "uefi-code.fd"
+        self._uefi_vars_path = config.bootstrap_path / "uefi-vars.fd"
+        self._event_service = EventService(self)
+        self._qemu_service = QEMUService(self)
 
-    def late_init(self, server: bool = False):
-        """
-        Perform late initialisation after configuration
-        """
-        shutil.chown(self.config.path, user=self.owning_user)
-        self._server_url = f'http://{self.config.default_server_host}:{self.config.default_server_port}'
-        if not server:
-            return
-        # TODO: Network updates should only happen in server mode, NOT in client mode
-        if not self.network_controller.get(name=NetworkController.DEFAULT_BRIDGED_NETWORK_NAME):
-            gateway = netifaces.gateways().get('default')
-            host_if = list(gateway.values())[0][1]
-            host_addr = netifaces.ifaddresses(host_if)[netifaces.AF_INET][0]
-            model = NetworkModel(name=NetworkController.DEFAULT_BRIDGED_NETWORK_NAME,
-                                 kind=NetworkKind.VMNET_BRIDGED,
-                                 host_phone_home_port=self.config.default_phone_home_port,
-                                 host_if=list(gateway.values())[0][1],
-                                 host_ip4=host_addr.get('addr'),
-                                 nm4=host_addr.get('netmask'),
-                                 gw4=list(gateway.values())[0][0])
-            self.network_controller.create(model)
-        if not self.network_controller.get(name=NetworkController.DEFAULT_HOST_NETWORK_NAME):
-            host_net = ipaddress.ip_network(self.config.default_host_network_cidr)
-            model = NetworkModel(name=NetworkController.DEFAULT_HOST_NETWORK_NAME,
-                                 kind=NetworkKind.VMNET_HOST,
-                                 host_phone_home_port=self.config.default_phone_home_port,
-                                 # vmnet assignes the first dhcp4_start address
-                                 host_ip4=host_net.network_address + 10,
-                                 nm4=host_net.netmask,
-                                 dhcp4_start=host_net.network_address + 10,
-                                 dhcp4_end=host_net.broadcast_address - 1)
-            self.network_controller.create(model)
-        if not self.network_controller.get(name=NetworkController.DEFAULT_SHARED_NETWORK_NAME):
-            shared_net = ipaddress.ip_network(self.config.default_shared_network_cidr)
-            model = NetworkModel(name=NetworkController.DEFAULT_SHARED_NETWORK_NAME,
-                                 kind=NetworkKind.VMNET_SHARED,
-                                 host_phone_home_port=self.config.default_phone_home_port,
-                                 # vmnet assignes the first dhcp4_start address
-                                 host_ip4=shared_net.network_address + 10,
-                                 nm4=shared_net.netmask,
-                                 dhcp4_start=shared_net.network_address + 10,
-                                 dhcp4_end=shared_net.broadcast_address - 1)
-            self.network_controller.create(model)
+    async def lifespan_uefi(self):
+        self._logger.info(f"Lifespan UEFI started")
+        client = httpx.AsyncClient(follow_redirects=True, timeout=60)
+        if not self.uefi_code_path.exists():
+            async with (
+                client.stream("GET", url=self._config.uefi_code_url) as resp,
+                aiofiles.open(self.uefi_code_path, "wb") as file,
+            ):
+                async for chunk in resp.aiter_bytes(chunk_size=8196):
+                    await file.write(chunk)
+            shutil.chown(path=self.uefi_code_path, user=self._owning_user)
+        if not self.uefi_vars_path.exists():
+            async with (
+                client.stream("GET", url=self._config.uefi_vars_url) as resp,
+                aiofiles.open(self.uefi_vars_path, "wb") as file,
+            ):
+                async for chunk in resp.aiter_bytes(chunk_size=8196):
+                    await file.write(chunk)
+                shutil.chown(path=self.uefi_vars_path, user=self._owning_user)
+
+    async def lifespan_bootstrap(self):
+        self._logger.info(f"Lifespan Bootstrap started")
+        template_dir = pathlib.Path(__file__).parent.parent / "common" / "templates"
+        ignition_k8s_master = await self.bootstrap_repository.get_by_name(
+            DEFAULT_K8S_MASTER_TEMPLATE_NAME
+        )
+        if ignition_k8s_master is None:
+            ignition_k8s_master_template = template_dir / "ignition_k8s_master.yaml"
+            await BootstrapEntity.create(
+                name=DEFAULT_K8S_MASTER_TEMPLATE_NAME,
+                kind=BootstrapKind.IGNITION,
+                content=ignition_k8s_master_template.read_text(encoding="utf-8"),
+            )
+        ignition_k8s_slave = await self.bootstrap_repository.get_by_name(
+            DEFAULT_K8S_SLAVE_TEMPLATE_NAME
+        )
+        if ignition_k8s_slave is None:
+            ignition_k8s_slave_template = template_dir / "ignition_k8s_slave.yaml"
+            await BootstrapEntity.create(
+                name=DEFAULT_K8S_SLAVE_TEMPLATE_NAME,
+                kind=BootstrapKind.IGNITION,
+                content=ignition_k8s_slave_template.read_text(encoding="utf-8"),
+            )
+
+    async def lifespan_paths(self):
+        self._logger.info(f"Lifespan Paths started")
+        for path in (
+            self.config.path,
+            self.config.images_path,
+            self.config.instances_path,
+            self.config.bootstrap_path,
+        ):
+            path.mkdir(parents=True, exist_ok=True)
+            shutil.chown(path=path, user=self.owning_user)
+
+    async def lifespan_networks(self):
+        self._logger.info(f"Lifespan Networks started")
+        host_network = await self.network_repository.get_by_name(DEFAULT_HOST_NETWORK_NAME)
+        if not host_network:
+            await NetworkEntity.create(
+                name=DEFAULT_HOST_NETWORK_NAME,
+                kind=NetworkKind.VMNET_HOST,
+                cidr=IPv4Network("10.1.0.0/24"),
+                gateway=ipaddress.IPv4Address("10.1.0.1"),
+            )
+        shared_network = await self.network_repository.get_by_name(DEFAULT_SHARED_NETWORK_NAME)
+        if not shared_network:
+            await NetworkEntity.create(
+                name=DEFAULT_SHARED_NETWORK_NAME,
+                kind=NetworkKind.VMNET_SHARED,
+                cidr=ipaddress.IPv4Network("10.2.0.0/24"),
+                gateway=ipaddress.IPv4Address("10.2.0.1"),
+            )
+        bridged_network = await self.network_repository.get_by_name(DEFAULT_BRIDGED_NETWORK_NAME)
+        if not bridged_network:
+            await NetworkEntity.create(
+                name=DEFAULT_BRIDGED_NETWORK_NAME,
+                kind=NetworkKind.VMNET_BRIDGED,
+                cidr=ipaddress.IPv4Network("10.3.0.0/24"),
+                gateway=ipaddress.IPv4Address("10.3.0.1"),
+            )
+
+    @contextlib.asynccontextmanager
+    async def lifespan(self, app: fastapi.FastAPI):
+        del app
+        await self.lifespan_paths()
+        self._task_repository = TaskRepository(
+            runtime=self,
+            session_maker=await self._db.async_sessionmaker,
+            aggregate_root_class=TaskEntity,
+            model_class=TaskModel,
+        )
+        self._disk_repository = DiskRepository(
+            runtime=self,
+            session_maker=await self._db.async_sessionmaker,
+            aggregate_root_class=DiskEntity,
+            model_class=DiskModel,
+        )
+        self._image_repository = ImageRepository(
+            runtime=self,
+            session_maker=await self._db.async_sessionmaker,
+            aggregate_root_class=ImageEntity,
+            model_class=ImageModel,
+        )
+        self._network_repository = NetworkRepository(
+            runtime=self,
+            session_maker=await self._db.async_sessionmaker,
+            aggregate_root_class=NetworkEntity,
+            model_class=NetworkModel,
+        )
+        self._instance_repository = InstanceRepository(
+            runtime=self,
+            session_maker=await self._db.async_sessionmaker,
+            aggregate_root_class=InstanceEntity,
+            model_class=InstanceModel,
+        )
+        self._bootstrap_repository = BootstrapRepository(
+            runtime=self,
+            session_maker=await self._db.async_sessionmaker,
+            aggregate_root_class=BootstrapEntity,
+            model_class=BootstrapModel,
+        )
+        self._identity_repository = IdentityRepository(
+            runtime=self,
+            session_maker=await self._db.async_sessionmaker,
+            aggregate_root_class=IdentityEntity,
+            model_class=IdentityModel,
+        )
+        await self.lifespan_networks()
+        await self.lifespan_uefi()
+        await self.lifespan_bootstrap()
+        yield
+
+    @property
+    def task_repository(self) -> TaskRepository:
+        return self._task_repository
+
+    @property
+    def disk_repository(self) -> DiskRepository:
+        return self._disk_repository
+
+    @property
+    def image_repository(self) -> ImageRepository:
+        return self._image_repository
+
+    @property
+    def network_repository(self) -> NetworkRepository:
+        return self._network_repository
+
+    @property
+    def instance_repository(self) -> InstanceRepository:
+        return self._instance_repository
+
+    @property
+    def bootstrap_repository(self) -> BootstrapRepository:
+        return self._bootstrap_repository
+
+    @property
+    def identity_repository(self) -> IdentityRepository:
+        return self._identity_repository
+
+    @property
+    def event_service(self) -> EventService:
+        return self._event_service
+
+    @property
+    def qemu_service(self) -> QEMUService:
+        return self._qemu_service
 
     @property
     def config(self) -> Config:
@@ -88,45 +249,17 @@ class Runtime:
         return self._db
 
     @property
-    def server_url(self) -> str:
-        return self._server_url
-
-    @property
-    def bootstrap_controller(self) -> BootstrapController:
-        return self._bootstrap_controller
-
-    @property
-    def os_disk_controller(self) -> OsDiskController:
-        return self._os_disk_controller
-
-    @property
-    def identity_controller(self) -> IdentityController:
-        return self._identity_controller
-
-    @property
-    def image_controller(self) -> ImageController:
-        return self._image_controller
-
-    @property
-    def instance_controller(self) -> InstanceController:
-        return self._instance_controller
-
-    @property
-    def network_controller(self) -> NetworkController:
-        return self._network_controller
-
-    @property
-    def phonehome_controller(self) -> PhoneHomeController:
-        return self._phonehome_controller
-
-    @property
-    def task_controller(self) -> TaskController:
-        return self._task_controller
-
-    @property
     def effective_user(self) -> str:
         return self._effective_user
 
     @property
     def owning_user(self) -> str:
         return self._owning_user
+
+    @property
+    def uefi_code_path(self):
+        return self._uefi_code_path
+
+    @property
+    def uefi_vars_path(self):
+        return self._uefi_vars_path
