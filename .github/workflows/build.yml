@@ -73,6 +73,7 @@ jobs:
         npm run package
 
         cd ${GITHUB_WORKSPACE}
+        pip install --upgrade pip
         pip install --user -r dev-requirements.txt
         python -m build --wheel -n
         PYTHONPATH=${GITHUB_WORKSPACE}/src python -m pytest
