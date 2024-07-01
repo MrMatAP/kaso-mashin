@@ -23,7 +23,7 @@ requests==2.32.3                    # Apache 2.0
 pyyaml==6.0.1                       # MIT
 netifaces==0.11.0                   # MIT
 aiosqlite==0.20.0                   # MIT
-sqlalchemy[asyncio]==2.0.30         # MIT
+sqlalchemy[asyncio]==2.0.31         # MIT
 websockets==12.0                    # BSD 3-Clause
 fastapi==0.111.0                    # MIT
 uvicorn==0.24.0.post1               # BSD 3-Clause
