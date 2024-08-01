@@ -45,7 +45,7 @@ export default defineConfig({
   server: {
     port: 3000,
     proxy: {
-      "/api/notifications": {
+      "/api/console/a7bb0e5e-28d1-4c5c-a126-b35e30cf0d19": {
         target: "ws://localhost:8000",
         ws: true,
       },
