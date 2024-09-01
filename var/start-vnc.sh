@@ -18,11 +18,16 @@
     -fw_cfg name=opt/org.flatcar-linux/config,file=/Users/imfeldma/var/kaso/instances/vnctest/bootstrap.json \
     -drive if=pflash,file=/Users/imfeldma/var/kaso/instances/vnctest/uefi_code.fd,format=raw,readonly=on \
     -drive if=pflash,file=/Users/imfeldma/var/kaso/instances/vnctest/uefi_vars.fd,format=raw \
-    -display vnc=unix:/Users/imfeldma/var/kaso/instances/vnctest/vconsole.sock \
     -chardev socket,id=char0,server=on,wait=off,telnet=on,path=/Users/imfeldma/var/kaso/instances/vnctest/console.sock \
     -serial chardev:char0 \
     -chardev socket,id=char1,server=on,wait=off,path=/Users/imfeldma/var/kaso/instances/vnctest/qmp.sock \
-    -mon chardev=char1,mode=control
+    -mon chardev=char1,mode=control \
+    -display vnc=to=0,password=off,power-control=on
+
+    #-display vnc=unix:/Users/imfeldma/var/kaso/instances/vnctest/vconsole.sock,password=off,share=allow-exclusive,power-control=on
+    
+    # This connects but doesn't show anything
+    #-display vnc=unix:/Users/imfeldma/var/kaso/instances/vnctest/vconsole.sock \
     
     # Two sockets, one for the mon, the other for serial console
     #-chardev socket,id=char0,server=on,wait=off,telnet=on,path=/Users/imfeldma/var/kaso/instances/vnctest/console.sock \

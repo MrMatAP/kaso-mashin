@@ -1,13 +1,8 @@
 <script setup lang="ts">
 import { onMounted, Ref, ref, computed } from "vue";
 import { useRoute, useRouter } from "vue-router";
-import { Terminal } from "@xterm/xterm";
 import RFB from "@novnc/novnc/lib/rfb";
 import "@xterm/xterm/css/xterm.css";
-import { AttachAddon } from "@xterm/addon-attach";
-import { WebglAddon } from "@xterm/addon-webgl";
-import { ClipboardAddon } from "@xterm/addon-clipboard";
-import { FitAddon } from "@xterm/addon-fit";
 import { BinaryScale, FormMode } from "@/base_types";
 import {
   InstanceGetSchema,
@@ -164,20 +159,19 @@ onMounted(async () => {
     console.log(e);
   };
   consoleSocket.onopen = () => {
-    console.log("opened");
+    console.log("console socket opened");
   };
-  // const term = new Terminal();
-  // const fitAddon = new FitAddon();
-  // const attachAddon = new AttachAddon(consoleSocket, { bidirectional: true });
-  // term.loadAddon(fitAddon);
-  // term.loadAddon(attachAddon);
-  // //term.loadAddon(new WebglAddon());
-  // term.open(document.getElementById("xterm") as HTMLElement);
-  // fitAddon.fit();
-
-  const rfb = new RFB(document.getElementById("screen") as HTMLElement, consoleSocket);
+  const rfb_ui = document.getElementById("screen") as HTMLElement;
+  const rfb = new RFB(rfb_ui, consoleSocket, {
+    shared: true,
+    capabilities: { power: true },
+    focusOnClick: true,
+  });
   rfb.addEventListener("connect", onConsoleConnected);
   rfb.addEventListener("disconnect", onConsoleDisconnected);
+  rfb.addEventListener("securityfailure", () => console.log("Security Failure"));
+  rfb.addEventListener("serververification", () => console.log("Security Server Verification"));
+  rfb.addEventListener("credentialsrequired", () => console.log("Security Credentials Required"));
 });
 </script>
 

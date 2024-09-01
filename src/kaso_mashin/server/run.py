@@ -1,18 +1,18 @@
 import sys
-import os
 import typing
 import logging
 import pathlib
 import argparse
-import contextlib
 
 import fastapi
 import fastapi.staticfiles
+# TODO: Temporarily until we figure out the VNC proxy issues
+import fastapi.middleware.cors
 import uvicorn
 import sqlalchemy.exc
 import asyncio
-import telnetlib3
-from websockets.legacy import async_timeout
+
+from starlette.middleware.cors import CORSMiddleware
 
 from kaso_mashin import (
     __version__,
@@ -38,6 +38,7 @@ from kaso_mashin.server.apis import (
 
 logger = logging.getLogger("kaso_mashin.server")
 
+
 def create_server(runtime: Runtime) -> fastapi.applications.FastAPI:
     app = fastapi.FastAPI(
         title="Kaso Mashin API",
@@ -46,6 +47,9 @@ def create_server(runtime: Runtime) -> fastapi.applications.FastAPI:
         version=__version__,
         lifespan=runtime.lifespan,
     )
+
+    # TODO: Temporarily until we figure out the VNC issues
+    app.add_middleware(CORSMiddleware, allow_origins=["*"], allow_headers=["*"])
 
     app.include_router(ConfigAPI(runtime).router, prefix="/api/config")
     app.include_router(TaskAPI(runtime).router, prefix="/api/tasks")
@@ -56,107 +60,36 @@ def create_server(runtime: Runtime) -> fastapi.applications.FastAPI:
     app.include_router(InstanceAPI(runtime).router, prefix="/api/instances")
     app.include_router(BootstrapAPI(runtime).router, prefix="/api/bootstraps")
 
-    @app.websocket_route('/api/console/{uid}')
-    async def console(websocket: fastapi.WebSocket) -> None:
-
-        log = logging.getLogger('kaso_mashin.server')
-        queue = asyncio.queues.Queue()
-        # Inspired by this: https://stackoverflow.com/questions/67947099/send-receive-in-parallel-using-websockets-in-python-fastapi
-
-        async def proxy_input(webs: fastapi.WebSocket, console_writer: asyncio.StreamWriter) -> None:
-            async for data in webs.iter_bytes():
-                log.info(f'Read {len(data)} bytes of input')
-                console_writer.write(data)
-                await writer.drain()
-
-        async def proxy_output(webs: fastapi.WebSocket, console_reader: asyncio.StreamReader) -> None:
-            data = await console_reader.read()
-            await webs.send_bytes(data)
-
-        async def read_from_ws(ws: fastapi.WebSocket) -> None:
-            async for data in ws.iter_bytes():
-                log.info(f'Read {len(data)} bytes of input')
-                queue.put_nowait(data)
-
-        async def get_data_and_send(ws: fastapi.WebSocket) -> None:
-            data = await queue.get()
-            while True:
-                if queue.empty():
-                    log.info('Queue is empty')
-                else:
-                    data = queue.get_nowait()
-                    await ws.send_bytes(data)
-
-
+    @app.websocket('/api/console/{uid}')
+    async def console(uid: str, websocket: fastapi.WebSocket) -> None:
+        unix_writer = None
         try:
             await websocket.accept()
-            log.info('Accepted websocket connection')
-            reader, writer = await asyncio.open_unix_connection(path='/Users/imfeldma/var/kaso/instances/vnctest/vconsole.sock')
-            log.info('Opened AF_UNIX socket')
-            log.info('Starting proxying')
-            async with asyncio.TaskGroup() as proxyTasks:
-                read_from_ws_task = proxyTasks.create_task(read_from_ws(websocket))
-                get_data_and_send_task = proxyTasks.create_task(get_data_and_send(websocket))
-            log.info('Proxying has finished')
+            logger.info('Accepted websocket connection')
+
+            logger.info("Opening VNC socket")
+            unix_reader, unix_writer = await asyncio.open_unix_connection(path='/Users/imfeldma/var/kaso/instances/vnctest/vconsole.sock')
+            logger.info('VNC Proxy starting to serve')
+            while True:
+                data_out = await unix_reader.read(n=4096)
+                logger.info(f'VNC Proxy relaying {len(data_out)} output bytes')
+                await websocket.send_bytes(data_out)
+                data_in = await websocket.receive_bytes()
+                logger.info(f"VNC Proxy relaying {len(data_in)} input bytes")
+                unix_writer.write(data_in)
+                await unix_writer.drain()
+
         except fastapi.WebSocketDisconnect:
-            log.info('WebSocket disconnected')
+            logger.info('WebSocket disconnected')
         except fastapi.WebSocketException as e:
-            log.info('WebSocket exception: ' + str(e))
+            logger.info('WebSocket exception: ' + str(e))
         except Exception as e:
             logging.getLogger("kaso_mashin.server").error('Failed to open socket: ' + str(e))
-
-        # try:
-        #     await websocket.accept()
-        #     log.info(f'Console client connected')
-        #     server = await asyncio.start_unix_server(proxyhandler,
-        #                                              path='/Users/imfeldma/var/kaso/instances/vnctest/vconsole.sock')
-        #     log.info('Console server created')
-        #     async with server:
-        #         log.info('Console server serving forever')
-        #         await server.serve_forever()
-        #     log.info('Console exiting')
-        #
-
-            #
-            # An attempt using ProxyHandler
-            # class ProxyHandler(asyncio.Protocol):
-            #     LOG = logging.getLogger("kaso_mashin.server")
-            #
-            #     def connection_made(self, transport):
-            #         super().connection_made(transport)
-            #         self.LOG.info("Connection made")
-            #
-            #     def data_received(self, data: bytes):
-            #         #websocket.send_bytes(data)
-            #         self.LOG.info(f'Sent {len(data)} bytes')
-            #
-            #     def eof_received(self):
-            #         #await websocket.close()
-            #         self.LOG.info('Closing websocket')
-            #
-
-            # (transport, protocol) = await asyncio.get_event_loop().create_unix_connection(ProxyHandler,
-            #                                                                               path='/Users/imfeldma/var/kaso/instances/vnctest/vconsole.sock')
-            # while True:
-            #     data_in = await websocket.receive_bytes()
-            #     transport.write(data_in)
-            #     await asyncio.sleep(1)
-
-            # with socket.socket(family=socket.AF_UNIX, type=socket.SOCK_STREAM) as console_socket:
-            #     console_socket.connect('/Users/imfeldma/var/kaso/instances/vnctest/vconsole.sock')
-            #     while True:
-            #         data_out = console_socket.recv(4096)
-            #         await websocket.send_bytes(data_out)
-            #         data_in = await websocket.receive_bytes()
-            #         console_socket.send(data_in)
-
-    app.mount(
-        path="/",
-        app=fastapi.staticfiles.StaticFiles(
-            directory=pathlib.Path(os.path.dirname(__file__), "static")
-        ),
-        name="static",
-    )
+        finally:
+            if unix_writer is not None:
+                unix_writer.close()
+                await unix_writer.wait_closed()
+                logger.info('UNIX socket closed')
 
     @app.middleware("common-headers")
     async def common_headers(request: fastapi.Request, call_next):
@@ -208,6 +141,15 @@ def create_server(runtime: Runtime) -> fastapi.applications.FastAPI:
         return fastapi.responses.JSONResponse(
             status_code=500,
             content=ExceptionSchema.model_validate(exc))
+
+    # TODO: Re-enable this once websocket/static file stuff is solved
+    # app.mount(
+    #     path="/",
+    #     app=fastapi.staticfiles.StaticFiles(
+    #         directory=pathlib.Path(os.path.dirname(__file__), "static")
+    #     ),
+    #     name="static",
+    # )
 
     return app
 
