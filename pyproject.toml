@@ -1,7 +1,7 @@
 [build-system]
 requires = [
-    'setuptools==70.1.1',
-    'wheel==0.43.0'
+    'setuptools==74.1.2',
+    'wheel==0.44.0'
 ]
 build-backend = 'setuptools.build_meta'
 
@@ -24,29 +24,12 @@ classifiers = [
     "Programming Language :: Python :: 3.12"
 ]
 requires-python = ">=3.12"
-dependencies = [
-    "rich==13.7.1",                     # MIT
-    "requests==2.32.3",                 # Apache 2.0
-    "pyyaml==6.0.1",                    # MIT
-    "netifaces==0.11.0",                # MIT
-    "aiosqlite==0.20.0",                # MIT
-    "sqlalchemy[asyncio]==2.0.31",      # MIT
-    "websockets==12.0",                 # BSD 3-Clause
-    "fastapi==0.111.1",                 # MIT
-    "uvicorn==0.30.2",                  # BSD 3-Clause
-    "httpx==0.27.0",                    # BSD 3-Clause
-    "aiofiles==24.1.0",                 # Apache 2.0
-    "qemu.qmp==0.0.3",                  # LGPLv2+
-    "passlib==1.7.4",                   # BSD
-    "aioconsole==0.7.1",                # GPLv3
-    "jinja2==3.1.4",                    # BSD 3-Clause
-    "asyncio-events==0.1.4",            # BSD
-    "telnetlib3==2.0.4"                 # ISC
-]
-dynamic = ["version"]
+dynamic = ["version", "dependencies", "optional-dependencies"]
 
 [tool.setuptools.dynamic]
 version = { attr = "ci.version"}
+dependencies = {file = ["requirements.txt"]}
+optional-dependencies = { dev = {file = ["requirements.dev.txt"] } }
 
 [tool.setuptools.packages.find]
 where = ["src"]
@@ -75,10 +58,6 @@ asyncio_mode = "auto"
 
 [tool.mypy]
 plugins = [ 'pydantic.mypy' ]
-
-[tool.black]
-line-length = 100
-target-version = ['py312']
 
 [tool.pydantic-mypy]
 init_forbid_extra = true
