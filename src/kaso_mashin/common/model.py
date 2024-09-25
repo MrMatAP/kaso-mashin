@@ -63,7 +63,7 @@ class NetworkModel(Model):
     __tablename__ = "networks"
     name: Mapped[str] = mapped_column(String(64))
     kind: Mapped[NetworkKind] = mapped_column(Enum(NetworkKind))
-    cidr: Mapped[str] = mapped_column(String)
+    cidr: Mapped[str] = mapped_column(String, unique=True)
     gateway: Mapped[str] = mapped_column(String)
     dhcp_start: Mapped[str] = mapped_column(String)
     dhcp_end: Mapped[str] = mapped_column(String)

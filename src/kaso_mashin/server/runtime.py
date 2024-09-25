@@ -20,7 +20,7 @@ from kaso_mashin.common.types import DEFAULT_K8S_MASTER_TEMPLATE_NAME, \
 from kaso_mashin.common.repository import BootstrapRepository, DiskRepository, IdentityRepository, \
     ImageRepository, InstanceRepository, NetworkRepository
 from kaso_mashin.common.domain import BootstrapEntity, Disk, Identity, \
-    Image, InstanceEntity, NetworkEntity
+    Image, InstanceEntity, Network
 from kaso_mashin.common import NetworkKind, BootstrapKind
 from kaso_mashin.common.model import BootstrapModel, DiskModel, IdentityModel, ImageModel, \
     InstanceModel, NetworkModel
@@ -110,7 +110,7 @@ class Runtime:
         self._logger.info(f"Lifespan Networks started")
         host_network = await self.network_repository.get_by_name(DEFAULT_HOST_NETWORK_NAME)
         if not host_network:
-            await NetworkEntity.create(
+            await Network.create(
                 name=DEFAULT_HOST_NETWORK_NAME,
                 kind=NetworkKind.VMNET_HOST,
                 cidr=IPv4Network("10.1.0.0/24"),
@@ -118,7 +118,7 @@ class Runtime:
             )
         shared_network = await self.network_repository.get_by_name(DEFAULT_SHARED_NETWORK_NAME)
         if not shared_network:
-            await NetworkEntity.create(
+            await Network.create(
                 name=DEFAULT_SHARED_NETWORK_NAME,
                 kind=NetworkKind.VMNET_SHARED,
                 cidr=ipaddress.IPv4Network("10.2.0.0/24"),
@@ -126,7 +126,7 @@ class Runtime:
             )
         bridged_network = await self.network_repository.get_by_name(DEFAULT_BRIDGED_NETWORK_NAME)
         if not bridged_network:
-            await NetworkEntity.create(
+            await Network.create(
                 name=DEFAULT_BRIDGED_NETWORK_NAME,
                 kind=NetworkKind.VMNET_BRIDGED,
                 cidr=ipaddress.IPv4Network("10.3.0.0/24"),
@@ -158,7 +158,7 @@ class Runtime:
         self._network_repository = NetworkRepository(
             runtime=self,
             session_maker=await self._db.async_sessionmaker,
-            aggregate_root_class=NetworkEntity,
+            aggregate_root_class=Network,
             model_class=NetworkModel,
         )
         self._instance_repository = InstanceRepository(

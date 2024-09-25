@@ -1,4 +1,5 @@
 import abc
+import ipaddress
 import typing
 import uuid
 import collections
@@ -17,7 +18,7 @@ import sqlalchemy.ext.asyncio
 import fastapi
 import fastapi.testclient
 
-from kaso_mashin.common.repository import ImageRepository, DiskRepository
+from kaso_mashin.common.repository import ImageRepository, DiskRepository, NetworkRepository
 from kaso_mashin.common.services import TaskService
 from kaso_mashin.server.run import create_server
 from kaso_mashin.server.db import DB
@@ -29,7 +30,7 @@ from kaso_mashin.common import (
     T_Entity,
     T_EntityListSchema,
     T_EntityGetSchema, IdentityKind, DiskFormat, NetworkKind, Image, EntityNotFoundException, Disk,
-    BinarySizedValue,
+    BinarySizedValue, Network,
 )
 from kaso_mashin.common.config import Config
 from kaso_mashin.common.model import DiskModel, IdentityModel, NetworkModel
@@ -253,12 +254,20 @@ async def image_mock_server(home: pathlib.Path,
     mock_image.unlink(missing_ok=True)
 
 @pytest_asyncio.fixture(scope='function')
+async def task_service():
+    yield TaskService()
+
+@pytest_asyncio.fixture(scope='function')
 async def image_repository(async_session_maker, task_service) -> ImageRepository:
     return ImageRepository(async_session_maker, task_service)
 
 @pytest_asyncio.fixture(scope='function')
 async def disk_repository(async_session_maker, task_service) -> DiskRepository:
     return DiskRepository(async_session_maker, task_service)
+
+@pytest_asyncio.fixture(scope='function')
+async def network_repository(async_session_maker, task_service) -> NetworkRepository:
+    return NetworkRepository(async_session_maker, task_service)
 
 @pytest_asyncio.fixture(scope='function')
 async def image_seed(home: pathlib.Path,
@@ -292,5 +301,14 @@ async def disk_seed(home: pathlib.Path,
         pass    # We ignore disks that have already been removed
 
 @pytest_asyncio.fixture(scope='function')
-async def task_service():
-    yield TaskService()
+async def network_seed(network_repository: NetworkRepository) -> Network:
+    net = Network(name='Seed Network',
+                  kind=NetworkKind.VMNET_BRIDGED,
+                  cidr=ipaddress.IPv4Network('172.16.0.0/24'),
+                  gateway=ipaddress.IPv4Address('172.16.0.1'))
+    await net.save()
+    yield net
+    try:
+        await network_repository.remove(net)
+    except EntityNotFoundException:
+        pass    # We ignore networks that have already been removed

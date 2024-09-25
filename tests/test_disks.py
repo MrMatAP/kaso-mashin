@@ -2,17 +2,14 @@ import pathlib
 import uuid
 
 import pytest
-from conftest import seed, BaseTest, qemu_img_available
+from conftest import qemu_img_available
 
 from kaso_mashin.common import (
-    UniqueIdentifier,
-    EntityNotFoundException,
-    BinarySizedValue,
-    BinaryScale, DiskFormat, DiskRepository, ImageRepository, DiskException,
+    EntityNotFoundException, EntityInvariantException,
+    BinarySizedValue, BinaryScale,
+    Disk, DiskRepository, DiskFormat,
+    Image
 )
-from kaso_mashin.common.domain import Disk, Image
-from kaso_mashin.common.model import DiskModel
-from kaso_mashin.common.schema import DiskGetSchema, DiskListSchema, DiskModifySchema
 
 
 @pytest.mark.skipif(not qemu_img_available(), reason='qemu-img binary is not available')
@@ -76,7 +73,7 @@ async def test_disk_create_from_image(home: pathlib.Path,
 @pytest.mark.skipif(not qemu_img_available(), reason='qemu-img is not available')
 @pytest.mark.asyncio
 async def test_disk_create_duplicate_raises(disk_seed: Disk):
-    with pytest.raises(DiskException, match=f'\[400\] Disk at {disk_seed.path} already exists'):
+    with pytest.raises(EntityInvariantException, match=f'\[400\] Disk at {disk_seed.path} already exists'):
         duplicate = Disk(name='Duplicate Disk', path=disk_seed.path)
         await duplicate.save()
 

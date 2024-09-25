@@ -1,11 +1,17 @@
 import pathlib
 import ipaddress
 
-from kaso_mashin.common import Repository, BinaryScale, BinarySizedValue, UniqueIdentifier
+from sqlalchemy import UUID, String, select
+from sqlalchemy.exc import SQLAlchemyError
+
+from kaso_mashin.common import Repository, BinaryScale, BinarySizedValue, UniqueIdentifier, \
+    KasoMashinException
 from kaso_mashin.common.domain import BootstrapEntity, Disk, Identity, Image, \
-    InstanceEntity, NetworkEntity
+    InstanceEntity, Network
 from kaso_mashin.common.model import BootstrapModel, DiskModel, IdentityModel, ImageModel, \
     InstanceModel, NetworkModel
+
+
 
 
 class IdentityRepository(Repository[Identity, IdentityModel]):
@@ -96,15 +102,28 @@ class DiskRepository(Repository[Disk, DiskModel]):
         return model
 
 
-class NetworkRepository(Repository[NetworkEntity, NetworkModel]):
+class NetworkRepository(Repository[Network, NetworkModel]):
     """
     A repository of networks
     """
-    entity_class = NetworkEntity
+    entity_class = Network
     model_class = NetworkModel
 
+    async def get_by_cidr(self, cidr: ipaddress.IPv4Address) -> Network:
+        try:
+            nets = list(filter(lambda e: e.cidr == cidr, self._identity_map.values()))
+            if len(nets) > 0:
+                return nets[0]
+            async with self._session_maker() as session:
+                model = (await session.scalars(
+                            select(self.model_class))
+                            .where(self.model_class.cidr == str(cidr))).one()
+                return await self.from_model(model)
+        except SQLAlchemyError as sae:
+            raise KasoMashinException(status=500, msg='Failure getting a network by its cidr') from sae
+
     @classmethod
-    async def from_model(cls, model: NetworkModel, *args, **kwargs) -> NetworkEntity:
+    async def from_model(cls, model: NetworkModel, *args, **kwargs) -> Network:
         kwargs['kind'] = model.kind
         kwargs['cidr'] = ipaddress.IPv4Network(model.cidr)
         kwargs['gateway'] = ipaddress.IPv4Address(model.gateway)
@@ -114,7 +133,7 @@ class NetworkRepository(Repository[NetworkEntity, NetworkModel]):
         return entity
 
     @classmethod
-    async def to_model(cls, entity: NetworkEntity, persisted: NetworkModel | None = None) -> NetworkModel:
+    async def to_model(cls, entity: Network, persisted: NetworkModel | None = None) -> NetworkModel:
         model = await super().to_model(entity, persisted)
         model.kind = entity.kind
         model.cidr = str(entity.cidr)

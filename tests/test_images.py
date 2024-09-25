@@ -6,8 +6,12 @@ import pathlib
 import pytest_httpserver
 
 from conftest import qemu_img_available
-from kaso_mashin.common import EntityNotFoundException, Image, ImageRepository, ImageException, \
-    DEFAULT_MIN_VCPU, DEFAULT_MIN_RAM, DEFAULT_MIN_DISK, BinarySizedValue, BinaryScale
+from kaso_mashin.common import (
+    EntityNotFoundException, EntityInvariantException,
+    BinarySizedValue, BinaryScale,
+    Image, ImageRepository,
+    DEFAULT_MIN_VCPU, DEFAULT_MIN_RAM, DEFAULT_MIN_DISK,
+)
 
 @pytest.mark.skipif(not qemu_img_available(), reason='qemu-img binary is not available')
 @pytest.mark.asyncio
@@ -50,7 +54,7 @@ async def test_image_create(home: pathlib.Path,
 @pytest.mark.asyncio
 async def test_image_create_duplicate_raises(image_seed: Image,
                                              image_mock_server: pytest_httpserver.HTTPServer):
-    with pytest.raises(ImageException, match=f'\[400\] Image at {image_seed.path} already exists'):
+    with pytest.raises(EntityInvariantException, match=f'\[400\] Image at {image_seed.path} already exists'):
         duplicate = Image(name='Duplicate Image',
                           url=image_mock_server.url_for('/image.img'),
                           path=image_seed.path)

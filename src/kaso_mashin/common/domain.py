@@ -183,7 +183,7 @@ class Image(AggregateRoot):
     async def post_create(self) -> None:
         try:
             if self.path.exists():
-                raise ImageException(status=400, msg=f'Image at {self.path} already exists')
+                raise EntityInvariantException(status=400, msg=f'Image at {self.path} already exists')
             self.path.parent.mkdir(parents=True, exist_ok=True)
 
             class DownloadTask(Task):
@@ -290,7 +290,7 @@ class Disk(AggregateRoot):
     async def post_create(self) -> None:
         try:
             if self.path.exists():
-                raise DiskException(status=400, msg=f'Disk at {self.path} already exists')
+                raise EntityInvariantException(status=400, msg=f'Disk at {self.path} already exists')
             self.path.parent.mkdir(parents=True, exist_ok=True)
             if self.image is not None and self.size < self.image.min_disk:
                 raise DiskException(status=400, msg=f"Disk size is less than image minimum size")
@@ -375,7 +375,7 @@ class Disk(AggregateRoot):
                                 msg=f'No permission to remove the disk at {self.path}') from pe
 
 
-class NetworkEntity(Entity):
+class Network(AggregateRoot):
     """
     Domain model entity for a network
     """
@@ -445,48 +445,17 @@ class NetworkEntity(Entity):
             self.cidr == other.cidr,
             self.gateway == other.gateway,
             self.dhcp_start == other.dhcp_start,
-            self.dhcp_end == other.dhcp_end,
-        ])
+            self.dhcp_end == other.dhcp_end])
 
-    @staticmethod
-    async def create(
-            name: str,
-            kind: NetworkKind,
-            cidr: ipaddress.IPv4Network,
-            gateway: ipaddress.IPv4Address,
-            dhcp_start: ipaddress.IPv4Address | None = None,
-            dhcp_end: ipaddress.IPv4Address | None = None,
-    ) -> "NetworkEntity":
-        if dhcp_start is None or dhcp_end is None:
-            network = ipaddress.IPv4Network(cidr)
-            hosts = list(network.hosts())
-            dhcp_start = hosts[2] or dhcp_start
-            dhcp_end = hosts[-1] or dhcp_end
-        network = NetworkEntity(
-            name=name,
-            kind=kind,
-            cidr=cidr,
-            gateway=gateway)
-        network.dhcp_start = dhcp_start
-        network.dhcp_end = dhcp_end
-        await NetworkEntity.repository.create(network)
-        return network
+    async def post_create(self) -> None:
+        duplicate = await self.repository.get_by_cidr(self._cidr)
+        if duplicate is not None and duplicate.uid != self.uid:
+            raise EntityInvariantException(status=400, msg=f'Network {duplicate.name} already uses CIDR {self.cidr}')
+        return await super().post_create()
 
-    async def modify(self, schema: NetworkModifySchema) -> "NetworkEntity":
-        if schema.name is not None:
-            self._name = schema.name
-        if schema.cidr is not None:
-            self._cidr = schema.cidr
-        if schema.gateway is not None:
-            self._gateway = schema.gateway
-        if schema.dhcp_start is not None:
-            self._dhcp_start = schema.dhcp_start
-        if schema.dhcp_end is not None:
-            self._dhcp_end = schema.dhcp_end
-        return await self.repository.modify(self)
-
-    async def remove(self):
-        await NetworkEntity.repository.remove(self)
+    async def pre_remove(self) -> None:
+        # TODO: Check whether any instance is using this network
+        return await super().pre_remove()
 
 
 class BootstrapEntity(Entity):
@@ -583,7 +552,7 @@ class InstanceEntity(Entity):
             ram: BinarySizedValue,
             image: Image,
             os_disk: Disk,
-            network: NetworkEntity,
+            network: Network,
             bootstrap: BootstrapEntity,
             bootstrap_file: pathlib.Path,
     ):
@@ -658,7 +627,7 @@ class InstanceEntity(Entity):
 
     # TODO: Consider replacing this in favour of network_uid
     @property
-    def network(self) -> NetworkEntity:
+    def network(self) -> Network:
         return self._network
 
     # TODO: Consider replacing this in favour of bootstrap_uid
@@ -700,7 +669,7 @@ class InstanceEntity(Entity):
         # TODO: Internal consistency. This will fail if the disk is dead
         image = await Image.repository.get_by_uid(UniqueIdentifier(model.image_uid))
         os_disk = await Disk.repository.get_by_uid(UniqueIdentifier(model.os_disk_uid))
-        network = await NetworkEntity.repository.get_by_uid(UniqueIdentifier(model.network_uid))
+        network = await Network.repository.get_by_uid(UniqueIdentifier(model.network_uid))
         bootstrap = await BootstrapEntity.repository.get_by_uid(
             UniqueIdentifier(model.bootstrap_uid)
         )
@@ -772,7 +741,7 @@ class InstanceEntity(Entity):
             ram: BinarySizedValue,
             image: Image,
             os_disk_size: BinarySizedValue,
-            network: NetworkEntity,
+            network: Network,
             bootstrap: BootstrapEntity,
     ) -> "InstanceEntity":
         if path.exists():

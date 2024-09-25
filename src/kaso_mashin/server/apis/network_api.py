@@ -6,7 +6,7 @@ import fastapi
 from kaso_mashin.common import Repository
 from kaso_mashin.server.apis import BaseAPI
 from kaso_mashin.server.runtime import Runtime
-from kaso_mashin.common.domain import NetworkEntity
+from kaso_mashin.common.domain import Network
 from kaso_mashin.common.schema import NetworkCreateSchema, NetworkGetSchema, NetworkListSchema, \
     NetworkModifySchema
 
@@ -40,7 +40,7 @@ class NetworkAPI(
     async def create(
         self, schema: NetworkCreateSchema, background_tasks: fastapi.BackgroundTasks
     ) -> NetworkGetSchema:
-        entity: NetworkEntity = await NetworkEntity.create(
+        entity: Network = await Network.create(
             name=schema.name, kind=schema.kind, cidr=schema.cidr, gateway=schema.gateway
         )
         return NetworkGetSchema.model_validate(entity)
@@ -58,6 +58,6 @@ class NetworkAPI(
         schema: NetworkModifySchema,
         background_tasks: fastapi.BackgroundTasks,
     ) -> NetworkGetSchema:
-        entity: NetworkEntity = await self._runtime.network_repository.get_by_uid(uid)
+        entity: Network = await self._runtime.network_repository.get_by_uid(uid)
         await entity.modify(schema)
         return NetworkGetSchema.model_validate(entity)
