@@ -129,8 +129,7 @@ class Image(AggregateRoot):
         self._min_vcpu: int = 0
         self._min_ram = BinarySizedValue(value=0, scale=BinaryScale.G)
         self._min_disk = BinarySizedValue(value=0, scale=BinaryScale.G)
-        self._completed = 100 if self._path.exists() else 0
-        self._download_task: asyncio.Task | None = None
+        self._disks: typing.List['Disk'] = []
 
     @property
     def url(self) -> str:
@@ -168,8 +167,8 @@ class Image(AggregateRoot):
         self._dirty = True
 
     @property
-    def completed(self) -> int:
-        return self._completed
+    def disks(self) -> typing.List['Disk']:
+        return self._disks
 
     def __eq__(self, other: typing.Any) -> bool:
         return all([
@@ -179,7 +178,7 @@ class Image(AggregateRoot):
             self._min_vcpu == other.min_vcpu,
             self._min_ram == other.min_ram,
             self._min_disk == other.min_disk,
-        ])
+            self._disks == other.disks])
 
     async def post_create(self) -> None:
         try:
@@ -219,7 +218,8 @@ class Image(AggregateRoot):
 
     async def pre_remove(self) -> None:
         try:
-            # TODO: Check whether the image is in use by disks here
+            if len(self.disks) > 0:
+                raise EntityInvariantException(status=400, msg='There are disks using this image as backing store')
             self.path.unlink(missing_ok=True)
             return await super().pre_remove()
         except PermissionError as pe:
@@ -227,7 +227,7 @@ class Image(AggregateRoot):
                                  msg=f'No permission to remove the image at {self.path}') from pe
 
 
-class DiskEntity(Entity):
+class Disk(AggregateRoot):
     """
     Domain model entity for a disk
     """
@@ -253,6 +253,11 @@ class DiskEntity(Entity):
     @property
     def size(self) -> BinarySizedValue:
         return self._size
+
+    @size.setter
+    def size(self, value: BinarySizedValue) -> None:
+        self._size = value
+        self._dirty = True
 
     @property
     def disk_format(self) -> DiskFormat:
@@ -282,66 +287,92 @@ class DiskEntity(Entity):
             f"image={self.image})"
         )
 
-    @staticmethod
-    async def create(
-            name: str,
-            path: pathlib.Path,
-            size: BinarySizedValue = BinarySizedValue(2, BinaryScale.G),
-            disk_format: DiskFormat = DiskFormat.Raw,
-            image: Image | None = None,
-    ) -> "DiskEntity":
-        if path.exists():
-            raise DiskException(status=400, msg=f"Disk at {path} already exists")
-        if image is not None and size < image.min_disk:
-            raise DiskException(status=400, msg=f"Disk size is less than image minimum size")
+    async def post_create(self) -> None:
         try:
-            path.parent.mkdir(parents=True, exist_ok=True)
-            args = ["/opt/homebrew/bin/qemu-img", "create", "-f", str(disk_format)]
-            if image is not None:
-                args.extend(["-F", str(disk_format), "-b", str(image.path)])
-            args.extend([str(path), str(size)])
-            subprocess.run(args, check=True)
-            disk = DiskEntity(name=name, path=path, size=size, disk_format=disk_format, image=image)
-            return await DiskEntity.repository.create(disk)
-        except subprocess.CalledProcessError as e:
-            path.unlink(missing_ok=True)
-            raise DiskException(status=500, msg=f"Failed to create disk: {e.output}") from e
-        except EntityNotFoundException as e:
-            path.unlink(missing_ok=True)
-            raise DiskException(status=400, msg=f"The provided image does not exist") from e
-        except PermissionError as e:
-            path.unlink(missing_ok=True)
-            raise DiskException(
-                status=400,
-                msg=f"You have no permission to create a disk at path {path}",
-            ) from e
-        except Exception as e:
-            path.unlink(missing_ok=True)
-            raise DiskException(
-                status=500,
-                msg=f"An unknown error occurred: {e}",
-            ) from e
+            if self.path.exists():
+                raise DiskException(status=400, msg=f'Disk at {self.path} already exists')
+            self.path.parent.mkdir(parents=True, exist_ok=True)
+            if self.image is not None and self.size < self.image.min_disk:
+                raise DiskException(status=400, msg=f"Disk size is less than image minimum size")
 
-    async def resize(self, value: BinarySizedValue) -> "DiskEntity":
+            class CreateDiskTask(Task):
+                async def run(self,
+                              path: pathlib.Path,
+                              size: BinarySizedValue,
+                              disk_format: DiskFormat,
+                              image: Image) -> None:
+                    try:
+                        args = ["/opt/homebrew/bin/qemu-img", "create", "-q", "-f", str(disk_format)]
+                        if image is not None:
+                            args.extend(["-F", str(disk_format), "-b", str(image.path)])
+                        args.extend([str(path), str(size)])
+                        subprocess.run(args, check=True)
+                        await self.done('Disk created')
+                    except subprocess.CalledProcessError as cpe:
+                        await self.fail(f'Failed to create disk: {cpe}')
+                    except asyncio.CancelledError:
+                        self._state = TaskState.CANCELLED
+                        path.unlink(missing_ok=True)
+
+            t = self.task_service.create(CreateDiskTask(name=f'Create Disk {self.name}'),
+                                         path=self.path,
+                                         size=self.size,
+                                         disk_format=self.disk_format,
+                                         image=self.image)
+            await t.task
+            if self.image is not None:
+                self.image.disks.append(self)
+            await super().post_create()
+        except PermissionError as pe:
+            raise DiskException(status=400,
+                                msg=f'No permission to create the disk at {self.path}') from pe
+
+    async def post_modify(self) -> None:
         try:
-            args = ["/opt/homebrew/bin/qemu-img", "resize"]
-            if self.size > value:
-                args.append("--shrink")
-            args += ["-f", str(self.disk_format), str(self._path), str(value)]
-            subprocess.run(args, check=True)
-            self._size = value
-            await DiskEntity.repository.modify(self)
-            return self
-        except subprocess.CalledProcessError as e:
-            raise DiskException(status=500, msg=f"Failed to resize disk: {e.output}") from e
+            class ResizeTask(Task):
+                async def run(self,
+                              path: pathlib.Path,
+                              disk_format: DiskFormat,
+                              current: BinarySizedValue,
+                              new: BinarySizedValue):
+                    try:
+                        await super().run()
+                        args = ["/opt/homebrew/bin/qemu-img", "resize", "-q", "-f", str(disk_format)]
+                        if current > new:
+                            args.append("--shrink")
+                        args += [str(path), str(new)]
+                        subprocess.run(args, check=True)
+                        await self.done('Successfully resized the disk')
+                    except subprocess.CalledProcessError as cpe:
+                        await self.fail(f'Failed to resize disk: {cpe.output}')
+                    except asyncio.CancelledError:
+                        self._state = TaskState.CANCELLED
+                        path.unlink(missing_ok=True)
 
-    async def modify(self, schema: DiskModifySchema) -> "DiskEntity":
-        if schema.size is not None:
-            return await self.resize(schema.size)
+            current_size = BinarySizedValue(self.path.stat().st_size, BinaryScale.b)
+            if current_size != self._size:
+                t = self.task_service.create(ResizeTask(name=f'Resize disk {self.name}'),
+                                             path=self.path,
+                                             disk_format=self.disk_format,
+                                             current=current_size,
+                                             new=self._size)
+                await t.task
+            await super().post_modify()
+        except PermissionError as pe:
+            raise DiskException(status=400,
+                                msg=f'No permission to resize image {self.name}') from pe
+        return await super().post_modify()
 
-    async def remove(self):
-        self.path.unlink(missing_ok=True)
-        await DiskEntity.repository.remove(self)
+    async def pre_remove(self) -> None:
+        try:
+            # TODO: Check whether we have instances dependending on this disk
+            self.path.unlink(missing_ok=True)
+            if self.image is not None:
+                self.image.disks.remove(self)
+            return await super().pre_remove()
+        except PermissionError as pe:
+            raise DiskException(status=400,
+                                msg=f'No permission to remove the disk at {self.path}') from pe
 
 
 class NetworkEntity(Entity):
@@ -551,7 +582,7 @@ class InstanceEntity(Entity):
             vcpu: int,
             ram: BinarySizedValue,
             image: Image,
-            os_disk: DiskEntity,
+            os_disk: Disk,
             network: NetworkEntity,
             bootstrap: BootstrapEntity,
             bootstrap_file: pathlib.Path,
@@ -622,7 +653,7 @@ class InstanceEntity(Entity):
 
     # TODO: Consider replacing this in favour of os_disk_uid
     @property
-    def os_disk(self) -> DiskEntity:
+    def os_disk(self) -> Disk:
         return self._os_disk
 
     # TODO: Consider replacing this in favour of network_uid
@@ -668,7 +699,7 @@ class InstanceEntity(Entity):
     async def from_model(model: InstanceModel) -> "InstanceEntity":
         # TODO: Internal consistency. This will fail if the disk is dead
         image = await Image.repository.get_by_uid(UniqueIdentifier(model.image_uid))
-        os_disk = await DiskEntity.repository.get_by_uid(UniqueIdentifier(model.os_disk_uid))
+        os_disk = await Disk.repository.get_by_uid(UniqueIdentifier(model.os_disk_uid))
         network = await NetworkEntity.repository.get_by_uid(UniqueIdentifier(model.network_uid))
         bootstrap = await BootstrapEntity.repository.get_by_uid(
             UniqueIdentifier(model.bootstrap_uid)
@@ -758,7 +789,7 @@ class InstanceEntity(Entity):
             instance_uefi_vars = path / "uefi_vars.fd"
             shutil.copyfile(uefi_vars, instance_uefi_vars)
 
-            os_disk = await DiskEntity.create(
+            os_disk = await Disk.create(
                 name="OS Disk 0",
                 path=path / "os.qcow2",
                 size=os_disk_size,

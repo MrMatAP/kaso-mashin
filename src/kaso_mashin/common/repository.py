@@ -1,8 +1,8 @@
 import pathlib
 import ipaddress
 
-from kaso_mashin.common import Repository, BinaryScale, BinarySizedValue
-from kaso_mashin.common.domain import BootstrapEntity, DiskEntity, Identity, Image, \
+from kaso_mashin.common import Repository, BinaryScale, BinarySizedValue, UniqueIdentifier
+from kaso_mashin.common.domain import BootstrapEntity, Disk, Identity, Image, \
     InstanceEntity, NetworkEntity
 from kaso_mashin.common.model import BootstrapModel, DiskModel, IdentityModel, ImageModel, \
     InstanceModel, NetworkModel
@@ -50,6 +50,9 @@ class ImageRepository(Repository[Image, ImageModel]):
         entity.min_vcpu = model.min_vcpu
         entity.min_ram = BinarySizedValue(value=model.min_ram, scale=BinaryScale(model.min_ram_scale))
         entity.min_disk = BinarySizedValue(value=model.min_disk, scale=BinaryScale(model.min_disk_scale))
+        if model.disks is not None:
+            for disk in model.disks:
+                entity.disks.append(await Disk.repository.get_by_uid(UniqueIdentifier(disk.uid)))
         return entity
 
     @classmethod
@@ -65,31 +68,31 @@ class ImageRepository(Repository[Image, ImageModel]):
         return model
 
 
-class DiskRepository(Repository[DiskEntity, DiskModel]):
+class DiskRepository(Repository[Disk, DiskModel]):
     """
     A repository of disks
     """
-    entity_class = DiskEntity
+    entity_class = Disk
     model_class = DiskModel
 
     @classmethod
-    async def from_model(cls, model: DiskModel, *args, **kwargs) -> DiskEntity:
+    async def from_model(cls, model: DiskModel, *args, **kwargs) -> Disk:
         kwargs['path'] = pathlib.Path(model.path)
         kwargs['size'] = BinarySizedValue(value=model.size, scale=BinaryScale(model.size_scale))
         kwargs['disk_format'] = model.disk_format
         if model.image is not None:
-            kwargs['image'] = ImageRepository.from_model(model.image)
+            kwargs['image'] = await Image.repository.get_by_uid(UniqueIdentifier(model.image.uid))
         return await super().from_model(model, *args, **kwargs)
 
 
     @classmethod
-    async def to_model(cls, entity: DiskEntity, persisted: DiskModel | None = None) -> DiskModel:
+    async def to_model(cls, entity: Disk, persisted: DiskModel | None = None) -> DiskModel:
         model = await super().to_model(entity, persisted)
         model.path = str(entity.path)
         model.size = entity.size.value
         model.size_scale = entity.size.scale
         model.disk_format = entity.disk_format
-        model.image_uid = None if entity.image is None else entity.image.uid
+        model.image_uid = None if entity.image is None else str(entity.image.uid)
         return model
 
 

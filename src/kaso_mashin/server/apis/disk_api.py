@@ -7,7 +7,7 @@ import fastapi
 from kaso_mashin.common import Repository
 from kaso_mashin.server.apis import BaseAPI
 from kaso_mashin.server.runtime import Runtime
-from kaso_mashin.common.domain import DiskEntity
+from kaso_mashin.common.domain import Disk
 from kaso_mashin.common.schema import DiskCreateSchema, DiskGetSchema, DiskListSchema, \
     DiskModifySchema
 
@@ -44,7 +44,7 @@ class DiskAPI(
         image = None
         if schema.image_uid is not None:
             image = await self.repository.get_by_uid(schema.image_uid)
-        entity = await DiskEntity.create(
+        entity = await Disk.create(
             name=schema.name,
             path=pathlib.Path(schema.path),
             size=schema.size,
@@ -66,7 +66,7 @@ class DiskAPI(
         schema: DiskModifySchema,
         background_tasks: fastapi.BackgroundTasks,
     ) -> DiskGetSchema:
-        entity: DiskEntity = await self.repository.get_by_uid(uid)
+        entity: Disk = await self.repository.get_by_uid(uid)
         if entity.size != schema.size:
             entity = await entity.resize(schema.size)
         return DiskGetSchema.model_validate(entity)

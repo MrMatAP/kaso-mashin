@@ -11,13 +11,13 @@ from kaso_mashin.common import EntityNotFoundException, Image, ImageRepository, 
 
 @pytest.mark.skipif(not qemu_img_available(), reason='qemu-img binary is not available')
 @pytest.mark.asyncio
-async def test_image_repository_list(image_repository):
+async def test_image_repository_list(image_repository: ImageRepository):
     images = await image_repository.list()
     assert len(images) == 0
 
 
 @pytest.mark.asyncio
-async def test_image_repository_get_unknown(image_repository):
+async def test_image_repository_get_unknown(image_repository: ImageRepository):
     with pytest.raises(EntityNotFoundException, match='\[404\] No such entity could be found'):
         await image_repository.get_by_uid(uuid.uuid4())
 
@@ -27,11 +27,13 @@ async def test_image_repository_get_unknown(image_repository):
 async def test_image_create(home: pathlib.Path,
                             image_mock_server: pytest_httpserver.HTTPServer,
                             image_repository: ImageRepository):
-    image_path = home.joinpath('images').joinpath('mock.img')
+    image_path = home.joinpath('images').joinpath('mock.qcow2')
     img = Image(name='Mock Image',
                 url=image_mock_server.url_for('/image.img'),
                 path=image_path)
+    assert img.dirty
     await img.save()
+    assert not img.dirty
     assert image_path.exists()
     assert image_path.is_file()
     assert image_path.stat().st_size > 0
@@ -40,6 +42,7 @@ async def test_image_create(home: pathlib.Path,
     assert img.min_vcpu == DEFAULT_MIN_VCPU
     assert img.min_ram == DEFAULT_MIN_RAM
     assert img.min_disk == DEFAULT_MIN_DISK
+    assert len(await image_repository.list()) == 1
     await image_repository.remove(img)
     assert len(await image_repository.list()) == 0
 

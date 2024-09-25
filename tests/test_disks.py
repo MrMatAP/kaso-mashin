@@ -2,112 +2,100 @@ import pathlib
 import uuid
 
 import pytest
-from conftest import seed, BaseTest
+from conftest import seed, BaseTest, qemu_img_available
 
 from kaso_mashin.common import (
     UniqueIdentifier,
     EntityNotFoundException,
     BinarySizedValue,
-    BinaryScale, DiskFormat,
+    BinaryScale, DiskFormat, DiskRepository, ImageRepository, DiskException,
 )
-from kaso_mashin.common.domain import DiskEntity
+from kaso_mashin.common.domain import Disk, Image
 from kaso_mashin.common.model import DiskModel
 from kaso_mashin.common.schema import DiskGetSchema, DiskListSchema, DiskModifySchema
 
 
-@pytest.mark.asyncio(scope="session")
-class TestEmptyDisks:
-    """
-    Test behaviour of empty Disk entities in an entirely empty database
-    """
+@pytest.mark.skipif(not qemu_img_available(), reason='qemu-img binary is not available')
+@pytest.mark.asyncio
+async def test_disk_repository_list(disk_repository: DiskRepository):
+    disks = await disk_repository.list()
+    assert len(disks) == 0
 
-    async def test_list(self, test_context_empty):
-        assert 0 == len(await test_context_empty.runtime.disk_repository.list())
+@pytest.mark.skipif(not qemu_img_available(), reason='qemu-img is not available')
+@pytest.mark.asyncio
+async def test_disk_repository_get_unknown(disk_repository: DiskRepository):
+    with pytest.raises(EntityNotFoundException, match='\[404\] No such entity could be found'):
+        await disk_repository.get_by_uid(uuid.uuid4())
 
-    async def test_list_api(self, test_context_empty):
-        resp = test_context_empty.client.get("/api/disks/")
-        assert 200 == resp.status_code
-        schema = DiskListSchema.model_validate_json(resp.content)
-        assert [] == schema.entries
-
-    async def test_get_by_uid(self, test_context_empty):
-        with pytest.raises(EntityNotFoundException) as enfe:
-            await test_context_empty.runtime.disk_repository.get_by_uid(uuid.uuid4())
-        assert 400 == enfe.value.status, "Exception status is 400"
-        assert "No such entity" == enfe.value.msg, "Exception status no such entity"
-
-
-@pytest.mark.asyncio(scope="session")
-class TestSeededDisks(BaseTest[DiskModel, DiskEntity, DiskGetSchema]):
-    """
-    Test behaviour of Identity entities in a seeded database
-    """
-
-    def assert_list_by_model(
-        self, obj: DiskGetSchema | DiskEntity, model: DiskModel
-    ):
-        assert obj.uid == UniqueIdentifier(model.uid)
-        assert obj.name == model.name
-
-    def assert_get_by_model(self, obj: DiskGetSchema | DiskEntity, model: DiskModel):
-        assert obj.uid == UniqueIdentifier(model.uid)
-        assert obj.path == pathlib.Path(model.path)
-        assert obj.size.value == model.size
-        assert obj.size.scale == model.size_scale
-        assert obj.disk_format == model.disk_format
-        if isinstance(obj, DiskGetSchema) and obj.image_uid is None:
-            assert obj.image_uid == model.image_uid
-        elif isinstance(obj, DiskEntity) and obj.image is None:
-            assert obj.image == model.image_uid
-        else:
-            assert obj.image.uid == model.image_uid
-
-    async def test_list(self, test_context_seeded):
-        entities = await test_context_seeded.runtime.disk_repository.list()
-        assert len(entities) == len(seed["disks"])
-        for entity in entities:
-            assert isinstance(entity, DiskEntity)
-            model = BaseTest.find_match_in_seeds(entity.uid, seed["disks"])
-            self.assert_list_by_model(entity, model)
-
-    async def test_list_api(self, test_context_seeded):
-        resp = test_context_seeded.client.get("/api/disks/")
-        assert 200 == resp.status_code
-        schema = DiskListSchema.model_validate_json(resp.content)
-        assert len(seed.get("disks")) == len(schema.entries)
-        for entry in schema.entries:
-            model = self.find_match_in_seeds(entry.uid, seed["disks"])
-            self.assert_list_by_model(entry, model)
-
-    @pytest.mark.parametrize("disk", seed.get("disks", []))
-    async def test_get(self, test_context_seeded, disk):
-        entity = await test_context_seeded.runtime.disk_repository.get_by_uid(disk.uid)
-        assert isinstance(entity, DiskEntity)
-        self.assert_get_by_model(entity, disk)
-
-    @pytest.mark.parametrize("disk", seed.get("disks", []))
-    async def test_get_api(self, test_context_seeded, disk):
-        resp = test_context_seeded.client.get(f"/api/disks/{disk.uid}")
-        assert 200 == resp.status_code
-        schema = DiskGetSchema.model_validate(resp.json())
-        model = self.find_match_in_seeds(schema.uid, seed["disks"])
-        self.assert_get_by_model(schema, model)
-
-    #@pytest.mark.skipif(not qemu_img_available, reason='qemu_img is unavailable')
-    @pytest.mark.skip(reason='Only local')
-    async def test_modify(self, test_context_seeded):
-        entity = None
-        try:
-            entity = await DiskEntity.create(
-                name="Local test disk",
-                path=test_context_seeded.config.path / "test.raw",
+@pytest.mark.skipif(not qemu_img_available(), reason='qemu-img is not available')
+@pytest.mark.asyncio
+async def test_disk_create(home: pathlib.Path, disk_repository: DiskRepository):
+    disk_path = home.joinpath('disks').joinpath('disk.qcow2')
+    disk = Disk(name='Mock Disk',
+                path=disk_path,
                 size=BinarySizedValue(1, BinaryScale.M),
-                disk_format=DiskFormat.Raw,
-            )
-            assert entity.uid is not None
-            mod = DiskModifySchema(size=BinarySizedValue(value=2, scale=BinaryScale.M))
-            await entity.modify(mod)
-            assert entity.size == BinarySizedValue(2, BinaryScale.M)
-        finally:
-            if entity is not None:
-                await entity.remove()
+                disk_format=DiskFormat.QCoW2)
+    assert disk.dirty
+    await disk.save()
+    assert not disk.dirty
+    assert disk_path.exists()
+    assert disk_path.is_file()
+    assert disk_path.stat().st_size > 0
+    assert disk.path == disk_path
+    assert disk.size == BinarySizedValue(1, BinaryScale.M)
+    assert len(await disk_repository.list()) == 1
+    await disk_repository.remove(disk)
+    assert len(await disk_repository.list()) == 0
+
+@pytest.mark.skipif(not qemu_img_available(), reason='qemu-img is not available')
+@pytest.mark.asyncio
+async def test_disk_create_from_image(home: pathlib.Path,
+                                      image_seed: Image,
+                                      disk_repository: DiskRepository):
+    disk_path = home.joinpath('disks').joinpath('disk-from-image.qcow2')
+    disk = Disk(name='Mock Image Disk',
+                path=disk_path,
+                size=BinarySizedValue(1, BinaryScale.M),
+                disk_format=DiskFormat.QCoW2,
+                image=image_seed)
+    assert disk.dirty
+    await disk.save()
+    assert not disk.dirty
+    assert disk_path.exists()
+    assert disk_path.is_file()
+    assert disk_path.stat().st_size > 0
+    assert disk.path == disk_path
+    assert disk.size == BinarySizedValue(1, BinaryScale.M)
+    assert disk.image == image_seed
+    assert disk in image_seed.disks
+
+    assert len(await disk_repository.list()) == 1
+    await disk_repository.remove(disk)
+    assert len(await disk_repository.list()) == 0
+
+@pytest.mark.skipif(not qemu_img_available(), reason='qemu-img is not available')
+@pytest.mark.asyncio
+async def test_disk_create_duplicate_raises(disk_seed: Disk):
+    with pytest.raises(DiskException, match=f'\[400\] Disk at {disk_seed.path} already exists'):
+        duplicate = Disk(name='Duplicate Disk', path=disk_seed.path)
+        await duplicate.save()
+
+@pytest.mark.skipif(not qemu_img_available(), reason='qemu-img is not available')
+@pytest.mark.asyncio
+async def test_disk_grow(disk_seed: Disk):
+    assert disk_seed.size == BinarySizedValue(1, BinaryScale.M)
+    disk_seed.size = BinarySizedValue(2, BinaryScale.M)
+    assert disk_seed.dirty
+    await disk_seed.save()
+    assert not disk_seed.dirty
+    actual_size = BinarySizedValue(disk_seed.path.stat().st_size, BinaryScale.b)
+    assert actual_size.at_scale(BinaryScale.M) == disk_seed.size
+
+@pytest.mark.skipif(not qemu_img_available(), reason='qemu-img is not available')
+@pytest.mark.asyncio
+async def test_disk_shrink(disk_seed: Disk):
+    assert disk_seed.size == BinarySizedValue(1, BinaryScale.M)
+    disk_seed.size = BinarySizedValue(512, BinaryScale.k)
+    await disk_seed.save()
+    actual_size = BinarySizedValue(disk_seed.path.stat().st_size, BinaryScale.b)
+    assert actual_size.at_scale(BinaryScale.k) == disk_seed.size

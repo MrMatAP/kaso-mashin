@@ -19,7 +19,7 @@ from kaso_mashin.common.types import DEFAULT_K8S_MASTER_TEMPLATE_NAME, \
     DEFAULT_SHARED_NETWORK_NAME
 from kaso_mashin.common.repository import BootstrapRepository, DiskRepository, IdentityRepository, \
     ImageRepository, InstanceRepository, NetworkRepository
-from kaso_mashin.common.domain import BootstrapEntity, DiskEntity, Identity, \
+from kaso_mashin.common.domain import BootstrapEntity, Disk, Identity, \
     Image, InstanceEntity, NetworkEntity
 from kaso_mashin.common import NetworkKind, BootstrapKind
 from kaso_mashin.common.model import BootstrapModel, DiskModel, IdentityModel, ImageModel, \
@@ -146,7 +146,7 @@ class Runtime:
         self._disk_repository = DiskRepository(
             runtime=self,
             session_maker=await self._db.async_sessionmaker,
-            aggregate_root_class=DiskEntity,
+            aggregate_root_class=Disk,
             model_class=DiskModel,
         )
         self._image_repository = ImageRepository(

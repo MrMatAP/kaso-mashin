@@ -262,7 +262,7 @@ class Repository(typing.Generic[T_Entity, T_Model], abc.ABC):
     @abc.abstractmethod
     async def from_model(cls, model: T_Model, *args, **kwargs) -> T_Entity:
         entity = cls.entity_class(name=model.name, *args, **kwargs)
-        entity._uid = UniqueIdentifier(model.uid)
+        entity._uid = UniqueIdentifier(str(entity.uid))
         return entity
 
     @classmethod

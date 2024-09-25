@@ -17,7 +17,7 @@ import sqlalchemy.ext.asyncio
 import fastapi
 import fastapi.testclient
 
-from kaso_mashin.common.repository import ImageRepository
+from kaso_mashin.common.repository import ImageRepository, DiskRepository
 from kaso_mashin.common.services import TaskService
 from kaso_mashin.server.run import create_server
 from kaso_mashin.server.db import DB
@@ -28,7 +28,8 @@ from kaso_mashin.common import (
     Model, T_Model,
     T_Entity,
     T_EntityListSchema,
-    T_EntityGetSchema, IdentityKind, DiskFormat, NetworkKind, Image, EntityNotFoundException,
+    T_EntityGetSchema, IdentityKind, DiskFormat, NetworkKind, Image, EntityNotFoundException, Disk,
+    BinarySizedValue,
 )
 from kaso_mashin.common.config import Config
 from kaso_mashin.common.model import DiskModel, IdentityModel, NetworkModel
@@ -256,6 +257,10 @@ async def image_repository(async_session_maker, task_service) -> ImageRepository
     return ImageRepository(async_session_maker, task_service)
 
 @pytest_asyncio.fixture(scope='function')
+async def disk_repository(async_session_maker, task_service) -> DiskRepository:
+    return DiskRepository(async_session_maker, task_service)
+
+@pytest_asyncio.fixture(scope='function')
 async def image_seed(home: pathlib.Path,
                      image_mock_server: pytest_httpserver.HTTPServer,
                      image_repository: ImageRepository) -> Image:
@@ -270,6 +275,21 @@ async def image_seed(home: pathlib.Path,
         image_path.unlink(missing_ok=True)
     except EntityNotFoundException:
         pass    # We ignore images that have already been removed
+
+@pytest_asyncio.fixture(scope='function')
+async def disk_seed(home: pathlib.Path,
+                    disk_repository: DiskRepository) -> Disk:
+    disk_path = home.joinpath('disks').joinpath('seed.qcow2')
+    disk = Disk(name='Seed Disk',
+                path=disk_path,
+                size=BinarySizedValue(1, BinaryScale.M))
+    await disk.save()
+    yield disk
+    try:
+        await disk_repository.remove(disk)
+        disk_path.unlink(missing_ok=True)
+    except EntityNotFoundException:
+        pass    # We ignore disks that have already been removed
 
 @pytest_asyncio.fixture(scope='function')
 async def task_service():

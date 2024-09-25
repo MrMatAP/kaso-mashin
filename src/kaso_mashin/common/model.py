@@ -1,3 +1,5 @@
+from typing import Optional, List
+
 from sqlalchemy import String, Enum, UnicodeText, Integer, UUID, ForeignKey
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
@@ -34,6 +36,8 @@ class ImageModel(Model):
     min_disk: Mapped[int] = mapped_column(Integer, default=0)
     min_disk_scale: Mapped[str] = mapped_column(Enum(BinaryScale), default=BinaryScale.G)
 
+    disks: Mapped[Optional[List['DiskModel']]] = relationship(lazy='selectin', back_populates='image')
+
 
 class DiskModel(Model):
     """
@@ -47,8 +51,8 @@ class DiskModel(Model):
     size_scale: Mapped[str] = mapped_column(Enum(BinaryScale), default=BinaryScale.G)
     disk_format: Mapped[DiskFormat] = mapped_column(Enum(DiskFormat), default=DiskFormat.Raw)
 
-    image_uid: Mapped[str] = mapped_column(ForeignKey("images.uid"))
-    image: Mapped[ImageModel] = relationship(lazy='selectin')
+    image_uid: Mapped[Optional[str]] = mapped_column(ForeignKey("images.uid"))
+    image: Mapped[Optional[ImageModel]] = relationship(lazy='selectin', back_populates='disks')
 
 
 class NetworkModel(Model):
