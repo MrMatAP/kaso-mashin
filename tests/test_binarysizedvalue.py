@@ -1,6 +1,6 @@
 import pytest
 
-from kaso_mashin.common.base_types import BinarySizedValue, BinaryScale
+from kaso_mashin.common import BinaryScale, BinarySizedValue
 
 
 def test_binarysizedvalue():

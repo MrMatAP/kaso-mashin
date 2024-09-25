@@ -5,16 +5,11 @@ import pytest
 from conftest import seed, BaseTest
 
 from kaso_mashin.common import UniqueIdentifier, EntityNotFoundException
-from kaso_mashin.common.entities import (
-    NetworkModel,
-    NetworkEntity,
-    NetworkListSchema,
-    NetworkGetSchema,
-    NetworkModifySchema,
-    DEFAULT_HOST_NETWORK_NAME,
-    DEFAULT_BRIDGED_NETWORK_NAME,
-    DEFAULT_SHARED_NETWORK_NAME,
-)
+from kaso_mashin.common.model import NetworkModel
+from kaso_mashin.common.types import DEFAULT_HOST_NETWORK_NAME, DEFAULT_BRIDGED_NETWORK_NAME, \
+    DEFAULT_SHARED_NETWORK_NAME
+from kaso_mashin.common.domain import NetworkEntity
+from kaso_mashin.common.schema import NetworkGetSchema, NetworkListSchema, NetworkModifySchema
 
 
 @pytest.mark.asyncio(scope="session")

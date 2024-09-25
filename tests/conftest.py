@@ -5,54 +5,53 @@ import collections
 import pathlib
 import shutil
 import logging
+import subprocess
 
 import pytest
 import pytest_asyncio
 import tempfile
 
+import pytest_httpserver
+import sqlalchemy.ext.asyncio
+
 import fastapi
 import fastapi.testclient
 
+from kaso_mashin.common.repository import ImageRepository
+from kaso_mashin.common.services import TaskService
 from kaso_mashin.server.run import create_server
 from kaso_mashin.server.db import DB
 from kaso_mashin.server.runtime import Runtime
 from kaso_mashin.common import (
     UniqueIdentifier,
     BinaryScale,
-    T_EntityModel,
+    Model, T_Model,
     T_Entity,
     T_EntityListSchema,
-    T_EntityGetSchema,
+    T_EntityGetSchema, IdentityKind, DiskFormat, NetworkKind, Image, EntityNotFoundException,
 )
 from kaso_mashin.common.config import Config
-from kaso_mashin.common.entities import (
-    IdentityKind,
-    IdentityModel,
-    DiskFormat,
-    DiskModel,
-    NetworkKind,
-    NetworkModel,
-)
+from kaso_mashin.common.model import DiskModel, IdentityModel, NetworkModel
 
 KasoTestContext = collections.namedtuple("KasoTestContext", "config db runtime server client")
 
 
-class BaseTest(typing.Generic[T_EntityModel, T_Entity, T_EntityGetSchema], abc.ABC):
+class BaseTest(typing.Generic[T_Model, T_Entity, T_EntityGetSchema], abc.ABC):
 
     @staticmethod
     def find_match_in_seeds(
-        uid: UniqueIdentifier, seeds: typing.List[T_EntityModel]
-    ) -> T_EntityModel:
+        uid: UniqueIdentifier, seeds: typing.List[T_Model]
+    ) -> T_Model:
         matches = list(filter(lambda s: s.uid == str(uid), seeds))
         assert len(matches) == 1
         return matches[0]
 
     @abc.abstractmethod
-    def assert_get_by_model(self, obj: T_EntityGetSchema | T_Entity, model: T_EntityModel):
+    def assert_get_by_model(self, obj: T_EntityGetSchema | T_Entity, model: T_Model):
         pass
 
     @abc.abstractmethod
-    def assert_list_by_model(self, obj: T_EntityListSchema | T_Entity, model: T_EntityModel):
+    def assert_list_by_model(self, obj: T_EntityListSchema | T_Entity, model: T_Model):
         pass
 
 
@@ -197,6 +196,81 @@ async def test_context_seeded() -> KasoTestContext:
     shutil.rmtree(temp_dir, ignore_errors=True)
     logging.getLogger().info(f"Removed seeded Kaso Mashin context at {temp_dir}")
 
+#
+# New fixtures start here
 
 def qemu_img_available() -> bool:
     return pathlib.Path('/opt/homebrew/bin/qemu-img').exists()
+
+@pytest.fixture(scope='session')
+def qemu_img_executable() -> pathlib.Path:
+    return pathlib.Path('/opt/homebrew/bin/qemu-img')
+
+@pytest.fixture(scope='session')
+def home() -> pathlib.Path:
+    h = pathlib.Path(__file__).parent.parent.joinpath('build/kaso-test')
+    h.mkdir(parents=True, exist_ok=True)
+    h.joinpath('images').mkdir(exist_ok=True)
+    h.joinpath('mock').mkdir(exist_ok=True)
+    yield h
+    shutil.rmtree(h, ignore_errors=True)
+
+@pytest.fixture(scope="session")
+def db(home) -> pathlib.Path:
+    f = home.joinpath('kaso-test.sqlite')
+    f.parent.mkdir(parents=True, exist_ok=True)
+    yield f
+    f.unlink(missing_ok=True)
+
+@pytest_asyncio.fixture(scope="session")
+def task_service(home) -> TaskService:
+    yield TaskService()
+
+@pytest_asyncio.fixture(scope='function')
+async def async_session_maker(db) -> sqlalchemy.ext.asyncio.async_sessionmaker[
+    sqlalchemy.ext.asyncio.AsyncSession]:
+    engine = sqlalchemy.ext.asyncio.create_async_engine(f'sqlite+aiosqlite:///{db}',
+                                                        echo=False)
+    asm = sqlalchemy.ext.asyncio.async_sessionmaker(engine, expire_on_commit=False)
+    async with engine.begin() as conn:
+        await conn.run_sync(Model.metadata.create_all)
+    yield asm
+    await engine.dispose()
+
+@pytest_asyncio.fixture(scope='function')
+async def image_mock_server(home: pathlib.Path,
+                            qemu_img_executable: pathlib.Path,
+                            httpserver: pytest_httpserver.HTTPServer):
+    mock_image = home.joinpath('mock').joinpath('image.img')
+    subprocess.run([qemu_img_executable, 'create', '-q', '-f', 'qcow2', mock_image, '1M'])
+    with open(mock_image, 'rb') as img:
+        img_data = img.read()
+    httpserver.expect_request('/image.img').respond_with_data(
+        img_data,
+        content_type='application/octet-stream')
+    yield httpserver
+    mock_image.unlink(missing_ok=True)
+
+@pytest_asyncio.fixture(scope='function')
+async def image_repository(async_session_maker, task_service) -> ImageRepository:
+    return ImageRepository(async_session_maker, task_service)
+
+@pytest_asyncio.fixture(scope='function')
+async def image_seed(home: pathlib.Path,
+                     image_mock_server: pytest_httpserver.HTTPServer,
+                     image_repository: ImageRepository) -> Image:
+    image_path = home.joinpath('images').joinpath('seed.qcow2')
+    img = Image(name='Seed Image',
+                url=image_mock_server.url_for('/image.img'),
+                path=image_path)
+    await img.save()
+    yield img
+    try:
+        await image_repository.remove(img)
+        image_path.unlink(missing_ok=True)
+    except EntityNotFoundException:
+        pass    # We ignore images that have already been removed
+
+@pytest_asyncio.fixture(scope='function')
+async def task_service():
+    yield TaskService()

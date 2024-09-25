@@ -4,16 +4,12 @@ import pathlib
 
 import fastapi
 
-from kaso_mashin.common import AsyncRepository
+from kaso_mashin.common import Repository
 from kaso_mashin.server.apis import BaseAPI
 from kaso_mashin.server.runtime import Runtime
-from kaso_mashin.common.entities import (
-    DiskEntity,
-    DiskListSchema,
-    DiskGetSchema,
-    DiskCreateSchema,
-    DiskModifySchema,
-)
+from kaso_mashin.common.domain import DiskEntity
+from kaso_mashin.common.schema import DiskCreateSchema, DiskGetSchema, DiskListSchema, \
+    DiskModifySchema
 
 
 class DiskAPI(
@@ -39,7 +35,7 @@ class DiskAPI(
         )
 
     @property
-    def repository(self) -> AsyncRepository:
+    def repository(self) -> Repository:
         return self._runtime.disk_repository
 
     async def create(

@@ -4,25 +4,16 @@ from uuid import UUID
 import fastapi
 
 from kaso_mashin.common import (
-    AsyncRepository,
+    Repository,
     UniqueIdentifier,
     EntityNotFoundException,
 )
 from kaso_mashin.server.apis import BaseAPI
 from kaso_mashin.server.runtime import Runtime
-from kaso_mashin.common.base_types import ExceptionSchema
-from kaso_mashin.common.entities import (
-    InstanceEntity,
-    InstanceListSchema,
-    InstanceGetSchema,
-    InstanceCreateSchema,
-    InstanceModifySchema,
-    TaskEntity,
-    TaskGetSchema,
-    ImageEntity,
-    NetworkEntity,
-    BootstrapEntity,
-)
+from kaso_mashin.common.schema import ExceptionSchema, InstanceCreateSchema, InstanceGetSchema, \
+    InstanceListSchema, InstanceModifySchema, TaskGetSchema
+from kaso_mashin.common.domain import BootstrapEntity, Image, InstanceEntity, NetworkEntity
+from kaso_mashin.common.services import Task
 
 
 class InstanceAPI(
@@ -50,14 +41,14 @@ class InstanceAPI(
         )
 
     @property
-    def repository(self) -> AsyncRepository:
+    def repository(self) -> Repository:
         return self._runtime.instance_repository
 
     async def create(
         self, schema: InstanceCreateSchema, background_tasks: fastapi.BackgroundTasks
     ) -> TaskGetSchema | ExceptionSchema:
         try:
-            image: ImageEntity = await ImageEntity.repository.get_by_uid(
+            image: Image = await Image.repository.get_by_uid(
                 UniqueIdentifier(schema.image_uid)
             )
             network: NetworkEntity = await NetworkEntity.repository.get_by_uid(
@@ -66,7 +57,7 @@ class InstanceAPI(
             bootstrap: BootstrapEntity = await BootstrapEntity.repository.get_by_uid(
                 UniqueIdentifier(schema.bootstrap_uid)
             )
-            task = await TaskEntity.create(name=f"Creating instance {schema.name}")
+            task = await Task.create(name=f"Creating instance {schema.name}")
             instance_path = self._runtime.config.instances_path / schema.name
             background_tasks.add_task(
                 InstanceEntity.create,
@@ -103,6 +94,6 @@ class InstanceAPI(
         background_tasks: fastapi.BackgroundTasks,
     ) -> TaskGetSchema:
         entity: InstanceEntity = await self._runtime.instance_repository.get_by_uid(uid)
-        task = await TaskEntity.create(f"Modifying instance {entity.name}")
+        task = await Task.create(f"Modifying instance {entity.name}")
         background_tasks.add_task(entity.modify, schema=schema, task=task)
         return TaskGetSchema.model_validate(task)

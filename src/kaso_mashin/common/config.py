@@ -8,7 +8,7 @@ import pydantic
 import yaml
 
 from kaso_mashin.common import EntitySchema
-from kaso_mashin.common.base_types import CLIArgumentsHolder
+from kaso_mashin.common.exceptions import KasoMashinException
 
 try:
     from yaml import (
@@ -18,7 +18,7 @@ try:
 except ImportError:
     from yaml import Loader, Dumper  # pylint: disable=unused-import
 
-from kaso_mashin import __version__, KasoMashinException
+from kaso_mashin import __version__, default_config_file
 
 
 class PredefinedImageSchema(EntitySchema):
@@ -128,6 +128,20 @@ Predefined_Images = [
         url="https://stable.release.flatcar-linux.net/amd64-usr/current/flatcar_production_qemu_image.img",
     ),
 ]
+
+
+class CLIArgumentsHolder(argparse.Namespace):
+    """
+    A typed object to receive server CLI arguments
+    """
+
+    def __init__(self, config: "Config"):
+        super().__init__()
+        self.debug: bool = False
+        self.config: pathlib.Path = default_config_file
+        self.host: str = config.default_server_host
+        self.port: int = config.default_server_port
+        self.cmd: typing.Callable | None = None
 
 
 @dataclasses.dataclass(init=False)

@@ -54,38 +54,3 @@ class Base(DeclarativeBase):  # pylint: disable=too-few-public-methods
     """
 
 
-class KasoMashinException(Exception):
-    """
-    A dedicated exception for mrmat-playground
-    """
-
-    def __init__(self, status: int = 500, msg: str = "An unknown exception occurred", task=None):
-        super().__init__(msg)
-        self._status = status
-        self._msg = msg
-        if task:
-            self._task = task
-            self._task.state = "failed"
-            self._task.msg = msg
-
-    @property
-    def kind(self) -> str:
-        return self.__class__.__name__
-
-    @property
-    def status(self) -> int:
-        return self._status
-
-    @property
-    def msg(self) -> str:
-        return self._msg
-
-    @property
-    def task(self):
-        return self._task
-
-    def __str__(self) -> str:
-        return f"[{self._status}] {self._msg}"
-
-    def __repr__(self) -> str:
-        return f"{self.__class__.__name__}(code={self._status}, msg={self._msg})"

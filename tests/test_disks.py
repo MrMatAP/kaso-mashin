@@ -2,22 +2,17 @@ import pathlib
 import uuid
 
 import pytest
-from conftest import seed, BaseTest, qemu_img_available
+from conftest import seed, BaseTest
 
 from kaso_mashin.common import (
     UniqueIdentifier,
     EntityNotFoundException,
     BinarySizedValue,
-    BinaryScale,
+    BinaryScale, DiskFormat,
 )
-from kaso_mashin.common.entities import (
-    DiskModel,
-    DiskEntity,
-    DiskListSchema,
-    DiskGetSchema,
-    DiskModifySchema,
-    DiskFormat,
-)
+from kaso_mashin.common.domain import DiskEntity
+from kaso_mashin.common.model import DiskModel
+from kaso_mashin.common.schema import DiskGetSchema, DiskListSchema, DiskModifySchema
 
 
 @pytest.mark.asyncio(scope="session")

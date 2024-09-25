@@ -10,19 +10,12 @@ import rich.progress
 
 from kaso_mashin import console
 from kaso_mashin.cli.commands import BaseCommands
-from kaso_mashin.common.base_types import (
-    BinaryScale,
-    BinarySizedValue,
+from kaso_mashin.common.base import (
     UniqueIdentifier,
 )
-from kaso_mashin.common.entities import (
-    TaskGetSchema,
-    TaskState,
-    ImageListSchema,
-    ImageGetSchema,
-    ImageCreateSchema,
-    ImageModifySchema,
-)
+from kaso_mashin.common import BinaryScale, BinarySizedValue, TaskState
+from kaso_mashin.common.schema import ImageCreateSchema, ImageGetSchema, ImageListSchema, \
+    ImageModifySchema, TaskGetSchema
 from kaso_mashin.common.config import Predefined_Images, Config, PredefinedImageSchema
 
 

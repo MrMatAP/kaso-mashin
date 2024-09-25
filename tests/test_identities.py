@@ -5,13 +5,9 @@ import pytest
 from conftest import seed, BaseTest
 
 from kaso_mashin.common import UniqueIdentifier, EntityNotFoundException
-from kaso_mashin.common.entities import (
-    IdentityModel,
-    IdentityEntity,
-    IdentityListSchema,
-    IdentityGetSchema,
-    IdentityModifySchema,
-)
+from kaso_mashin.common.model import IdentityModel
+from kaso_mashin.common.schema import IdentityGetSchema, IdentityListSchema, IdentityModifySchema
+from kaso_mashin.common.domain import Identity
 
 
 @pytest.mark.asyncio(scope="session")
@@ -62,13 +58,13 @@ class TestEmptyEntityIdentities:
 
 
 @pytest.mark.asyncio(scope="session")
-class TestSeededIdentities(BaseTest[IdentityModel, IdentityEntity, IdentityGetSchema]):
+class TestSeededIdentities(BaseTest[IdentityModel, Identity, IdentityGetSchema]):
     """
     Test behaviour of Identity entities in a seeded database
     """
 
     def assert_list_by_model(
-        self, obj: IdentityGetSchema | IdentityEntity, model: IdentityModel
+        self, obj: IdentityGetSchema | Identity, model: IdentityModel
     ):
         assert obj.uid == UniqueIdentifier(model.uid)
         assert obj.name == model.name
@@ -76,7 +72,7 @@ class TestSeededIdentities(BaseTest[IdentityModel, IdentityEntity, IdentityGetSc
         assert obj.gecos == model.gecos
 
     def assert_get_by_model(
-        self, obj: IdentityGetSchema | IdentityEntity, model: IdentityModel
+        self, obj: IdentityGetSchema | Identity, model: IdentityModel
     ):
         assert obj.uid == UniqueIdentifier(model.uid)
         assert obj.name == model.name
@@ -90,7 +86,7 @@ class TestSeededIdentities(BaseTest[IdentityModel, IdentityEntity, IdentityGetSc
         entities = await test_context_seeded.runtime.identity_repository.list()
         assert len(entities) == len(seed["identities"])
         for entity in entities:
-            assert isinstance(entity, IdentityEntity)
+            assert isinstance(entity, Identity)
             model = BaseTest.find_match_in_seeds(entity.uid, seed["identities"])
             self.assert_list_by_model(entity, model)
 
@@ -108,7 +104,7 @@ class TestSeededIdentities(BaseTest[IdentityModel, IdentityEntity, IdentityGetSc
         entity = await test_context_seeded.runtime.identity_repository.get_by_uid(
             identity.uid
         )
-        assert isinstance(entity, IdentityEntity)
+        assert isinstance(entity, Identity)
         self.assert_get_by_model(entity, identity)
 
     @pytest.mark.parametrize("identity", seed.get("identities", []))

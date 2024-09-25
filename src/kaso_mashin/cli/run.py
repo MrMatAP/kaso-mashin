@@ -5,8 +5,7 @@ import typing
 import argparse
 
 from kaso_mashin import __version__, console, default_config_file
-from kaso_mashin.common.base_types import CLIArgumentsHolder
-from kaso_mashin.common.config import Config
+from kaso_mashin.common.config import Config, CLIArgumentsHolder
 from kaso_mashin.cli.commands import (
     NetworkCommands,
     ImageCommands,

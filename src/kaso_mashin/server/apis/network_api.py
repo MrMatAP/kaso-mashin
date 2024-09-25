@@ -3,16 +3,12 @@ from uuid import UUID
 
 import fastapi
 
-from kaso_mashin.common import AsyncRepository
+from kaso_mashin.common import Repository
 from kaso_mashin.server.apis import BaseAPI
 from kaso_mashin.server.runtime import Runtime
-from kaso_mashin.common.entities import (
-    NetworkEntity,
-    NetworkListSchema,
-    NetworkGetSchema,
-    NetworkCreateSchema,
-    NetworkModifySchema,
-)
+from kaso_mashin.common.domain import NetworkEntity
+from kaso_mashin.common.schema import NetworkCreateSchema, NetworkGetSchema, NetworkListSchema, \
+    NetworkModifySchema
 
 
 class NetworkAPI(
@@ -38,7 +34,7 @@ class NetworkAPI(
         )
 
     @property
-    def repository(self) -> AsyncRepository:
+    def repository(self) -> Repository:
         return self._runtime.network_repository
 
     async def create(

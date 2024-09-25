@@ -4,17 +4,12 @@ from uuid import UUID
 
 import fastapi
 
-from kaso_mashin.common import AsyncRepository
+from kaso_mashin.common import Repository
 from kaso_mashin.server.apis import BaseAPI
 from kaso_mashin.server.runtime import Runtime
-from kaso_mashin.common.entities import (
-    IdentityEntity,
-    IdentityListSchema,
-    IdentityGetSchema,
-    IdentityCreateSchema,
-    IdentityModifySchema,
-    TaskGetSchema,
-)
+from kaso_mashin.common.schema import IdentityCreateSchema, IdentityGetSchema, IdentityListSchema, \
+    IdentityModifySchema, TaskGetSchema
+from kaso_mashin.common.domain import Identity
 
 
 class IdentityAPI(
@@ -40,13 +35,13 @@ class IdentityAPI(
         )
 
     @property
-    def repository(self) -> AsyncRepository:
+    def repository(self) -> Repository:
         return self._runtime.identity_repository
 
     async def create(
         self, schema: IdentityCreateSchema, background_tasks: fastapi.BackgroundTasks
     ) -> IdentityGetSchema | TaskGetSchema:
-        entity = await IdentityEntity.create(
+        entity = await Identity.create(
             name=schema.name,
             kind=schema.kind,
             gecos=schema.gecos,
@@ -69,6 +64,6 @@ class IdentityAPI(
         schema: IdentityModifySchema,
         background_tasks: fastapi.BackgroundTasks,
     ) -> IdentityGetSchema:
-        entity: IdentityEntity = await self.repository.get_by_uid(uid)
+        entity: Identity = await self.repository.get_by_uid(uid)
         await entity.modify(schema)
         return IdentityGetSchema.model_validate(entity)

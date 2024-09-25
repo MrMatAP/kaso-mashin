@@ -3,16 +3,12 @@ from uuid import UUID
 
 import fastapi
 
-from kaso_mashin.common import AsyncRepository
+from kaso_mashin.common import Repository
 from kaso_mashin.server.apis import BaseAPI
 from kaso_mashin.server.runtime import Runtime
-from kaso_mashin.common.entities import (
-    BootstrapEntity,
-    BootstrapListSchema,
-    BootstrapGetSchema,
-    BootstrapCreateSchema,
-    BootstrapModifySchema,
-)
+from kaso_mashin.common.domain import BootstrapEntity
+from kaso_mashin.common.schema import BootstrapGetSchema, BootstrapListSchema, \
+    BootstrapCreateSchema, BootstrapModifySchema
 
 
 class BootstrapAPI(
@@ -38,7 +34,7 @@ class BootstrapAPI(
         )
 
     @property
-    def repository(self) -> AsyncRepository:
+    def repository(self) -> Repository:
         return self._runtime.bootstrap_repository
 
     async def create(

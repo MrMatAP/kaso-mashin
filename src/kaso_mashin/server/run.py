@@ -17,11 +17,11 @@ from starlette.middleware.cors import CORSMiddleware
 from kaso_mashin import (
     __version__,
     console,
-    KasoMashinException,
     __log_config__,
 )
-from kaso_mashin.common.config import Config
-from kaso_mashin.common.base_types import ExceptionSchema, CLIArgumentsHolder
+from kaso_mashin.common.config import Config, CLIArgumentsHolder
+from kaso_mashin.common.exceptions import KasoMashinException
+from kaso_mashin.common.schema import ExceptionSchema
 from kaso_mashin.common import EntityNotFoundException, EntityInvariantException
 from kaso_mashin.server.db import DB
 from kaso_mashin.server.runtime import Runtime

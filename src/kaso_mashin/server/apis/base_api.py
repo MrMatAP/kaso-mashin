@@ -11,11 +11,11 @@ from kaso_mashin.common import (
     T_EntityGetSchema,
     T_EntityCreateSchema,
     T_EntityModifySchema,
-    AsyncRepository,
+    Repository,
     EntityNotFoundException,
 )
-from kaso_mashin.common.entities import TaskGetSchema
-from kaso_mashin.common.base_types import ExceptionSchema, Entity, AggregateRoot
+from kaso_mashin.common.base import Entity, AggregateRoot
+from kaso_mashin.common.schema import ExceptionSchema, TaskGetSchema
 
 
 class BaseAPI(
@@ -186,7 +186,7 @@ class BaseAPI(
 
     @property
     @abc.abstractmethod
-    def repository(self) -> AsyncRepository:
+    def repository(self) -> Repository:
         raise NotImplementedError()
 
     @property

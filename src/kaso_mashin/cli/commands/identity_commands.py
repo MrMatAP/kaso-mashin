@@ -7,13 +7,9 @@ import passlib.hash
 from kaso_mashin import console
 from kaso_mashin.cli.commands import BaseCommands
 from kaso_mashin.common.config import Config
-from kaso_mashin.common.entities import (
-    IdentityListSchema,
-    IdentityGetSchema,
-    IdentityCreateSchema,
-    IdentityModifySchema,
-    IdentityKind,
-)
+from kaso_mashin.common.schema import IdentityCreateSchema, IdentityGetSchema, IdentityListSchema, \
+    IdentityModifySchema
+from kaso_mashin.common import IdentityKind
 
 
 class IdentityCommands(BaseCommands[IdentityListSchema, IdentityGetSchema]):

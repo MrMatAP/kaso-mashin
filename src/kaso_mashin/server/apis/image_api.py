@@ -4,19 +4,13 @@ from uuid import UUID
 
 import fastapi
 
-from kaso_mashin.common import AsyncRepository
-from kaso_mashin.common.entities.tasks import TaskRelation
+from kaso_mashin.common import Repository, TaskRelation
 from kaso_mashin.server.apis import BaseAPI
 from kaso_mashin.server.runtime import Runtime
-from kaso_mashin.common.entities import (
-    ImageEntity,
-    ImageListSchema,
-    ImageGetSchema,
-    ImageCreateSchema,
-    ImageModifySchema,
-    TaskEntity,
-    TaskGetSchema,
-)
+from kaso_mashin.common.schema import ImageCreateSchema, ImageGetSchema, ImageListSchema, \
+    ImageModifySchema, TaskGetSchema
+from kaso_mashin.common.domain import Image
+from kaso_mashin.common.services import Task
 
 
 class ImageAPI(
@@ -43,13 +37,13 @@ class ImageAPI(
         )
 
     @property
-    def repository(self) -> AsyncRepository:
+    def repository(self) -> Repository:
         return self._runtime.image_repository
 
     async def create(
         self, schema: ImageCreateSchema, background_tasks: fastapi.BackgroundTasks
     ) -> TaskGetSchema:
-        task = await TaskEntity.create(
+        task = await Task.create(
             name=f"Download image {schema.name} from URL {schema.url}",
             relation=TaskRelation.IMAGES,
             msg="Downloading image",
@@ -57,7 +51,7 @@ class ImageAPI(
         now = datetime.datetime.now().strftime("%Y-%m-%d-%H%M")
         imagepath = self._runtime.config.images_path / f"{schema.name}-{now}.qcow2"
         background_tasks.add_task(
-            ImageEntity.create,
+            Image.create,
             task=task,
             user=self._runtime.owning_user,
             name=schema.name,
@@ -82,6 +76,6 @@ class ImageAPI(
         schema: ImageModifySchema,
         background_tasks: fastapi.BackgroundTasks,
     ) -> ImageGetSchema:
-        entity: ImageEntity = await self._runtime.image_repository.get_by_uid(uid)
+        entity: Image = await self._runtime.image_repository.get_by_uid(uid)
         await entity.modify(schema)
         return ImageGetSchema.model_validate(entity)

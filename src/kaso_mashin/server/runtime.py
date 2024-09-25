@@ -14,37 +14,17 @@ import aiofiles
 from kaso_mashin.common.config import Config
 from kaso_mashin.server.db import DB
 
-from kaso_mashin.common.entities import (
-    TaskRepository,
-    TaskModel,
-    TaskEntity,
-    DiskRepository,
-    DiskModel,
-    DiskEntity,
-    ImageRepository,
-    ImageModel,
-    ImageEntity,
-    NetworkRepository,
-    NetworkModel,
-    NetworkEntity,
-    NetworkKind,
-    DEFAULT_SHARED_NETWORK_NAME,
-    DEFAULT_BRIDGED_NETWORK_NAME,
-    DEFAULT_HOST_NETWORK_NAME,
-    InstanceRepository,
-    InstanceModel,
-    InstanceEntity,
-    BootstrapRepository,
-    BootstrapModel,
-    BootstrapEntity,
-    BootstrapKind,
-    DEFAULT_K8S_MASTER_TEMPLATE_NAME,
-    DEFAULT_K8S_SLAVE_TEMPLATE_NAME,
-    IdentityRepository,
-    IdentityModel,
-    IdentityEntity,
-)
-from kaso_mashin.common.services import QEMUService, EventService
+from kaso_mashin.common.types import DEFAULT_K8S_MASTER_TEMPLATE_NAME, \
+    DEFAULT_K8S_SLAVE_TEMPLATE_NAME, DEFAULT_HOST_NETWORK_NAME, DEFAULT_BRIDGED_NETWORK_NAME, \
+    DEFAULT_SHARED_NETWORK_NAME
+from kaso_mashin.common.repository import BootstrapRepository, DiskRepository, IdentityRepository, \
+    ImageRepository, InstanceRepository, NetworkRepository
+from kaso_mashin.common.domain import BootstrapEntity, DiskEntity, Identity, \
+    Image, InstanceEntity, NetworkEntity
+from kaso_mashin.common import NetworkKind, BootstrapKind
+from kaso_mashin.common.model import BootstrapModel, DiskModel, IdentityModel, ImageModel, \
+    InstanceModel, NetworkModel
+from kaso_mashin.common.services import QEMUService, EventService, Task, TaskService
 
 
 class Runtime:
@@ -59,7 +39,7 @@ class Runtime:
         self._effective_user = getpass.getuser()
         self._owning_user = os.environ.get("SUDO_USER", self._effective_user)
         self._db.owning_user = self._owning_user
-        self._task_repository: TaskRepository | None = None
+        self._task_repository: TaskService | None = None
         self._disk_repository: DiskRepository | None = None
         self._image_repository: ImageRepository | None = None
         self._network_repository: NetworkRepository | None = None
@@ -157,12 +137,12 @@ class Runtime:
     async def lifespan(self, app: fastapi.FastAPI):
         del app
         await self.lifespan_paths()
-        self._task_repository = TaskRepository(
-            runtime=self,
-            session_maker=await self._db.async_sessionmaker,
-            aggregate_root_class=TaskEntity,
-            model_class=TaskModel,
-        )
+        # self._task_repository = TaskService(
+        #     runtime=self,
+        #     session_maker=await self._db.async_sessionmaker,
+        #     aggregate_root_class=TaskEntity,
+        #     model_class=TaskModel,
+        # )
         self._disk_repository = DiskRepository(
             runtime=self,
             session_maker=await self._db.async_sessionmaker,
@@ -172,7 +152,7 @@ class Runtime:
         self._image_repository = ImageRepository(
             runtime=self,
             session_maker=await self._db.async_sessionmaker,
-            aggregate_root_class=ImageEntity,
+            aggregate_root_class=Image,
             model_class=ImageModel,
         )
         self._network_repository = NetworkRepository(
@@ -196,7 +176,7 @@ class Runtime:
         self._identity_repository = IdentityRepository(
             runtime=self,
             session_maker=await self._db.async_sessionmaker,
-            aggregate_root_class=IdentityEntity,
+            aggregate_root_class=Identity,
             model_class=IdentityModel,
         )
         await self.lifespan_networks()
@@ -205,7 +185,7 @@ class Runtime:
         yield
 
     @property
-    def task_repository(self) -> TaskRepository:
+    def task_repository(self) -> TaskService:
         return self._task_repository
 
     @property

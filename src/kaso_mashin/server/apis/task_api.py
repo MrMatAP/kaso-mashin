@@ -1,10 +1,7 @@
-from kaso_mashin.common import AsyncRepository
+from kaso_mashin.common import Repository
 from kaso_mashin.server.apis import BaseAPI
 from kaso_mashin.server.runtime import Runtime
-from kaso_mashin.common.entities import (
-    TaskListSchema,
-    TaskGetSchema,
-)
+from kaso_mashin.common.schema import TaskGetSchema, TaskListSchema
 
 
 class TaskAPI(BaseAPI[TaskListSchema, TaskGetSchema, TaskGetSchema, TaskGetSchema]):
@@ -26,5 +23,5 @@ class TaskAPI(BaseAPI[TaskListSchema, TaskGetSchema, TaskGetSchema, TaskGetSchem
         )
 
     @property
-    def repository(self) -> AsyncRepository:
+    def repository(self) -> Repository:
         return self._runtime.task_repository

@@ -9,17 +9,10 @@ import rich.progress
 
 from kaso_mashin import console
 from kaso_mashin.cli.commands import BaseCommands
-from kaso_mashin.common.base_types import BinaryScale, BinarySizedValue
+from kaso_mashin.common import BinaryScale, BinarySizedValue, InstanceState, TaskState
 from kaso_mashin.common.config import Config
-from kaso_mashin.common.entities import (
-    TaskGetSchema,
-    TaskState,
-    InstanceState,
-    InstanceListSchema,
-    InstanceGetSchema,
-    InstanceCreateSchema,
-    InstanceModifySchema,
-)
+from kaso_mashin.common.schema import InstanceCreateSchema, InstanceGetSchema, InstanceListSchema, \
+    InstanceModifySchema, TaskGetSchema
 
 
 class InstanceCommands(BaseCommands[InstanceListSchema, InstanceGetSchema]):

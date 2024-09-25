@@ -6,13 +6,9 @@ from conftest import seed, BaseTest
 
 
 from kaso_mashin.common import UniqueIdentifier, EntityNotFoundException
-from kaso_mashin.common.entities import (
-    InstanceModel,
-    InstanceEntity,
-    InstanceListSchema,
-    InstanceGetSchema,
-    InstanceModifySchema,
-)
+from kaso_mashin.common.model import InstanceModel
+from kaso_mashin.common.schema import InstanceGetSchema, InstanceListSchema, InstanceModifySchema
+from kaso_mashin.common.domain import InstanceEntity
 
 
 @pytest.mark.asyncio(scope="session")

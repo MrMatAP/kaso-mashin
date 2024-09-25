@@ -6,7 +6,7 @@ from sqlalchemy import Engine, create_engine
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 
 from kaso_mashin import Base
-from kaso_mashin.common import EntityModel
+from kaso_mashin.common import Model
 from kaso_mashin.common.config import Config
 
 
@@ -62,6 +62,6 @@ class DB:
             engine = create_async_engine(f"sqlite+aiosqlite:///{self.path}")
             self._async_sessionmaker = async_sessionmaker(engine, expire_on_commit=False)
             async with engine.begin() as conn:
-                await conn.run_sync(EntityModel.metadata.create_all)
+                await conn.run_sync(Model.metadata.create_all)
             shutil.chown(self.path, user=self.owning_user)
         return self._async_sessionmaker

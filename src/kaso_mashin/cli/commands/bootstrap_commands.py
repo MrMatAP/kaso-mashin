@@ -4,12 +4,8 @@ import uuid
 from kaso_mashin import console
 from kaso_mashin.cli.commands import BaseCommands
 from kaso_mashin.common.config import Config
-from kaso_mashin.common.entities import (
-    BootstrapListSchema,
-    BootstrapGetSchema,
-    BootstrapCreateSchema,
-    BootstrapModifySchema,
-)
+from kaso_mashin.common.schema import BootstrapGetSchema, BootstrapListSchema, \
+    BootstrapCreateSchema, BootstrapModifySchema
 
 
 class BootstrapCommands(BaseCommands[BootstrapListSchema, BootstrapGetSchema]):
