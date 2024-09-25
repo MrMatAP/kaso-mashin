@@ -7,10 +7,23 @@ import rich.box
 import rich.table
 from pydantic import BaseModel, ConfigDict, Field
 
-from kaso_mashin.common import UniqueIdentifier, BinarySizedValue, BinaryScale, IdentityKind, \
-    DiskFormat, NetworkKind, BootstrapKind, InstanceState, TaskRelation, TaskState
-from kaso_mashin.common.exceptions import KasoMashinException
-from kaso_mashin.common.types import DEFAULT_MIN_VCPU, DEFAULT_MIN_RAM, DEFAULT_MIN_DISK
+from kaso_mashin import __version__
+from .base import (
+    UniqueIdentifier
+)
+from .types import (
+    TaskRelation, TaskState,
+    IdentityKind, NetworkKind, BootstrapKind,
+    DiskFormat,
+    InstanceState
+)
+from .domain import (
+    BinarySizedValue, BinaryScale
+)
+from .services import (
+    DEFAULT_MIN_VCPU, DEFAULT_MIN_RAM, DEFAULT_MIN_DISK
+)
+from .exceptions import KasoMashinException
 
 
 class EntitySchema(BaseModel):
@@ -648,3 +661,71 @@ class TaskListSchema(EntitySchema):
 
 class TaskException(KasoMashinException):
     pass
+
+
+class PredefinedImageSchema(EntitySchema):
+    """
+    Schema for a predefined image
+    """
+
+    name: str = pydantic.Field(description="Name of the predefined image")
+    url: str = pydantic.Field(description="URL of the predefined image")
+
+
+class ConfigSchema(EntitySchema):
+    """
+    Configuration Schema
+    """
+
+    version: str = pydantic.Field(
+        description="The version of the kaso-mashin server",
+        examples=["1.0.0"],
+        default=__version__,
+    )
+    path: pathlib.Path = pydantic.Field(
+        description="Path on the local disk where Kaso Mashin keeps its files"
+    )
+    images_path: pathlib.Path = pydantic.Field(
+        description="Path on the local disk where OS images are stored"
+    )
+    instances_path: pathlib.Path = pydantic.Field(
+        description="Path on the local disk where instances are stored"
+    )
+    bootstrap_path: pathlib.Path = pydantic.Field(
+        description="Path on the local disk where bootstrap templates are stored"
+    )
+    default_os_disk_size: str = pydantic.Field(description="Default OS disk size", examples=["5G"])
+    default_phone_home_port: int = pydantic.Field(
+        description="Default phone home port", examples=[10200]
+    )
+    default_host_network_dhcp4_start: str = pydantic.Field(
+        description="Default host network dhcp4 start", examples=["172.16.4.10"]
+    )
+    default_host_network_dhcp4_end: str = pydantic.Field(
+        description="Default host network dhcp4 end", examples=["172.16.4.254"]
+    )
+    default_shared_network_dhcp4_start: str = pydantic.Field(
+        description="Default shared network dhcp4 start", examples=["172.16.5.10"]
+    )
+    default_shared_network_dhcp4_end: str = pydantic.Field(
+        description="Default shared network dhcp4 end", examples=["172.16.5.254"]
+    )
+    default_host_network_cidr: str = pydantic.Field(
+        description="Default host network cidr", examples=["172.16.4.0/24"]
+    )
+    default_shared_network_cidr: str = pydantic.Field(
+        description="Default shared network cidr", examples=["172.16.5.254/24"]
+    )
+    default_server_host: str = pydantic.Field(
+        description="Default server host", examples=["127.0.0.1"]
+    )
+    default_server_port: int = pydantic.Field(description="Default server port", examples=[8000])
+    uefi_code_url: str = pydantic.Field(description="URL to the UEFI code")
+    uefi_vars_url: str = pydantic.Field(description="URL to the UEFI vars")
+    butane_path: pathlib.Path = pydantic.Field(description="Path the local butane installation")
+    qemu_aarch64_path: pathlib.Path = pydantic.Field(
+        description="Path to the local qemu-aarch64 installation"
+    )
+    predefined_images: typing.List[PredefinedImageSchema] = pydantic.Field(
+        description="List of predefined images", default=[]
+    )

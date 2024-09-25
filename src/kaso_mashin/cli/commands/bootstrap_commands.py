@@ -3,7 +3,7 @@ import uuid
 
 from kaso_mashin import console
 from kaso_mashin.cli.commands import BaseCommands
-from kaso_mashin.common.config import Config
+from kaso_mashin.common import ConfigService
 from kaso_mashin.common.schema import BootstrapGetSchema, BootstrapListSchema, \
     BootstrapCreateSchema, BootstrapModifySchema
 
@@ -13,7 +13,7 @@ class BootstrapCommands(BaseCommands[BootstrapListSchema, BootstrapGetSchema]):
     Implementation of the bootstrap command group
     """
 
-    def __init__(self, config: Config):
+    def __init__(self, config: ConfigService):
         super().__init__(config)
         self._prefix = "/api/bootstraps"
         self._list_schema_type = BootstrapListSchema

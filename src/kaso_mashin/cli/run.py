@@ -5,7 +5,7 @@ import typing
 import argparse
 
 from kaso_mashin import __version__, console, default_config_file
-from kaso_mashin.common.config import Config, CLIArgumentsHolder
+from kaso_mashin.common import CLIArgumentsHolder, ConfigService
 from kaso_mashin.cli.commands import (
     NetworkCommands,
     ImageCommands,
@@ -23,7 +23,7 @@ def main(args: typing.Optional[typing.List] = None) -> int:
         An exit code. 0 when successful, non-zero otherwise
     """
     logger = logging.getLogger("kaso_mashin")
-    config = Config()
+    config = ConfigService()
 
     network_commands = NetworkCommands(config=config)
     image_commands = ImageCommands(config=config)

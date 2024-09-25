@@ -1,23 +1,31 @@
+import argparse
 import asyncio
+import dataclasses
 import logging
+import pathlib
 import subprocess
 import typing
 import uuid
 
+import yaml
 from aievents import Events
+from yaml import CLoader as Loader, CDumper as Dumper
 
-from .base import Service, UniqueIdentifier
+from .base import (
+    UniqueIdentifier,
+    BinarySizedValue, BinaryScale,
+    Service
+)
 from .types import (
-    BinaryScale,
     BootstrapKind,
-    TaskState,
-    TaskRelation
+    TaskState, TaskRelation
 )
 from .exceptions import (
     KasoMashinException,
     EntityInvariantException,
     EntityNotFoundException
 )
+from kaso_mashin import default_config_file
 
 
 class EventService(Service, Events):
@@ -244,3 +252,178 @@ class TaskService:
         if uid not in self._identity_map:
             raise EntityNotFoundException()
         del self._identity_map[uid]
+
+
+class CLIArgumentsHolder(argparse.Namespace):
+    """
+    A typed object to receive server CLI arguments
+    """
+
+    def __init__(self, config: "ConfigService"):
+        super().__init__()
+        self.debug: bool = False
+        self.config: pathlib.Path = default_config_file
+        self.host: str = config.default_server_host
+        self.port: int = config.default_server_port
+        self.cmd: typing.Callable | None = None
+
+@dataclasses.dataclass
+class PredefinedImage:
+    """
+    Configuration for a predefined image
+    """
+    name: str
+    url: str
+    
+DEFAULT_PREDEFINED_IMAGES = [
+    PredefinedImage(
+        name="ubuntu-bionic-arm64",
+        url="https://cloud-images.ubuntu.com/bionic/current/bionic-server-cloudimg-arm64.img",
+    ),
+    PredefinedImage(
+        name="ubuntu-focal-arm64",
+        url="https://cloud-images.ubuntu.com/focal/current/focal-server-cloudimg-arm64.img",
+    ),
+    PredefinedImage(
+        name="ubuntu-jammy-arm64",
+        url="https://cloud-images.ubuntu.com/jammy/current/jammy-server-cloudimg-arm64.img",
+    ),
+    PredefinedImage(
+        name="ubuntu-kinetic-arm64",
+        url="https://cloud-images.ubuntu.com/kinetic/current/kinetic-server-cloudimg-arm64.img",
+    ),
+    PredefinedImage(
+        name="ubuntu-lunar-arm64",
+        url="https://cloud-images.ubuntu.com/lunar/current/lunar-server-cloudimg-arm64.img",
+    ),
+    PredefinedImage(
+        name="ubuntu-mantic-arm64",
+        url="https://cloud-images.ubuntu.com/mantic/current/mantic-server-cloudimg-arm64.img",
+    ),
+    PredefinedImage(
+        name='ubuntu-core-24-arm64',
+        url='https://cdimage.ubuntu.com/ubuntu-core/24/stable/current/ubuntu-core-24-arm64.img.xz'
+    ),
+    PredefinedImage(
+        name="freebsd-14-arm64",
+        url="https://download.freebsd.org/ftp/snapshots/VM-IMAGES/14.0-CURRENT/amd64/Latest/"
+            "FreeBSD-14.0-CURRENT-amd64.qcow2.xz",
+    ),
+    PredefinedImage(
+        name="flatcar-arm64",
+        url="https://stable.release.flatcar-linux.net/arm64-usr/current/flatcar_production_qemu_uefi_image.img",
+    ),
+    PredefinedImage(
+        name="flatcar-amd64",
+        url="https://stable.release.flatcar-linux.net/amd64-usr/current/flatcar_production_qemu_image.img",
+    )
+]
+
+DEFAULT_PATH = pathlib.Path('~/var/kaso').expanduser()
+DEFAULT_IMAGES_PATH = pathlib.Path('~/var/kaso/images').expanduser()
+DEFAULT_INSTANCES_PATH = pathlib.Path('~/var/kaso/instances').expanduser()
+DEFAULT_BOOTSTRAP_PATH = pathlib.Path('~/var/kaso/bootstrap').expanduser()
+DEFAULT_K8S_MASTER_TEMPLATE_NAME = "default_k8s_master"
+DEFAULT_K8S_SLAVE_TEMPLATE_NAME = "default_k8s_slave"
+DEFAULT_MIN_VCPU = 0
+DEFAULT_MIN_RAM = BinarySizedValue(0, BinaryScale.G)
+DEFAULT_MIN_DISK = BinarySizedValue(0, BinaryScale.G)
+DEFAULT_MAC_PREFIX = "00:50:56"
+DEFAULT_HOST_NETWORK_NAME = "default_host_network"
+DEFAULT_BRIDGED_NETWORK_NAME = "default_bridged_network"
+DEFAULT_SHARED_NETWORK_NAME = "default_shared_network"
+DEFAULT_BUTANE_PATH = pathlib.Path('/opt/homebrew/bin/butane')
+DEFAULT_QEMU_IMG_PATH = pathlib.Path('/opt/homebrew/bin/qemu-img')
+DEFAULT_QEMU_AARCH64_PATH = pathlib.Path('/opt/homebrew/bin/qemu-system-aarch64')
+
+@dataclasses.dataclass(init=False)
+class ConfigService:
+    """
+    Configuration handling for kaso_mashin
+    """
+
+    path: pathlib.Path = dataclasses.field(default=DEFAULT_PATH)
+    images_path: pathlib.Path = dataclasses.field(default=DEFAULT_IMAGES_PATH)
+    instances_path: pathlib.Path = dataclasses.field(default=DEFAULT_INSTANCES_PATH)
+    bootstrap_path: pathlib.Path = dataclasses.field(default=DEFAULT_BOOTSTRAP_PATH)
+    default_os_disk_size: str = dataclasses.field(default="5G")
+    default_phone_home_port: int = dataclasses.field(default=10200)
+    default_host_network_dhcp4_start: str = dataclasses.field(default="172.16.4.10")
+    default_host_network_dhcp4_end: str = dataclasses.field(default="172.16.4.254")
+    default_shared_network_dhcp4_start: str = dataclasses.field(default="172.16.5.10")
+    default_shared_network_dhcp4_end: str = dataclasses.field(default="172.16.5.254")
+    default_host_network_cidr: str = dataclasses.field(default="172.16.4.0/24")
+    default_shared_network_cidr: str = dataclasses.field(default="172.16.5.0/24")
+    default_server_host: str = dataclasses.field(default="127.0.0.1")
+    default_server_port: int = dataclasses.field(default=8000)
+    uefi_code_url: str = dataclasses.field(
+        default="https://stable.release.flatcar-linux.net/arm64-usr/current/flatcar_production_qemu_uefi_efi_code.fd"
+    )
+    uefi_vars_url: str = dataclasses.field(
+        default="https://stable.release.flatcar-linux.net/arm64-usr/current/flatcar_production_qemu_uefi_efi_vars.fd"
+    )
+    butane_path: pathlib.Path = dataclasses.field(default=DEFAULT_BUTANE_PATH)
+    qemu_img_path: pathlib.Path = dataclasses.field(default=DEFAULT_QEMU_IMG_PATH)
+    qemu_aarch64_path: pathlib.Path = dataclasses.field(default=DEFAULT_QEMU_AARCH64_PATH)
+    predefined_images: typing.List[PredefinedImage] = dataclasses.field(default_factory=list)
+
+    def __init__(self, config_file: pathlib.Path | None = None):
+        self._logger = logging.getLogger(f"{self.__class__.__module__}.{self.__class__.__name__}")
+        self.predefined_images = DEFAULT_PREDEFINED_IMAGES
+        if config_file:
+            self.load(config_file)
+
+    def load(self, config_file: pathlib.Path):
+        """
+        Override the defaults from a config file if it exists
+        """
+        if not config_file.exists():
+            self._logger.debug("No configuration file exists, using defaults")
+            return
+        self._logger.debug("Loading config file at %s", config_file)
+        configurable = {field.name: field.type for field in dataclasses.fields(self)}
+        try:
+            with open(config_file, "r", encoding="UTF-8") as c:
+                configured = yaml.load(c, Loader=Loader)
+                # Set the values for the intersection of what is configurable and actually configured
+            for key in list(set(configurable.keys()) & set(configured.keys())):
+                value = configured.get(key)
+                if configurable.get(key) == pathlib.Path:
+                    setattr(self, key, pathlib.Path(value))
+                else:
+                    setattr(self, key, value)
+                self._logger.debug("Config file overrides %s to %s", key, value)
+        except yaml.YAMLError as exc:
+            raise KasoMashinException(status=400, msg="Invalid config file") from exc
+
+    def cli_override(self, args: CLIArgumentsHolder):
+        """
+        Override the defaults and what has been set in the config file with CLI arguments
+        Args:
+            args: The CLI arguments
+        """
+        configurable = {field.name: field.type for field in dataclasses.fields(self)}
+        configured = vars(args)
+        for key in list(set(configurable.keys()) & set(configured.keys())):
+            value = configured.get(key)
+            if value != getattr(self, key):
+                setattr(self, key, value)
+                self._logger.debug("CLI overrides %s to %s", key, value)
+
+    def save(self, config_file: pathlib.Path):
+        self._logger.debug("Saving configuration at %s", config_file)
+        configured = {field.name: getattr(self, field.name) for field in dataclasses.fields(self)}
+        try:
+            with open(config_file, "w+", encoding="UTF-8") as c:
+                yaml.dump(configured, c, Dumper=Dumper)
+        except yaml.YAMLError as exc:
+            raise KasoMashinException(status=500, msg="Failed to save config file") from exc
+
+    @property
+    def server_url(self) -> str:
+        """
+        Convenience property to calculate a server URL based on configuration suitable for httpx/requests
+        Returns:
+            The server URL to communicate with
+        """
+        return f"http://{self.default_server_host}:{self.default_server_port}"

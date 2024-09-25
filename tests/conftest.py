@@ -18,22 +18,26 @@ import sqlalchemy.ext.asyncio
 import fastapi
 import fastapi.testclient
 
-from kaso_mashin.common.repository import ImageRepository, DiskRepository, NetworkRepository
-from kaso_mashin.common.services import TaskService
+from kaso_mashin.common import (
+    EntityNotFoundException,
+    UniqueIdentifier, BinarySizedValue, BinaryScale,
+    TaskService, ConfigService,
+    Image, ImageRepository,
+    Disk, DiskRepository, DiskModel, DiskFormat,
+    Network, NetworkRepository, NetworkKind, NetworkModel,
+    Bootstrap, BootstrapRepository,
+    IdentityModel, IdentityKind
+)
+
 from kaso_mashin.server.run import create_server
 from kaso_mashin.server.db import DB
 from kaso_mashin.server.runtime import Runtime
 from kaso_mashin.common import (
-    UniqueIdentifier,
-    BinaryScale,
     Model, T_Model,
     T_Entity,
     T_EntityListSchema,
-    T_EntityGetSchema, IdentityKind, DiskFormat, NetworkKind, Image, EntityNotFoundException, Disk,
-    BinarySizedValue, Network,
+    T_EntityGetSchema
 )
-from kaso_mashin.common.config import Config
-from kaso_mashin.common.model import DiskModel, IdentityModel, NetworkModel
 
 KasoTestContext = collections.namedtuple("KasoTestContext", "config db runtime server client")
 
@@ -144,7 +148,7 @@ async def test_context_empty() -> KasoTestContext:
     config_file = temp_dir.joinpath(".kaso")
     with config_file.open("w", encoding="UTF-8") as c:
         c.write(f"path: {temp_dir}")
-    config = Config(config_file)
+    config = ConfigService(config_file)
     db = DB(config)
     runtime = Runtime(config=config, db=db)
     server = create_server(runtime)
@@ -176,7 +180,7 @@ async def test_context_seeded() -> KasoTestContext:
     config_file = temp_dir.joinpath(".kaso")
     with config_file.open("w", encoding="UTF-8") as c:
         c.write(f"path: {temp_dir}")
-    config = Config(config_file)
+    config = ConfigService(config_file)
     db = DB(config)
     runtime = Runtime(config=config, db=db)
     server = create_server(runtime)
@@ -254,20 +258,38 @@ async def image_mock_server(home: pathlib.Path,
     mock_image.unlink(missing_ok=True)
 
 @pytest_asyncio.fixture(scope='function')
+async def config_service(home: pathlib.Path):
+    config_file = home.joinpath('kaso-test.config')
+    try:
+        config_file.write_text(f'''
+        path: {home}
+        images_path: {home.joinpath('images')}
+        instances_path: {home.joinpath('instances')}
+        bootstrap_path: {home.joinpath('bootstrap')}
+        ''')
+        yield ConfigService(config_file)
+    finally:
+        config_file.unlink(missing_ok=True)
+
+@pytest_asyncio.fixture(scope='function')
 async def task_service():
     yield TaskService()
 
 @pytest_asyncio.fixture(scope='function')
-async def image_repository(async_session_maker, task_service) -> ImageRepository:
-    return ImageRepository(async_session_maker, task_service)
+async def image_repository(async_session_maker, config_service, task_service) -> ImageRepository:
+    return ImageRepository(async_session_maker, config_service, task_service)
 
 @pytest_asyncio.fixture(scope='function')
-async def disk_repository(async_session_maker, task_service) -> DiskRepository:
-    return DiskRepository(async_session_maker, task_service)
+async def disk_repository(async_session_maker, config_service, task_service) -> DiskRepository:
+    return DiskRepository(async_session_maker, config_service, task_service)
 
 @pytest_asyncio.fixture(scope='function')
-async def network_repository(async_session_maker, task_service) -> NetworkRepository:
-    return NetworkRepository(async_session_maker, task_service)
+async def network_repository(async_session_maker, config_service, task_service) -> NetworkRepository:
+    return NetworkRepository(async_session_maker, config_service, task_service)
+
+@pytest_asyncio.fixture(scope='function')
+async def bootstrap_repository(async_session_maker, config_service, task_service) -> BootstrapRepository:
+    return BootstrapRepository(async_session_maker, config_service, task_service)
 
 @pytest_asyncio.fixture(scope='function')
 async def image_seed(home: pathlib.Path,

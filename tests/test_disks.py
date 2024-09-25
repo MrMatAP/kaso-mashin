@@ -1,15 +1,14 @@
-import pathlib
-import uuid
-
 import pytest
 from conftest import qemu_img_available
+
+import pathlib
+import uuid
 
 from kaso_mashin.common import (
     EntityNotFoundException, EntityInvariantException,
     BinarySizedValue, BinaryScale,
     Disk, DiskRepository, DiskFormat,
-    Image
-)
+    Image)
 
 
 @pytest.mark.skipif(not qemu_img_available(), reason='qemu-img binary is not available')

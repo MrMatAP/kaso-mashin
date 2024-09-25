@@ -9,9 +9,8 @@ import rich.table
 import rich.box
 
 from kaso_mashin import console
-from kaso_mashin.common.config import Config
 from kaso_mashin.common.schema import ExceptionSchema
-from kaso_mashin.common import EntitySchema, T_EntityListSchema, T_EntityGetSchema
+from kaso_mashin.common import EntitySchema, T_EntityListSchema, T_EntityGetSchema, ConfigService
 
 
 class BaseCommands(typing.Generic[T_EntityListSchema, T_EntityGetSchema], abc.ABC):
@@ -19,8 +18,8 @@ class BaseCommands(typing.Generic[T_EntityListSchema, T_EntityGetSchema], abc.AB
     An abstract base class for command groups
     """
 
-    def __init__(self, config: Config):
-        self._config: Config = config
+    def __init__(self, config: ConfigService):
+        self._config: ConfigService = config
         self._prefix: str
         self._list_schema_type: typing.Type[T_EntityListSchema]
         self._get_schema_type: typing.Type[T_EntityGetSchema]
@@ -85,7 +84,7 @@ class BaseCommands(typing.Generic[T_EntityListSchema, T_EntityGetSchema], abc.AB
         return self._logger
 
     @property
-    def config(self) -> Config:
+    def config(self) -> ConfigService:
         return self._config
 
     @property

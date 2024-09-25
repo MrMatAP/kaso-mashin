@@ -6,7 +6,7 @@ import fastapi
 from kaso_mashin.common import Repository
 from kaso_mashin.server.apis import BaseAPI
 from kaso_mashin.server.runtime import Runtime
-from kaso_mashin.common.domain import BootstrapEntity
+from kaso_mashin.common.domain import Bootstrap
 from kaso_mashin.common.schema import BootstrapGetSchema, BootstrapListSchema, \
     BootstrapCreateSchema, BootstrapModifySchema
 
@@ -40,7 +40,7 @@ class BootstrapAPI(
     async def create(
         self, schema: BootstrapCreateSchema, background_tasks: fastapi.BackgroundTasks
     ) -> BootstrapGetSchema:
-        entity = await BootstrapEntity.create(
+        entity = await Bootstrap.create(
             name=schema.name, kind=schema.kind, content=schema.content
         )
         return BootstrapGetSchema.model_validate(entity)
@@ -58,6 +58,6 @@ class BootstrapAPI(
         schema: BootstrapModifySchema,
         background_tasks: fastapi.BackgroundTasks,
     ) -> BootstrapGetSchema:
-        entity: BootstrapEntity = await self.repository.get_by_uid(uid)
+        entity: Bootstrap = await self.repository.get_by_uid(uid)
         await entity.modify(name=schema.name, kind=schema.kind, content=schema.content)
         return BootstrapGetSchema.model_validate(entity)

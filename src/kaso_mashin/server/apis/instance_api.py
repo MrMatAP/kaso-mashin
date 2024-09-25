@@ -12,7 +12,7 @@ from kaso_mashin.server.apis import BaseAPI
 from kaso_mashin.server.runtime import Runtime
 from kaso_mashin.common.schema import ExceptionSchema, InstanceCreateSchema, InstanceGetSchema, \
     InstanceListSchema, InstanceModifySchema, TaskGetSchema
-from kaso_mashin.common.domain import BootstrapEntity, Image, InstanceEntity, Network
+from kaso_mashin.common.domain import Bootstrap, Image, InstanceEntity, Network
 from kaso_mashin.common.services import Task
 
 
@@ -54,7 +54,7 @@ class InstanceAPI(
             network: Network = await Network.repository.get_by_uid(
                 UniqueIdentifier(schema.network_uid)
             )
-            bootstrap: BootstrapEntity = await BootstrapEntity.repository.get_by_uid(
+            bootstrap: Bootstrap = await Bootstrap.repository.get_by_uid(
                 UniqueIdentifier(schema.bootstrap_uid)
             )
             task = await Task.create(name=f"Creating instance {schema.name}")

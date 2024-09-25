@@ -13,10 +13,10 @@ from kaso_mashin.cli.commands import BaseCommands
 from kaso_mashin.common.base import (
     UniqueIdentifier,
 )
-from kaso_mashin.common import BinaryScale, BinarySizedValue, TaskState
+from kaso_mashin.common import BinaryScale, BinarySizedValue, TaskState, ConfigService, \
+    PredefinedImageSchema, Predefined_Images
 from kaso_mashin.common.schema import ImageCreateSchema, ImageGetSchema, ImageListSchema, \
     ImageModifySchema, TaskGetSchema
-from kaso_mashin.common.config import Predefined_Images, Config, PredefinedImageSchema
 
 
 class ImageCommands(BaseCommands[ImageListSchema, ImageGetSchema]):
@@ -24,7 +24,7 @@ class ImageCommands(BaseCommands[ImageListSchema, ImageGetSchema]):
     Implementation of the image command group
     """
 
-    def __init__(self, config: Config):
+    def __init__(self, config: ConfigService):
         super().__init__(config)
         self._prefix = "/api/images"
         self._list_schema_type = ImageListSchema

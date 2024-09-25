@@ -4,8 +4,7 @@ import ipaddress
 
 from kaso_mashin import console
 from kaso_mashin.cli.commands import BaseCommands
-from kaso_mashin.common.config import Config
-from kaso_mashin.common import NetworkKind
+from kaso_mashin.common import NetworkKind, ConfigService
 from kaso_mashin.common.schema import NetworkCreateSchema, NetworkGetSchema, NetworkListSchema, \
     NetworkModifySchema
 
@@ -15,7 +14,7 @@ class NetworkCommands(BaseCommands[NetworkListSchema, NetworkGetSchema]):
     Implementation of the network command group
     """
 
-    def __init__(self, config: Config):
+    def __init__(self, config: ConfigService):
         super().__init__(config)
         self._prefix = "/api/networks"
         self._list_schema_type = NetworkListSchema

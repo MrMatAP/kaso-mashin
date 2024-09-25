@@ -1,18 +1,5 @@
 import enum
 
-from .base import BinarySizedValue, BinaryScale
-
-DEFAULT_K8S_MASTER_TEMPLATE_NAME = "default_k8s_master"
-DEFAULT_K8S_SLAVE_TEMPLATE_NAME = "default_k8s_slave"
-DEFAULT_MIN_VCPU = 0
-DEFAULT_MIN_RAM = BinarySizedValue(0, BinaryScale.G)
-DEFAULT_MIN_DISK = BinarySizedValue(0, BinaryScale.G)
-DEFAULT_MAC_PREFIX = "00:50:56"
-DEFAULT_HOST_NETWORK_NAME = "default_host_network"
-DEFAULT_BRIDGED_NETWORK_NAME = "default_bridged_network"
-DEFAULT_SHARED_NETWORK_NAME = "default_shared_network"
-
-
 class IdentityKind(enum.StrEnum):
     PUBKEY = "pubkey"
     PASSWORD = "password"

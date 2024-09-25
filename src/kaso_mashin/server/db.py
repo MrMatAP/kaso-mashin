@@ -6,8 +6,7 @@ from sqlalchemy import Engine, create_engine
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 
 from kaso_mashin import Base
-from kaso_mashin.common import Model
-from kaso_mashin.common.config import Config
+from kaso_mashin.common import Model, ConfigService
 
 
 class DB:
@@ -15,7 +14,7 @@ class DB:
     Persistence for kaso_mashin
     """
 
-    def __init__(self, config: Config):
+    def __init__(self, config: ConfigService):
         self._config = config
         self._engine = None
         self._session = None

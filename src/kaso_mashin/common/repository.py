@@ -6,7 +6,7 @@ from sqlalchemy.exc import SQLAlchemyError
 
 from kaso_mashin.common import Repository, BinaryScale, BinarySizedValue, UniqueIdentifier, \
     KasoMashinException
-from kaso_mashin.common.domain import BootstrapEntity, Disk, Identity, Image, \
+from kaso_mashin.common.domain import Bootstrap, Disk, Identity, Image, \
     InstanceEntity, Network
 from kaso_mashin.common.model import BootstrapModel, DiskModel, IdentityModel, ImageModel, \
     InstanceModel, NetworkModel
@@ -143,21 +143,21 @@ class NetworkRepository(Repository[Network, NetworkModel]):
         return model
 
 
-class BootstrapRepository(Repository[BootstrapEntity, BootstrapModel]):
+class BootstrapRepository(Repository[Bootstrap, BootstrapModel]):
     """
     A repository of bootstraps
     """
-    entity_class = BootstrapEntity
+    entity_class = Bootstrap
     model_class = BootstrapModel
 
     @classmethod
-    async def from_model(cls, model: BootstrapModel, *args, **kwargs) -> BootstrapEntity:
+    async def from_model(cls, model: BootstrapModel, *args, **kwargs) -> Bootstrap:
         kwargs['kind'] = model.kind
         kwargs['content'] = model.content
         return await super().from_model(model, *args, **kwargs)
 
     @classmethod
-    async def to_model(cls, entity: BootstrapEntity, persisted: BootstrapModel | None = None) -> BootstrapModel:
+    async def to_model(cls, entity: Bootstrap, persisted: BootstrapModel | None = None) -> BootstrapModel:
         model = await super().to_model(entity, persisted)
         model.kind = entity.kind
         model.content = entity.content

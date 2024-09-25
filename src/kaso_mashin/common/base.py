@@ -70,6 +70,7 @@ class Entity:
     Base class for all domain entities.
     """
     repository: typing.ClassVar['Repository']
+    config_service: typing.ClassVar['ConfigService']
     task_service: typing.ClassVar['TaskService']
 
     def __init__(self, name: str):
@@ -172,6 +173,7 @@ class Repository(typing.Generic[T_Entity, T_Model], abc.ABC):
 
     def __init__(self,
                  session_maker: sqlalchemy.ext.asyncio.async_sessionmaker,
+                 config_service: 'ConfigService',
                  task_service: 'TaskService') -> None:
         if self.entity_class is None:
             raise KasoMashinException(status=500, msg='Misconfigured DDDRepository without entity')
@@ -180,6 +182,7 @@ class Repository(typing.Generic[T_Entity, T_Model], abc.ABC):
         self._session_maker = session_maker
         self._identity_map: typing.Dict[UniqueIdentifier, T_Entity] = {}
         self.entity_class.repository = self
+        self.entity_class.config_service = config_service
         self.entity_class.task_service = task_service
 
     async def get_by_uid(self, uid: UniqueIdentifier) -> T_Entity:

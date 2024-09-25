@@ -11,17 +11,15 @@ import getpass
 import httpx
 import aiofiles
 
-from kaso_mashin.common.config import Config
 from kaso_mashin.server.db import DB
 
-from kaso_mashin.common.types import DEFAULT_K8S_MASTER_TEMPLATE_NAME, \
-    DEFAULT_K8S_SLAVE_TEMPLATE_NAME, DEFAULT_HOST_NETWORK_NAME, DEFAULT_BRIDGED_NETWORK_NAME, \
-    DEFAULT_SHARED_NETWORK_NAME
 from kaso_mashin.common.repository import BootstrapRepository, DiskRepository, IdentityRepository, \
     ImageRepository, InstanceRepository, NetworkRepository
-from kaso_mashin.common.domain import BootstrapEntity, Disk, Identity, \
+from kaso_mashin.common.domain import Bootstrap, Disk, Identity, \
     Image, InstanceEntity, Network
-from kaso_mashin.common import NetworkKind, BootstrapKind
+from kaso_mashin.common import NetworkKind, BootstrapKind, ConfigService, \
+    DEFAULT_K8S_MASTER_TEMPLATE_NAME, DEFAULT_K8S_SLAVE_TEMPLATE_NAME, DEFAULT_HOST_NETWORK_NAME, \
+    DEFAULT_BRIDGED_NETWORK_NAME, DEFAULT_SHARED_NETWORK_NAME
 from kaso_mashin.common.model import BootstrapModel, DiskModel, IdentityModel, ImageModel, \
     InstanceModel, NetworkModel
 from kaso_mashin.common.services import QEMUService, EventService, Task, TaskService
@@ -32,7 +30,7 @@ class Runtime:
     A generic runtime holding objects we intend to exist as singletons
     """
 
-    def __init__(self, config: Config, db: DB):
+    def __init__(self, config: ConfigService, db: DB):
         self._logger = logging.getLogger(f"{self.__class__.__module__}.{self.__class__.__name__}")
         self._config = config
         self._db = db
@@ -79,7 +77,7 @@ class Runtime:
         )
         if ignition_k8s_master is None:
             ignition_k8s_master_template = template_dir / "ignition_k8s_master.yaml"
-            await BootstrapEntity.create(
+            await Bootstrap.create(
                 name=DEFAULT_K8S_MASTER_TEMPLATE_NAME,
                 kind=BootstrapKind.IGNITION,
                 content=ignition_k8s_master_template.read_text(encoding="utf-8"),
@@ -89,7 +87,7 @@ class Runtime:
         )
         if ignition_k8s_slave is None:
             ignition_k8s_slave_template = template_dir / "ignition_k8s_slave.yaml"
-            await BootstrapEntity.create(
+            await Bootstrap.create(
                 name=DEFAULT_K8S_SLAVE_TEMPLATE_NAME,
                 kind=BootstrapKind.IGNITION,
                 content=ignition_k8s_slave_template.read_text(encoding="utf-8"),
@@ -170,7 +168,7 @@ class Runtime:
         self._bootstrap_repository = BootstrapRepository(
             runtime=self,
             session_maker=await self._db.async_sessionmaker,
-            aggregate_root_class=BootstrapEntity,
+            aggregate_root_class=Bootstrap,
             model_class=BootstrapModel,
         )
         self._identity_repository = IdentityRepository(
@@ -221,7 +219,7 @@ class Runtime:
         return self._qemu_service
 
     @property
-    def config(self) -> Config:
+    def config(self) -> ConfigService:
         return self._config
 
     @property

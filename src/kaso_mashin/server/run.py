@@ -19,10 +19,10 @@ from kaso_mashin import (
     console,
     __log_config__,
 )
-from kaso_mashin.common.config import Config, CLIArgumentsHolder
 from kaso_mashin.common.exceptions import KasoMashinException
 from kaso_mashin.common.schema import ExceptionSchema
-from kaso_mashin.common import EntityNotFoundException, EntityInvariantException
+from kaso_mashin.common import EntityNotFoundException, EntityInvariantException, \
+    CLIArgumentsHolder, ConfigService
 from kaso_mashin.server.db import DB
 from kaso_mashin.server.runtime import Runtime
 from kaso_mashin.server.apis import (
@@ -161,7 +161,7 @@ def main(args: typing.Optional[typing.List] = None) -> int:
     Returns:
         An exit code. 0 when successful, non-zero otherwise
     """
-    config = Config()
+    config = ConfigService()
     db = DB(config)
     runtime = Runtime(config=config, db=db)
 

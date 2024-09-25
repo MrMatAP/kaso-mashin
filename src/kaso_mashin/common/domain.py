@@ -2,6 +2,7 @@ import asyncio
 
 import ipaddress
 import pathlib
+import tempfile
 import re
 import shutil
 import subprocess
@@ -13,39 +14,29 @@ import httpx
 import jinja2
 import jinja2.meta
 
+from .base import (
+    UniqueIdentifier,
+    BinaryScale, BinarySizedValue,
+    Entity, AggregateRoot
+)
 from .types import (
-    BinaryScale,
-    BinarySizedValue,
     IdentityKind,
     DiskFormat,
     NetworkKind,
-    BootstrapKind, \
-    InstanceState)
+    BootstrapKind,
+    InstanceState,
+    TaskState
+)
 from .exceptions import (
     EntityInvariantException,
-    EntityNotFoundException,
     BootstrapException,
     DiskException,
     ImageException,
     InstanceException
 )
-from .base import (
-    UniqueIdentifier,
-    Entity,
-    AggregateRoot
-)
 from .model import InstanceModel
-from .schema import (
-    DiskModifySchema,
-    ImageModifySchema,
-    InstanceModifySchema,
-    NetworkModifySchema
-)
-
-from kaso_mashin.common.types import DEFAULT_MIN_VCPU, DEFAULT_MIN_RAM, DEFAULT_MIN_DISK, \
-    DEFAULT_MAC_PREFIX
-from .services import Task
-from . import TaskState
+from .schema import InstanceModifySchema
+from .services import DEFAULT_MAC_PREFIX, Task
 
 
 class Identity(AggregateRoot):
@@ -108,8 +99,7 @@ class Identity(AggregateRoot):
             self._gecos == other.gecos,
             self._homedir == other.homedir,
             self._shell == other.shell,
-            self._credential == other.credential
-        ])
+            self._credential == other.credential])
 
 
 class Image(AggregateRoot):
@@ -298,24 +288,26 @@ class Disk(AggregateRoot):
             class CreateDiskTask(Task):
                 async def run(self,
                               path: pathlib.Path,
+                              qemu_img_path: pathlib.Path,
                               size: BinarySizedValue,
                               disk_format: DiskFormat,
                               image: Image) -> None:
                     try:
-                        args = ["/opt/homebrew/bin/qemu-img", "create", "-q", "-f", str(disk_format)]
+                        args = [qemu_img_path, "create", "-q", "-f", str(disk_format)]
                         if image is not None:
                             args.extend(["-F", str(disk_format), "-b", str(image.path)])
                         args.extend([str(path), str(size)])
                         subprocess.run(args, check=True)
                         await self.done('Disk created')
                     except subprocess.CalledProcessError as cpe:
-                        await self.fail(f'Failed to create disk: {cpe}')
+                        await self.fail(f'Failed to create disk: {cpe.output}')
                     except asyncio.CancelledError:
                         self._state = TaskState.CANCELLED
                         path.unlink(missing_ok=True)
 
             t = self.task_service.create(CreateDiskTask(name=f'Create Disk {self.name}'),
                                          path=self.path,
+                                         qemu_img_path=self.config_service.qemu_img_path,
                                          size=self.size,
                                          disk_format=self.disk_format,
                                          image=self.image)
@@ -332,12 +324,13 @@ class Disk(AggregateRoot):
             class ResizeTask(Task):
                 async def run(self,
                               path: pathlib.Path,
+                              qemu_img_path: pathlib.Path,
                               disk_format: DiskFormat,
                               current: BinarySizedValue,
                               new: BinarySizedValue):
                     try:
                         await super().run()
-                        args = ["/opt/homebrew/bin/qemu-img", "resize", "-q", "-f", str(disk_format)]
+                        args = [qemu_img_path, "resize", "-q", "-f", str(disk_format)]
                         if current > new:
                             args.append("--shrink")
                         args += [str(path), str(new)]
@@ -353,6 +346,7 @@ class Disk(AggregateRoot):
             if current_size != self._size:
                 t = self.task_service.create(ResizeTask(name=f'Resize disk {self.name}'),
                                              path=self.path,
+                                             qemu_img_path=self.config_service.qemu_img_path,
                                              disk_format=self.disk_format,
                                              current=current_size,
                                              new=self._size)
@@ -458,7 +452,7 @@ class Network(AggregateRoot):
         return await super().pre_remove()
 
 
-class BootstrapEntity(Entity):
+class Bootstrap(AggregateRoot):
     """
     Domain model entity for bootstrap
     """
@@ -466,7 +460,10 @@ class BootstrapEntity(Entity):
     def __init__(self, name: str, kind: BootstrapKind, content: str):
         super().__init__(name)
         self._kind = kind
-        self.content = content
+        self._content = content
+        self._template = jinja2.Environment(enable_async=True).from_string(content)
+        ast = jinja2.Environment().parse(self._content)
+        self._required_keys = jinja2.meta.find_undeclared_variables(ast)
 
     @property
     def kind(self) -> BootstrapKind:
@@ -490,51 +487,51 @@ class BootstrapEntity(Entity):
 
     async def render(self, kv: typing.Dict[str, typing.Any], bootstrap_file: pathlib.Path):
         try:
+            if bootstrap_file.exists():
+                raise EntityInvariantException(status=400, msg=f'Bootstrap file at {bootstrap_file} already exists')
+            bootstrap_file.parent.mkdir(parents=True, exist_ok=True)
+
+            class ButaneRenderTask(Task):
+                async def run(self,
+                              path: pathlib.Path,
+                              content: str,
+                              butane_path: pathlib.Path) -> None:
+                    try:
+                        await super().run()
+                        with tempfile.TemporaryFile(mode='w', encoding='UTF-8') as source:
+                            source.write(content)
+                            args = [butane_path, '-p', '-o', source, path]
+                            subprocess.run(args, check=True)
+                        await self.done('Bootstrap successfully rendered via butane')
+                    except subprocess.CalledProcessError as e:
+                        await self.fail(f'Failed to render via butane: {e.output}')
+                    except asyncio.CancelledError:
+                        self._state = TaskState.CANCELLED
+                        path.unlink(missing_ok=True)
+
             rendered = await self._template.render_async(kv)
             if self.kind == BootstrapKind.IGNITION:
-                bootstrap_file_source = bootstrap_file.parent.joinpath("bootstrap.yaml")
-                bootstrap_file_source.write_text(rendered)
-                args = [
-                    self.runtime.config.butane_path,
-                    "-p",
-                    "-o",
-                    bootstrap_file,
-                    bootstrap_file_source,
-                ]
-                subprocess.run(args, check=True)
+                t = self.task_service.create(ButaneRenderTask(name=f'Butane render bootstrap {self.name}'),
+                                             path=bootstrap_file,
+                                             content=rendered,
+                                             butane_path=self.config_service.butane_path)
+                await t.task
             else:
                 bootstrap_file.write_text(rendered, encoding="utf-8")
+            await super().post_create()
         except jinja2.TemplateError as te:
             raise BootstrapException(status=400, msg="Templating error") from te
-        except subprocess.CalledProcessError as e:
-            raise BootstrapException(status=500, msg="Failed to render bootstrap") from e
-        except Exception as e:
-            raise BootstrapException(status=500, msg="Unknown error") from e
 
-    def __eq__(self, other: "BootstrapEntity") -> bool:
-        return all(
-            [
-                super().__eq__(other),
-                self.name == other.name,
-                self.kind == other.kind,
-                self.content == other.content,
-            ]
-        )
+    def __eq__(self, other: "Bootstrap") -> bool:
+        return all([
+            super().__eq__(other),
+            self.name == other.name,
+            self.kind == other.kind,
+            self.content == other.content])
 
-    @staticmethod
-    async def create(name: str, kind: BootstrapKind, content: str) -> "BootstrapEntity":
-        bootstrap = BootstrapEntity(name=name, kind=kind, content=content)
-        await BootstrapEntity.repository.create(bootstrap)
-        return bootstrap
-
-    async def modify(self, name: str, kind=kind, content=content):
-        self._name = name
-        self._kind = kind
-        self._content = content
-        await self.repository.modify(self)
-
-    async def remove(self):
-        await self.repository.remove(self)
+    async def pre_remove(self) -> None:
+        # TODO: Check if we have any instances using this bootstrap
+        return await super().pre_remove()
 
 
 class InstanceEntity(Entity):
@@ -553,7 +550,7 @@ class InstanceEntity(Entity):
             image: Image,
             os_disk: Disk,
             network: Network,
-            bootstrap: BootstrapEntity,
+            bootstrap: Bootstrap,
             bootstrap_file: pathlib.Path,
     ):
         super().__init__(name)
@@ -632,7 +629,7 @@ class InstanceEntity(Entity):
 
     # TODO: Consider replacing this in favour of bootstrap_uid
     @property
-    def bootstrap(self) -> BootstrapEntity:
+    def bootstrap(self) -> Bootstrap:
         return self._bootstrap
 
     # TODO: Consider moving this into bootstrap
@@ -670,7 +667,7 @@ class InstanceEntity(Entity):
         image = await Image.repository.get_by_uid(UniqueIdentifier(model.image_uid))
         os_disk = await Disk.repository.get_by_uid(UniqueIdentifier(model.os_disk_uid))
         network = await Network.repository.get_by_uid(UniqueIdentifier(model.network_uid))
-        bootstrap = await BootstrapEntity.repository.get_by_uid(
+        bootstrap = await Bootstrap.repository.get_by_uid(
             UniqueIdentifier(model.bootstrap_uid)
         )
 
@@ -742,7 +739,7 @@ class InstanceEntity(Entity):
             image: Image,
             os_disk_size: BinarySizedValue,
             network: Network,
-            bootstrap: BootstrapEntity,
+            bootstrap: Bootstrap,
     ) -> "InstanceEntity":
         if path.exists():
             raise InstanceException(

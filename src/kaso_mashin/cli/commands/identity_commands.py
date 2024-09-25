@@ -6,10 +6,9 @@ import passlib.hash
 
 from kaso_mashin import console
 from kaso_mashin.cli.commands import BaseCommands
-from kaso_mashin.common.config import Config
 from kaso_mashin.common.schema import IdentityCreateSchema, IdentityGetSchema, IdentityListSchema, \
     IdentityModifySchema
-from kaso_mashin.common import IdentityKind
+from kaso_mashin.common import IdentityKind, ConfigService
 
 
 class IdentityCommands(BaseCommands[IdentityListSchema, IdentityGetSchema]):
@@ -17,7 +16,7 @@ class IdentityCommands(BaseCommands[IdentityListSchema, IdentityGetSchema]):
     Implementation of the identity command group
     """
 
-    def __init__(self, config: Config):
+    def __init__(self, config: ConfigService):
         super().__init__(config)
         self._prefix = "/api/identities"
         self._list_schema_type = IdentityListSchema

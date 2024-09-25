@@ -1,7 +1,7 @@
 import fastapi
 
 from kaso_mashin.server.runtime import Runtime
-from kaso_mashin.common.config import ConfigSchema
+from kaso_mashin.common import ConfigSchema
 
 
 class ConfigAPI:
