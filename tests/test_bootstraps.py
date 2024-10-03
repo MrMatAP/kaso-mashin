@@ -38,3 +38,9 @@ async def test_bootstrap_create(bootstrap_repository: BootstrapRepository):
     assert not bootstrap.dirty
     assert len(bootstrap.required_keys) == 1
     assert 'name' in bootstrap.required_keys
+    loaded = await bootstrap_repository.get_by_uid(bootstrap.uid, reload = True)
+    assert loaded == bootstrap
+    assert not loaded.dirty
+    assert len(await bootstrap_repository.list()) == 1
+    await bootstrap_repository.remove(bootstrap)
+    assert len(await bootstrap_repository.list()) == 0

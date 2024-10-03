@@ -95,11 +95,11 @@ class Identity(AggregateRoot):
     def __eq__(self, other: typing.Any) -> bool:
         return all([
             super().__eq__(other),
-            self._kind == other.kind,
-            self._gecos == other.gecos,
-            self._homedir == other.homedir,
-            self._shell == other.shell,
-            self._credential == other.credential])
+            self.kind == other.kind,
+            self.gecos == other.gecos,
+            self.homedir == other.homedir,
+            self.shell == other.shell,
+            self.credential == other.credential])
 
 
 class Image(AggregateRoot):
@@ -534,7 +534,7 @@ class Bootstrap(AggregateRoot):
         return await super().pre_remove()
 
 
-class InstanceEntity(Entity):
+class Instance(AggregateRoot):
     """
     Domain model entity for an instance
     """
@@ -642,7 +642,7 @@ class InstanceEntity(Entity):
     def uefi_vars(self) -> pathlib.Path:
         return self._uefi_vars
 
-    def __eq__(self, other: "InstanceEntity") -> bool:
+    def __eq__(self, other: "Instance") -> bool:
         return all(
             [
                 super().__eq__(other),
@@ -662,7 +662,7 @@ class InstanceEntity(Entity):
         )
 
     @staticmethod
-    async def from_model(model: InstanceModel) -> "InstanceEntity":
+    async def from_model(model: InstanceModel) -> "Instance":
         # TODO: Internal consistency. This will fail if the disk is dead
         image = await Image.repository.get_by_uid(UniqueIdentifier(model.image_uid))
         os_disk = await Disk.repository.get_by_uid(UniqueIdentifier(model.os_disk_uid))
@@ -671,7 +671,7 @@ class InstanceEntity(Entity):
             UniqueIdentifier(model.bootstrap_uid)
         )
 
-        entity = InstanceEntity(
+        entity = Instance(
             name=model.name,
             path=pathlib.Path(model.path),
             uefi_code=pathlib.Path(model.uefi_code),
@@ -740,7 +740,7 @@ class InstanceEntity(Entity):
             os_disk_size: BinarySizedValue,
             network: Network,
             bootstrap: Bootstrap,
-    ) -> "InstanceEntity":
+    ) -> "Instance":
         if path.exists():
             raise InstanceException(
                 status=400, msg=f"Instance path at {path} already exists", task=task
@@ -766,7 +766,7 @@ class InstanceEntity(Entity):
             bootstrap_file = path / "bootstrap.json"
             await bootstrap.render(bootstrap_file=bootstrap_file, kv={"name": name})
 
-            entity = InstanceEntity(
+            entity = Instance(
                 name=name,
                 path=path,
                 uefi_code=instance_uefi_code,
@@ -780,7 +780,7 @@ class InstanceEntity(Entity):
                 bootstrap_file=bootstrap_file,
             )
 
-            outcome = await InstanceEntity.repository.create(entity)
+            outcome = await Instance.repository.create(entity)
             await task.done(msg="Successfully created", outcome=outcome.uid)
             return outcome
         except Exception as e:
@@ -813,4 +813,4 @@ class InstanceEntity(Entity):
     async def remove(self):
         await self.stop()
         shutil.rmtree(self.path)
-        await InstanceEntity.repository.remove(self)
+        await Instance.repository.remove(self)

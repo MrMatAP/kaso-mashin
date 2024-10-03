@@ -16,7 +16,7 @@ from kaso_mashin.server.db import DB
 from kaso_mashin.common.repository import BootstrapRepository, DiskRepository, IdentityRepository, \
     ImageRepository, InstanceRepository, NetworkRepository
 from kaso_mashin.common.domain import Bootstrap, Disk, Identity, \
-    Image, InstanceEntity, Network
+    Image, Instance, Network
 from kaso_mashin.common import NetworkKind, BootstrapKind, ConfigService, \
     DEFAULT_K8S_MASTER_TEMPLATE_NAME, DEFAULT_K8S_SLAVE_TEMPLATE_NAME, DEFAULT_HOST_NETWORK_NAME, \
     DEFAULT_BRIDGED_NETWORK_NAME, DEFAULT_SHARED_NETWORK_NAME
@@ -162,7 +162,7 @@ class Runtime:
         self._instance_repository = InstanceRepository(
             runtime=self,
             session_maker=await self._db.async_sessionmaker,
-            aggregate_root_class=InstanceEntity,
+            aggregate_root_class=Instance,
             model_class=InstanceModel,
         )
         self._bootstrap_repository = BootstrapRepository(

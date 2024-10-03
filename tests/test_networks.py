@@ -29,6 +29,12 @@ async def test_network_create(network_repository: NetworkRepository):
     assert net.dirty
     await net.save()
     assert not net.dirty
+    loaded = await network_repository.get_by_uid(net.uid, reload=True)
+    assert loaded == net
+    assert not loaded.dirty
+    assert len(await network_repository.list()) == 1
+    await network_repository.remove(net)
+    assert len(await network_repository.list()) == 0
 
 @pytest.mark.asyncio
 async def test_network_create_duplicate_raises(network_seed: Network,

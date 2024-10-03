@@ -1,5 +1,5 @@
 import pytest
-from conftest import qemu_img_available
+from conftest import qemu_img_available, disk_repository
 
 import pathlib
 import uuid
@@ -40,6 +40,9 @@ async def test_disk_create(home: pathlib.Path, disk_repository: DiskRepository):
     assert disk.path == disk_path
     assert disk.size == BinarySizedValue(1, BinaryScale.M)
     assert len(await disk_repository.list()) == 1
+    loaded = await disk_repository.get_by_uid(disk.uid, reload=True)
+    assert disk == loaded
+    assert len(await disk_repository.list()) == 1
     await disk_repository.remove(disk)
     assert len(await disk_repository.list()) == 0
 
@@ -64,7 +67,9 @@ async def test_disk_create_from_image(home: pathlib.Path,
     assert disk.size == BinarySizedValue(1, BinaryScale.M)
     assert disk.image == image_seed
     assert disk in image_seed.disks
-
+    loaded = await disk_repository.get_by_uid(disk.uid, reload=True)
+    assert loaded == disk
+    assert not loaded.dirty
     assert len(await disk_repository.list()) == 1
     await disk_repository.remove(disk)
     assert len(await disk_repository.list()) == 0
@@ -78,7 +83,8 @@ async def test_disk_create_duplicate_raises(disk_seed: Disk):
 
 @pytest.mark.skipif(not qemu_img_available(), reason='qemu-img is not available')
 @pytest.mark.asyncio
-async def test_disk_grow(disk_seed: Disk):
+async def test_disk_grow(disk_seed: Disk,
+                         disk_repository: DiskRepository):
     assert disk_seed.size == BinarySizedValue(1, BinaryScale.M)
     disk_seed.size = BinarySizedValue(2, BinaryScale.M)
     assert disk_seed.dirty
@@ -86,12 +92,17 @@ async def test_disk_grow(disk_seed: Disk):
     assert not disk_seed.dirty
     actual_size = BinarySizedValue(disk_seed.path.stat().st_size, BinaryScale.b)
     assert actual_size.at_scale(BinaryScale.M) == disk_seed.size
+    loaded = await disk_repository.get_by_uid(disk_seed.uid, reload=True)
+    assert loaded == disk_seed
 
 @pytest.mark.skipif(not qemu_img_available(), reason='qemu-img is not available')
 @pytest.mark.asyncio
-async def test_disk_shrink(disk_seed: Disk):
+async def test_disk_shrink(disk_seed: Disk,
+                           disk_repository: DiskRepository):
     assert disk_seed.size == BinarySizedValue(1, BinaryScale.M)
     disk_seed.size = BinarySizedValue(512, BinaryScale.k)
     await disk_seed.save()
     actual_size = BinarySizedValue(disk_seed.path.stat().st_size, BinaryScale.b)
     assert actual_size.at_scale(BinaryScale.k) == disk_seed.size
+    loaded = await disk_repository.get_by_uid(disk_seed.uid, reload=True)
+    assert loaded == disk_seed

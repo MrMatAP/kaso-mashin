@@ -58,8 +58,8 @@ class Model(DeclarativeBase):
     )
     name: Mapped[str] = mapped_column(String(64))
 
-    def __repr__(self):
-        return f"{self.__class__.__name__}({self.name})"
+    def __repr__(self) -> str:
+        return f'{self.__class__.__name__}(uid={self.uid}, name={self.name})'
 
 
 T_Model = typing.TypeVar("T_Model", bound=Model)
@@ -130,10 +130,9 @@ class Entity:
     def __eq__(self, other: typing.Any) -> bool:
         return all([
             other is not None,
-            isinstance(other, self.__class__),
-            self._uid == other.uid,
-            self._name == other.name
-        ])
+            isinstance(other, type(self)),
+            self.uid == other.uid,
+            self.name == other.name])
 
     def __repr__(self) -> str:
         return f'{self.__class__.__name__}(uid={self._uid}, name={self._name})'
@@ -185,9 +184,9 @@ class Repository(typing.Generic[T_Entity, T_Model], abc.ABC):
         self.entity_class.config_service = config_service
         self.entity_class.task_service = task_service
 
-    async def get_by_uid(self, uid: UniqueIdentifier) -> T_Entity:
+    async def get_by_uid(self, uid: UniqueIdentifier, reload: bool = False) -> T_Entity:
         try:
-            if uid in self._identity_map:
+            if uid in self._identity_map and not reload:
                 return self._identity_map[uid]
             async with self._session_maker() as session:
                 model = await session.get(self.model_class, str(uid))
@@ -264,8 +263,26 @@ class Repository(typing.Generic[T_Entity, T_Model], abc.ABC):
     @classmethod
     @abc.abstractmethod
     async def from_model(cls, model: T_Model, *args, **kwargs) -> T_Entity:
+        """
+        Parse the model into an entity.
+        This is an abstract method that must be implemented specificially for the model and entity
+        the repository is for.
+
+        Subclasses implementing this method must ensure to either set the dunder fields of the
+        entity class or, when using property accessors, explicitly set the objects dirty field
+        to False before returning it.
+
+        Args:
+            model (T_Model): The generic model to parse into an entity
+            *args (): Any arguments to pass on to the entity constructor
+            **kwargs (): Any keyword arguments to pass on to the entity constructor
+
+        Returns:
+            An entity
+        """
         entity = cls.entity_class(name=model.name, *args, **kwargs)
-        entity._uid = UniqueIdentifier(str(entity.uid))
+        entity._uid = UniqueIdentifier(str(model.uid))
+        entity._dirty = False
         return entity
 
     @classmethod

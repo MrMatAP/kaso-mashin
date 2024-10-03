@@ -19,12 +19,10 @@ async def test_image_repository_list(image_repository: ImageRepository):
     images = await image_repository.list()
     assert len(images) == 0
 
-
 @pytest.mark.asyncio
 async def test_image_repository_get_unknown(image_repository: ImageRepository):
     with pytest.raises(EntityNotFoundException, match='\[404\] No such entity could be found'):
         await image_repository.get_by_uid(uuid.uuid4())
-
 
 @pytest.mark.skipif(not qemu_img_available(), reason='qemu-img binary is not available')
 @pytest.mark.asyncio
@@ -32,22 +30,25 @@ async def test_image_create(home: pathlib.Path,
                             image_mock_server: pytest_httpserver.HTTPServer,
                             image_repository: ImageRepository):
     image_path = home.joinpath('images').joinpath('mock.qcow2')
-    img = Image(name='Mock Image',
+    image = Image(name='Test Image',
                 url=image_mock_server.url_for('/image.img'),
                 path=image_path)
-    assert img.dirty
-    await img.save()
-    assert not img.dirty
+    assert image.dirty
+    await image.save()
+    assert not image.dirty
     assert image_path.exists()
     assert image_path.is_file()
     assert image_path.stat().st_size > 0
-    assert img.url == image_mock_server.url_for('/image.img')
-    assert img.path == image_path
-    assert img.min_vcpu == DEFAULT_MIN_VCPU
-    assert img.min_ram == DEFAULT_MIN_RAM
-    assert img.min_disk == DEFAULT_MIN_DISK
+    assert image.url == image_mock_server.url_for('/image.img')
+    assert image.path == image_path
+    assert image.min_vcpu == DEFAULT_MIN_VCPU
+    assert image.min_ram == DEFAULT_MIN_RAM
+    assert image.min_disk == DEFAULT_MIN_DISK
+    loaded = await image_repository.get_by_uid(image.uid, reload=True)
+    assert loaded == image
+    assert not image.dirty
     assert len(await image_repository.list()) == 1
-    await image_repository.remove(img)
+    await image_repository.remove(image)
     assert len(await image_repository.list()) == 0
 
 @pytest.mark.skipif(not qemu_img_available(), reason='qemu-img binary is not available')
@@ -80,6 +81,9 @@ async def test_image_modify(image_seed: Image,
     await image_seed.save()
     assert await image_repository.get_by_uid(image_seed.uid) == image_seed
     assert len(await image_repository.list()) == 1
+
+    loaded = await image_repository.get_by_uid(image_seed.uid, reload=True)
+    assert loaded == image_seed
 
 @pytest.mark.skipif(not qemu_img_available(), reason='qemu-img binary is not available')
 @pytest.mark.asyncio

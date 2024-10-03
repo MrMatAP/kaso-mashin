@@ -1,17 +1,15 @@
 import pathlib
 import ipaddress
 
-from sqlalchemy import UUID, String, select
+from sqlalchemy import select
 from sqlalchemy.exc import SQLAlchemyError
 
 from kaso_mashin.common import Repository, BinaryScale, BinarySizedValue, UniqueIdentifier, \
     KasoMashinException
 from kaso_mashin.common.domain import Bootstrap, Disk, Identity, Image, \
-    InstanceEntity, Network
+    Instance, Network
 from kaso_mashin.common.model import BootstrapModel, DiskModel, IdentityModel, ImageModel, \
     InstanceModel, NetworkModel
-
-
 
 
 class IdentityRepository(Repository[Identity, IdentityModel]):
@@ -29,11 +27,13 @@ class IdentityRepository(Repository[Identity, IdentityModel]):
         entity.homedir = pathlib.Path(model.homedir)
         entity.shell = model.shell
         entity.credential = model.credential
+        entity.dirty = False
         return entity
 
     @classmethod
     async def to_model(cls, entity: Identity, persisted: IdentityModel | None = None) -> IdentityModel:
         model = await super().to_model(entity, persisted)
+        model.kind = entity.kind
         model.gecos = entity.gecos
         model.homedir = str(entity.homedir)
         model.shell = entity.shell
@@ -59,6 +59,7 @@ class ImageRepository(Repository[Image, ImageModel]):
         if model.disks is not None:
             for disk in model.disks:
                 entity.disks.append(await Disk.repository.get_by_uid(UniqueIdentifier(disk.uid)))
+        entity.dirty = False
         return entity
 
     @classmethod
@@ -130,6 +131,7 @@ class NetworkRepository(Repository[Network, NetworkModel]):
         entity = await super().from_model(model, *args, **kwargs)
         entity.dhcp_start = ipaddress.IPv4Address(model.dhcp_start)
         entity.dhcp_end = ipaddress.IPv4Address(model.dhcp_end)
+        entity.dirty = False
         return entity
 
     @classmethod
@@ -164,21 +166,20 @@ class BootstrapRepository(Repository[Bootstrap, BootstrapModel]):
         return model
 
 
-class InstanceRepository(Repository[InstanceEntity, InstanceModel]):
+class InstanceRepository(Repository[Instance, InstanceModel]):
     """
     A repository of instances
     """
-    entity_class = InstanceEntity
+    entity_class = Instance
     model_class = InstanceModel
 
     @classmethod
-    async def from_model(cls, model: InstanceModel, *args, **kwargs) -> InstanceEntity:
+    async def from_model(cls, model: InstanceModel, *args, **kwargs) -> Instance:
         kwargs['path'] = pathlib.Path(model.path)
         kwargs['uefi_code'] = model.uefi_code
         kwargs['uefi_vars'] = model.uefi_vars
-        entity = await super().from_model(model, *args, **kwargs)
-        return entity
+        return await super().from_model(model, *args, **kwargs)
 
     @classmethod
-    async def to_model(cls, entity: InstanceEntity, persisted: InstanceModel | None = None) -> InstanceModel:
+    async def to_model(cls, entity: Instance, persisted: InstanceModel | None = None) -> InstanceModel:
         pass

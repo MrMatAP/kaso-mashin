@@ -13,6 +13,7 @@
     "lint": "eslint . --fix --ignore-path .gitignore"
   },
   "dependencies": {
+    "@jetbrains/icons": "^4.4.0",
     "@mdi/font": "7.0.96",
     "@novnc/novnc": "^1.5.0",
     "@quasar/extras": "^1.16.11",
@@ -22,7 +23,9 @@
     "@xterm/addon-webgl": "^0.18.0",
     "@xterm/xterm": "^5.5.0",
     "core-js": "^3.37.0",
+    "install": "^0.13.0",
     "mande": "^2.0.8",
+    "npm": "^10.8.3",
     "pinia": "^2.1.7",
     "quasar": "^2.15.4",
     "roboto-fontface": "^0.10.0",
