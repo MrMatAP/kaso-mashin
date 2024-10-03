@@ -174,12 +174,16 @@ class Task:
         self._task = value
 
     async def run(self, *args, **kwargs):
-        self._logger.info(f'Task {self._uid} running: {self._msg}')
+        self._state = 'Task running'
         self._state = TaskState.RUNNING
+        self._logger.info(f'Task {self._uid} running: {self._msg}')
 
     async def cancel(self) -> None:
         if self._task is not None:
             self._task.cancel()
+            self._msg = 'Task cancelled'
+            self._state = TaskState.CANCELLED
+            self._logger.info(f'Task {self._uid} cancelled: {self._msg}')
 
     def __eq__(self, other: typing.Any) -> bool:
         return all(
@@ -193,6 +197,9 @@ class Task:
                 self._percent_complete == other.percent_complete,
             ]
         )
+
+    def __lt__(self, other: typing.Any) -> bool:
+        return self.uid < other.uid
 
     async def progress(self, percent_complete: int, msg: str | None = None) -> None:
         self._percent_complete = percent_complete
