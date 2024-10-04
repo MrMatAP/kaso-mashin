@@ -4,12 +4,28 @@ import ipaddress
 from sqlalchemy import select
 from sqlalchemy.exc import SQLAlchemyError
 
-from kaso_mashin.common import Repository, BinaryScale, BinarySizedValue, UniqueIdentifier, \
-    KasoMashinException
-from kaso_mashin.common.domain import Bootstrap, Disk, Identity, Image, \
-    Instance, Network
-from kaso_mashin.common.model import BootstrapModel, DiskModel, IdentityModel, ImageModel, \
-    InstanceModel, NetworkModel
+from .base import (
+    UniqueIdentifier,
+    BinarySizedValue, BinaryScale,
+    KasoMashinException,
+    Repository,
+)
+from .model import (
+    IdentityModel,
+    ImageModel,
+    DiskModel,
+    NetworkModel,
+    BootstrapModel,
+    InstanceModel
+)
+from .domain import (
+    Identity,
+    Image,
+    Disk,
+    Network,
+    Bootstrap,
+    Instance
+)
 
 
 class IdentityRepository(Repository[Identity, IdentityModel]):
@@ -110,7 +126,7 @@ class NetworkRepository(Repository[Network, NetworkModel]):
     entity_class = Network
     model_class = NetworkModel
 
-    async def get_by_cidr(self, cidr: ipaddress.IPv4Address) -> Network:
+    async def get_by_cidr(self, cidr: ipaddress.IPv4Network) -> Network:
         try:
             nets = list(filter(lambda e: e.cidr == cidr, self._identity_map.values()))
             if len(nets) > 0:

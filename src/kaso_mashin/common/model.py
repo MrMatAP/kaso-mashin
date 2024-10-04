@@ -38,7 +38,6 @@ class ImageModel(Model):
 
     disks: Mapped[Optional[List['DiskModel']]] = relationship(lazy='selectin', back_populates='image')
 
-
 class DiskModel(Model):
     """
     Representation of a disk entity in the database
@@ -53,7 +52,7 @@ class DiskModel(Model):
 
     image_uid: Mapped[Optional[str]] = mapped_column(ForeignKey("images.uid"))
     image: Mapped[Optional[ImageModel]] = relationship(lazy='selectin', back_populates='disks')
-
+    instance: Mapped[Optional['InstanceModel']] = relationship(lazy='selectin', back_populates='disk')
 
 class NetworkModel(Model):
     """
@@ -68,6 +67,8 @@ class NetworkModel(Model):
     dhcp_start: Mapped[str] = mapped_column(String)
     dhcp_end: Mapped[str] = mapped_column(String)
 
+    instances: Mapped[Optional[List['InstanceModel']]] = relationship(lazy='selectin', back_populates='network')
+
 
 class BootstrapModel(Model):
     """
@@ -78,6 +79,9 @@ class BootstrapModel(Model):
     name: Mapped[str] = mapped_column(String(64))
     kind: Mapped[BootstrapKind] = mapped_column(Enum(BootstrapKind))
     content: Mapped[str] = mapped_column(UnicodeText)
+
+    instances: Mapped[Optional[List['InstanceModel']]] = relationship(lazy='selectin', back_populates='bootstrap')
+
 
 
 class InstanceModel(Model):
@@ -94,10 +98,13 @@ class InstanceModel(Model):
     ram: Mapped[int] = mapped_column(Integer, default=2)
     ram_scale: Mapped[str] = mapped_column(Enum(BinaryScale), default=BinaryScale.G)
     mac: Mapped[str] = mapped_column(String)
-    network_uid: Mapped[str] = mapped_column(UUID(as_uuid=True).with_variant(String(32), "sqlite"))
-    image_uid: Mapped[str] = mapped_column(UUID(as_uuid=True).with_variant(String(32), "sqlite"))
-    os_disk_uid: Mapped[str] = mapped_column(UUID(as_uuid=True).with_variant(String(32), "sqlite"))
-    bootstrap_uid: Mapped[str] = mapped_column(
-        UUID(as_uuid=True).with_variant(String(32), "sqlite")
-    )
     bootstrap_file: Mapped[str] = mapped_column(String)
+
+    network_uid: Mapped[str] = mapped_column(ForeignKey("networks.uid"))
+    network: Mapped[NetworkModel] = relationship(lazy='selectin', back_populates='instances')
+    image_uid: Mapped[str] = mapped_column(ForeignKey("images.uid"))
+    image: Mapped[ImageModel] = relationship(lazy='selectin', back_populates='instances')
+    disk_uid: Mapped[str] = mapped_column(ForeignKey("disks.uid"))
+    disk: Mapped[DiskModel] = relationship(lazy='selectin', back_populates='instance')
+    bootstrap_uid: Mapped[str] = mapped_column(ForeignKey("bootstraps.uid"))
+    bootstrap: Mapped[BootstrapModel] = relationship(lazy='selectin', back_populates='instances')

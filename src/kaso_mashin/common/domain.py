@@ -17,7 +17,7 @@ import jinja2.meta
 from .base import (
     UniqueIdentifier,
     BinaryScale, BinarySizedValue,
-    Entity, AggregateRoot
+    AggregateRoot
 )
 from .types import (
     IdentityKind,
@@ -35,6 +35,7 @@ from .exceptions import (
     InstanceException
 )
 from .model import InstanceModel
+from .repository import NetworkRepository, BootstrapRepository
 from .schema import InstanceModifySchema
 from .services import DEFAULT_MAC_PREFIX, Task
 
@@ -235,6 +236,7 @@ class Disk(AggregateRoot):
         self._size = size
         self._disk_format = disk_format
         self._image = image
+        self._instance: 'Instance'
 
     @property
     def path(self) -> pathlib.Path:
@@ -256,6 +258,10 @@ class Disk(AggregateRoot):
     @property
     def image(self) -> Image:
         return self._image
+
+    @property
+    def instance(self) -> 'Instance':
+        return self._instance
 
     def __eq__(self, other: typing.Any) -> bool:
         return all([
@@ -369,7 +375,7 @@ class Disk(AggregateRoot):
                                 msg=f'No permission to remove the disk at {self.path}') from pe
 
 
-class Network(AggregateRoot):
+class Network(AggregateRoot[NetworkRepository]):
     """
     Domain model entity for a network
     """
@@ -390,6 +396,7 @@ class Network(AggregateRoot):
                                            msg='A network must have at least one free IP address')
         self._dhcp_start = cidr.network_address + 2
         self._dhcp_end = cidr.broadcast_address - 1
+        self._instances: typing.List['Instance'] = []
 
     @property
     def kind(self) -> NetworkKind:
@@ -452,7 +459,7 @@ class Network(AggregateRoot):
         return await super().pre_remove()
 
 
-class Bootstrap(AggregateRoot):
+class Bootstrap(AggregateRoot[BootstrapRepository]):
     """
     Domain model entity for bootstrap
     """
