@@ -22,7 +22,12 @@ from .exceptions import KasoMashinException, EntityInvariantException, EntityNot
 # A consistent type for unique identifiers
 
 UniqueIdentifier = uuid.UUID
-
+T_Model = typing.TypeVar("T_Model", bound='Model')
+T_Repository = typing.TypeVar("T_Repository", bound='Repository')
+T_Service = typing.TypeVar("T_Service", bound='Service')
+T_ValueObject = typing.TypeVar("T_ValueObject", bound='ValueObject')
+T_Entity = typing.TypeVar("T_Entity", bound='Entity')
+T_AggregateRoot = typing.TypeVar("T_AggregateRoot", bound='AggregateRoot')
 
 @dataclasses.dataclass(frozen=True)
 class ValueObject(abc.ABC):
@@ -31,7 +36,6 @@ class ValueObject(abc.ABC):
     """
     pass
 
-T_ValueObject = typing.TypeVar("T_ValueObject", bound=ValueObject)
 
 
 class Service(abc.ABC):
@@ -42,7 +46,6 @@ class Service(abc.ABC):
     def __init__(self):
         self._logger = logging.getLogger(f"{self.__class__.__module__}.{self.__class__.__name__}")
 
-T_Service = typing.TypeVar("T_Service", bound=Service)
 
 
 class Model(DeclarativeBase):
@@ -62,14 +65,11 @@ class Model(DeclarativeBase):
         return f'{self.__class__.__name__}(uid={self.uid}, name={self.name})'
 
 
-T_Model = typing.TypeVar("T_Model", bound=Model)
-
-
-class Entity:
+class Entity(typing.Generic[T_Repository]):
     """
     Base class for all domain entities.
     """
-    repository: typing.ClassVar['Repository']
+    repository: 'T_Repository'
     config_service: typing.ClassVar['ConfigService']
     task_service: typing.ClassVar['TaskService']
 
@@ -138,10 +138,9 @@ class Entity:
         return f'{self.__class__.__name__}(uid={self._uid}, name={self._name})'
 
 
-T_Entity = typing.TypeVar("T_Entity", bound=Entity)
 
 
-class AggregateRoot(Entity):
+class AggregateRoot(Entity[T_Repository]):
     """
     An aggregate root class.
     Only aggregate roots have save and remove functions.
@@ -154,9 +153,6 @@ class AggregateRoot(Entity):
 
     async def remove(self) -> None:
         await self.repository.remove(self)
-
-
-T_AggregateRoot = typing.TypeVar("T_AggregateRoot", bound=AggregateRoot)
 
 
 class Repository(typing.Generic[T_Entity, T_Model], abc.ABC):
