@@ -4,22 +4,22 @@ import typing
 import asyncio
 
 from conftest import task_service
-from kaso_mashin.common.services import Task, TaskService
-from kaso_mashin.common import TaskState
+import kaso_mashin
+import kaso_mashin.services
 
 
-class ReporterTask(Task):
-    async def run(self, task_service: TaskService):
+class ReporterTask(kaso_mashin.services.Task):
+    async def run(self, task_service: kaso_mashin.services.TaskService):
         await super().run()
         tasks = list(filter(lambda t: not isinstance(t, self.__class__), task_service.list()))
-        while all([t.state == TaskState.RUNNING for t in tasks]):
+        while all([t.state == kaso_mashin.services.TaskState.RUNNING for t in tasks]):
             for task in tasks:
                 self._logger.info(repr(task))
             await asyncio.sleep(1)
         await self.done()
 
 
-class ProgressTask(Task):
+class ProgressTask(kaso_mashin.services.Task):
     async def run(self):
         try:
             await super().run()
@@ -36,8 +36,8 @@ class ProgressTask(Task):
             self._logger.info(f'Task {self._uid} finalised (in finally): {self._msg}')
 
 
-class CancellerTask(Task):
-    async def run(self, task_to_cancel: Task):
+class CancellerTask(kaso_mashin.services.Task):
+    async def run(self, task_to_cancel: kaso_mashin.services.Task):
         await super().run()
         await asyncio.sleep(1)
         await task_to_cancel.cancel()
@@ -45,24 +45,24 @@ class CancellerTask(Task):
 
 
 @pytest.mark.asyncio
-async def test_task_service(task_service: TaskService):
-    tasks: typing.List[Task] = list()
+async def test_task_service(task_service: kaso_mashin.services.TaskService):
+    tasks: typing.List[kaso_mashin.services.Task] = list()
     for i in range(1, 3):
         tasks.append(task_service.create(ProgressTask(name=f'Progress {i}')))
     tasks.append(task_service.create(CancellerTask(name=f'Canceller 1'), task_to_cancel=tasks[0]))
     tasks.append(task_service.create(ReporterTask(name='Reporter'), task_service=task_service))
     await asyncio.gather(*[t.task for t in tasks])
     assert len(tasks) == len(task_service.list())
-    assert tasks[0].state == TaskState.CANCELLED
+    assert tasks[0].state == kaso_mashin.services.TaskState.CANCELLED
     assert tasks[0].percent_complete < 100
-    assert tasks[1].state == TaskState.DONE
-    assert tasks[2].state == TaskState.DONE
+    assert tasks[1].state == kaso_mashin.services.TaskState.DONE
+    assert tasks[2].state == kaso_mashin.services.TaskState.DONE
 
-    done_tasks_in_repository = task_service.get_by_state(state=TaskState.DONE)
-    done_tasks = list(filter(lambda x: x.state == TaskState.DONE, tasks))
+    done_tasks_in_repository = task_service.get_by_state(state=kaso_mashin.services.TaskState.DONE)
+    done_tasks = list(filter(lambda x: x.state == kaso_mashin.services.TaskState.DONE, tasks))
     assert len(done_tasks_in_repository) == len(done_tasks)
     assert sorted(done_tasks) == sorted(done_tasks_in_repository)
 
-    cancelled_tasks = task_service.get_by_state(state=TaskState.CANCELLED)
+    cancelled_tasks = task_service.get_by_state(state=kaso_mashin.services.TaskState.CANCELLED)
     assert len(cancelled_tasks) == 1
     assert tasks[0] in cancelled_tasks

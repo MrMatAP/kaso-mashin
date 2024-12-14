@@ -4,9 +4,9 @@ import ipaddress
 
 from kaso_mashin import console
 from kaso_mashin.cli.commands import BaseCommands
-from kaso_mashin.common import NetworkKind, ConfigService
-from kaso_mashin.common.schema import NetworkCreateSchema, NetworkGetSchema, NetworkListSchema, \
-    NetworkModifySchema
+from kaso_mashin.common import ConfigService
+from kaso_mashin.domain.network import NetworkKind, NetworkCreateSchema, NetworkGetSchema, \
+    NetworkListSchema, NetworkModifySchema
 
 
 class NetworkCommands(BaseCommands[NetworkListSchema, NetworkGetSchema]):

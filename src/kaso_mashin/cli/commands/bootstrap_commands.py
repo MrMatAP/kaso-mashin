@@ -4,7 +4,7 @@ import uuid
 from kaso_mashin import console
 from kaso_mashin.cli.commands import BaseCommands
 from kaso_mashin.common import ConfigService
-from kaso_mashin.common.schema import BootstrapGetSchema, BootstrapListSchema, \
+from kaso_mashin.domain.bootstrap import BootstrapGetSchema, BootstrapListSchema, \
     BootstrapCreateSchema, BootstrapModifySchema
 
 

@@ -1,28 +1,24 @@
-import ipaddress
 import logging
 import os
-import pathlib
-import shutil
 import contextlib
-from ipaddress import IPv4Network
 
 import fastapi
 import getpass
-import httpx
-import aiofiles
 
-from kaso_mashin.server.db import DB
+from kaso_mashin.services.db_service import DB
 
-from kaso_mashin.common.repository import BootstrapRepository, DiskRepository, IdentityRepository, \
-    ImageRepository, InstanceRepository, NetworkRepository
+from kaso_mashin.domain.instance import InstanceRepository
+from kaso_mashin.common.domain.bootstrap import BootstrapRepository
+from kaso_mashin.domain.network import NetworkRepository
+from kaso_mashin.common.domain.disk import DiskRepository
+from kaso_mashin.common.domain.image import ImageRepository
+from kaso_mashin.domain.identity import IdentityRepository
 from kaso_mashin.common.domain import Bootstrap, Disk, Identity, \
     Image, Instance, Network
-from kaso_mashin.common import NetworkKind, BootstrapKind, ConfigService, \
-    DEFAULT_K8S_MASTER_TEMPLATE_NAME, DEFAULT_K8S_SLAVE_TEMPLATE_NAME, DEFAULT_HOST_NETWORK_NAME, \
-    DEFAULT_BRIDGED_NETWORK_NAME, DEFAULT_SHARED_NETWORK_NAME
-from kaso_mashin.common.model import BootstrapModel, DiskModel, IdentityModel, ImageModel, \
-    InstanceModel, NetworkModel
-from kaso_mashin.common.services import QEMUService, EventService, Task, TaskService
+from kaso_mashin.common import ConfigService, \
+    IdentityModel, ImageModel, DiskModel, \
+    NetworkModel, BootstrapModel, InstanceModel
+from kaso_mashin.services import QEMUService, EventService, TaskService
 
 
 class Runtime:
@@ -49,92 +45,11 @@ class Runtime:
         self._event_service = EventService(self)
         self._qemu_service = QEMUService(self)
 
-    async def lifespan_uefi(self):
-        self._logger.info(f"Lifespan UEFI started")
-        client = httpx.AsyncClient(follow_redirects=True, timeout=60)
-        if not self.uefi_code_path.exists():
-            async with (
-                client.stream("GET", url=self._config.uefi_code_url) as resp,
-                aiofiles.open(self.uefi_code_path, "wb") as file,
-            ):
-                async for chunk in resp.aiter_bytes(chunk_size=8196):
-                    await file.write(chunk)
-            shutil.chown(path=self.uefi_code_path, user=self._owning_user)
-        if not self.uefi_vars_path.exists():
-            async with (
-                client.stream("GET", url=self._config.uefi_vars_url) as resp,
-                aiofiles.open(self.uefi_vars_path, "wb") as file,
-            ):
-                async for chunk in resp.aiter_bytes(chunk_size=8196):
-                    await file.write(chunk)
-                shutil.chown(path=self.uefi_vars_path, user=self._owning_user)
 
-    async def lifespan_bootstrap(self):
-        self._logger.info(f"Lifespan Bootstrap started")
-        template_dir = pathlib.Path(__file__).parent.parent / "common" / "templates"
-        ignition_k8s_master = await self.bootstrap_repository.get_by_name(
-            DEFAULT_K8S_MASTER_TEMPLATE_NAME
-        )
-        if ignition_k8s_master is None:
-            ignition_k8s_master_template = template_dir / "ignition_k8s_master.yaml"
-            await Bootstrap.create(
-                name=DEFAULT_K8S_MASTER_TEMPLATE_NAME,
-                kind=BootstrapKind.IGNITION,
-                content=ignition_k8s_master_template.read_text(encoding="utf-8"),
-            )
-        ignition_k8s_slave = await self.bootstrap_repository.get_by_name(
-            DEFAULT_K8S_SLAVE_TEMPLATE_NAME
-        )
-        if ignition_k8s_slave is None:
-            ignition_k8s_slave_template = template_dir / "ignition_k8s_slave.yaml"
-            await Bootstrap.create(
-                name=DEFAULT_K8S_SLAVE_TEMPLATE_NAME,
-                kind=BootstrapKind.IGNITION,
-                content=ignition_k8s_slave_template.read_text(encoding="utf-8"),
-            )
-
-    async def lifespan_paths(self):
-        self._logger.info(f"Lifespan Paths started")
-        for path in (
-            self.config.path,
-            self.config.images_path,
-            self.config.instances_path,
-            self.config.bootstrap_path,
-        ):
-            path.mkdir(parents=True, exist_ok=True)
-            shutil.chown(path=path, user=self.owning_user)
-
-    async def lifespan_networks(self):
-        self._logger.info(f"Lifespan Networks started")
-        host_network = await self.network_repository.get_by_name(DEFAULT_HOST_NETWORK_NAME)
-        if not host_network:
-            await Network.create(
-                name=DEFAULT_HOST_NETWORK_NAME,
-                kind=NetworkKind.VMNET_HOST,
-                cidr=IPv4Network("10.1.0.0/24"),
-                gateway=ipaddress.IPv4Address("10.1.0.1"),
-            )
-        shared_network = await self.network_repository.get_by_name(DEFAULT_SHARED_NETWORK_NAME)
-        if not shared_network:
-            await Network.create(
-                name=DEFAULT_SHARED_NETWORK_NAME,
-                kind=NetworkKind.VMNET_SHARED,
-                cidr=ipaddress.IPv4Network("10.2.0.0/24"),
-                gateway=ipaddress.IPv4Address("10.2.0.1"),
-            )
-        bridged_network = await self.network_repository.get_by_name(DEFAULT_BRIDGED_NETWORK_NAME)
-        if not bridged_network:
-            await Network.create(
-                name=DEFAULT_BRIDGED_NETWORK_NAME,
-                kind=NetworkKind.VMNET_BRIDGED,
-                cidr=ipaddress.IPv4Network("10.3.0.0/24"),
-                gateway=ipaddress.IPv4Address("10.3.0.1"),
-            )
 
     @contextlib.asynccontextmanager
     async def lifespan(self, app: fastapi.FastAPI):
         del app
-        await self.lifespan_paths()
         # self._task_repository = TaskService(
         #     runtime=self,
         #     session_maker=await self._db.async_sessionmaker,

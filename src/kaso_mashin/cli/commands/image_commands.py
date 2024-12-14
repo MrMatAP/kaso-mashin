@@ -10,13 +10,15 @@ import rich.progress
 
 from kaso_mashin import console
 from kaso_mashin.cli.commands import BaseCommands
-from kaso_mashin.common.base import (
+from kaso_mashin.base import (
     UniqueIdentifier,
 )
-from kaso_mashin.common import BinaryScale, BinarySizedValue, TaskState, ConfigService, \
-    PredefinedImageSchema, Predefined_Images
-from kaso_mashin.common.schema import ImageCreateSchema, ImageGetSchema, ImageListSchema, \
-    ImageModifySchema, TaskGetSchema
+from kaso_mashin.common import BinaryScale, BinarySizedValue, ConfigService, \
+    Predefined_Images
+from kaso_mashin.services import TaskState
+from kaso_mashin.services.task_service import TaskGetSchema
+from kaso_mashin.domain.image import ImageCreateSchema, ImageGetSchema, ImageListSchema, \
+    ImageModifySchema
 
 
 class ImageCommands(BaseCommands[ImageListSchema, ImageGetSchema]):

@@ -7,7 +7,7 @@ from kaso_mashin.common import Repository
 from kaso_mashin.server.apis import BaseAPI
 from kaso_mashin.server.runtime import Runtime
 from kaso_mashin.common.domain import Network
-from kaso_mashin.common.schema import NetworkCreateSchema, NetworkGetSchema, NetworkListSchema, \
+from kaso_mashin.domain.network import NetworkCreateSchema, NetworkGetSchema, NetworkListSchema, \
     NetworkModifySchema
 
 

@@ -1,6 +1,6 @@
 import abc
 import logging
-from typing import Generic, Type, Annotated, List
+from typing import Generic, Type, Annotated
 from uuid import UUID
 
 import fastapi
@@ -14,8 +14,8 @@ from kaso_mashin.common import (
     Repository,
     EntityNotFoundException,
 )
-from kaso_mashin.common.base import Entity, AggregateRoot
-from kaso_mashin.common.schema import ExceptionSchema, TaskGetSchema
+from kaso_mashin.base import AggregateRoot, ExceptionSchema
+from kaso_mashin.services.task_service import TaskGetSchema
 
 
 class BaseAPI(

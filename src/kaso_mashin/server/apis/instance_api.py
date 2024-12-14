@@ -10,10 +10,12 @@ from kaso_mashin.common import (
 )
 from kaso_mashin.server.apis import BaseAPI
 from kaso_mashin.server.runtime import Runtime
-from kaso_mashin.common.schema import ExceptionSchema, InstanceCreateSchema, InstanceGetSchema, \
-    InstanceListSchema, InstanceModifySchema, TaskGetSchema
+from kaso_mashin.services.task_service import TaskGetSchema
+from kaso_mashin.domain.instance import InstanceCreateSchema, InstanceGetSchema, InstanceListSchema, \
+    InstanceModifySchema
+from kaso_mashin.base import ExceptionSchema
 from kaso_mashin.common.domain import Bootstrap, Image, Instance, Network
-from kaso_mashin.common.services import Task
+from kaso_mashin.services import Task
 
 
 class InstanceAPI(

@@ -4,7 +4,8 @@ import pathlib
 import typing
 import argparse
 
-from kaso_mashin import __version__, console, default_config_file
+from kaso_mashin import __version__, console
+from kaso_mashin.services.config_service import DEFAULT_CONFIG_FILE
 from kaso_mashin.common import CLIArgumentsHolder, ConfigService
 from kaso_mashin.cli.commands import (
     NetworkCommands,

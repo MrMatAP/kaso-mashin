@@ -1,10 +1,7 @@
-import os
-import pathlib
 import logging.config
 import importlib.metadata
 
 import rich.logging
-from sqlalchemy.orm import DeclarativeBase
 
 try:
     __version__ = importlib.metadata.version("kaso-mashin")
@@ -44,13 +41,3 @@ __log_config__ = {
 }
 logging.config.dictConfig(__log_config__)
 log = logging.getLogger(__name__)
-
-default_config_file = pathlib.Path(os.environ.get("KASO_MASHIN_CONFIG", "~/.kaso")).expanduser()
-
-
-class Base(DeclarativeBase):  # pylint: disable=too-few-public-methods
-    """
-    Base class for database persistence
-    """
-
-

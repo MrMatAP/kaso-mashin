@@ -10,13 +10,12 @@ import uuid
 import logging
 
 import pydantic
-import sqlalchemy
+from pydantic import BaseModel, ConfigDict
+
 from sqlalchemy import UUID, String, select
 from sqlalchemy.exc import SQLAlchemyError
-from sqlalchemy.ext.asyncio import async_sessionmaker
+from sqlalchemy.ext.asyncio import async_sessionmaker, AsyncSession
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
-
-from .exceptions import KasoMashinException, EntityInvariantException, EntityNotFoundException
 
 #
 # A consistent type for unique identifiers
@@ -28,6 +27,72 @@ T_Service = typing.TypeVar("T_Service", bound='Service')
 T_ValueObject = typing.TypeVar("T_ValueObject", bound='ValueObject')
 T_Entity = typing.TypeVar("T_Entity", bound='Entity')
 T_AggregateRoot = typing.TypeVar("T_AggregateRoot", bound='AggregateRoot')
+T_EntitySchema = typing.TypeVar("T_EntitySchema", bound='EntitySchema')
+T_EntityModifySchema = typing.TypeVar("T_EntityModifySchema", bound='EntitySchema')
+T_EntityGetSchema = typing.TypeVar("T_EntityGetSchema", bound='EntitySchema')
+T_EntityListSchema = typing.TypeVar("T_EntityListSchema", bound='EntitySchema')
+T_EntityListEntrySchema = typing.TypeVar("T_EntityListEntrySchema", bound='EntitySchema')
+T_EntityCreateSchema = typing.TypeVar("T_EntityCreateSchema", bound='EntitySchema')
+
+
+class KasoMashinException(Exception):
+    """
+    A dedicated exception for Kaso :: Mashin
+    """
+
+    def __init__(self, status: int = 500, msg: str = "An unknown exception occurred", task = None):
+        super().__init__(msg)
+        self._status = status
+        self._msg = msg
+        if task:
+            self._task = task
+            self._task.state = "failed"
+            self._task.msg = msg
+
+    @property
+    def kind(self) -> str:
+        return self.__class__.__name__
+
+    @property
+    def status(self) -> int:
+        return self._status
+
+    @property
+    def msg(self) -> str:
+        return self._msg
+
+    @property
+    def task(self):
+        return self._task
+
+    def __str__(self) -> str:
+        return f"[{self._status}] {self._msg}"
+
+    def __repr__(self) -> str:
+        return f"{self.__class__.__name__}(code={self._status}, msg={self._msg})"
+
+
+class EntityNotFoundException(KasoMashinException):
+    """
+    Exception raised when no entity can be found
+    """
+
+    def __init__(self, status: int = 404, msg: str = "No such entity could be found", task=None):
+        super().__init__(status, msg, task)
+
+
+class EntityInvariantException(KasoMashinException):
+    """
+    Exception raised when there is something wrong with the entity
+    """
+    pass
+
+
+class Base(DeclarativeBase):  # pylint: disable=too-few-public-methods
+    """
+    Base class for database persistence
+    """
+
 
 @dataclasses.dataclass(frozen=True)
 class ValueObject(abc.ABC):
@@ -48,7 +113,7 @@ class Service(abc.ABC):
 
 
 
-class Model(DeclarativeBase):
+class Model(Base):
     """
     Base class for a persisted entity
     """
@@ -145,10 +210,10 @@ class AggregateRoot(Entity[T_Repository]):
     An aggregate root class.
     Only aggregate roots have save and remove functions.
     """
-    async def save(self) -> typing.Self:
+    async def save(self, synchronous: bool = True) -> typing.Self:
         if not self._dirty:
             return self
-        await self.repository.create(self)
+        await self.repository.create(self, synchronous)
         return self
 
     async def remove(self) -> None:
@@ -167,24 +232,35 @@ class Repository(typing.Generic[T_Entity, T_Model], abc.ABC):
     model_class: typing.Type[T_Model]
 
     def __init__(self,
-                 session_maker: sqlalchemy.ext.asyncio.async_sessionmaker,
+                 db_service: 'DB',
                  config_service: 'ConfigService',
                  task_service: 'TaskService') -> None:
         if self.entity_class is None:
             raise KasoMashinException(status=500, msg='Misconfigured DDDRepository without entity')
         if self.model_class is None:
             raise KasoMashinException(status=500, msg='Misconfigured DDDRepository without model')
-        self._session_maker = session_maker
+        self._db_service = db_service
+        self._config_service = config_service
+        self._task_service = task_service
+        self._asm: async_sessionmaker[AsyncSession] = None
         self._identity_map: typing.Dict[UniqueIdentifier, T_Entity] = {}
+        self._logger = logging.getLogger(f"{self.__class__.__module__}.{self.__class__.__name__}")
         self.entity_class.repository = self
         self.entity_class.config_service = config_service
         self.entity_class.task_service = task_service
+
+    async def initialise(self):
+        self._logger.info('Initialising')
+        self._asm = await self._db_service.async_sessionmaker()
+
+    async def shutdown(self):
+        self._logger.info('Shutting down')
 
     async def get_by_uid(self, uid: UniqueIdentifier, reload: bool = False) -> T_Entity:
         try:
             if uid in self._identity_map and not reload:
                 return self._identity_map[uid]
-            async with self._session_maker() as session:
+            async with self._asm() as session:
                 model = await session.get(self.model_class, str(uid))
                 if model is None:
                     raise EntityNotFoundException()
@@ -198,35 +274,41 @@ class Repository(typing.Generic[T_Entity, T_Model], abc.ABC):
             names = list(filter(lambda e: e.name == name, self._identity_map.values()))
             if len(names) > 0:
                 return names[0]
-            async with self._session_maker() as session:
-                model = (await session.scalars(
-                            select(self.model_class)
-                            .where(self.model_class.name == name))).one()
-                return await self.from_model(model)
+            async with (self._asm() as session):
+                model = (await session.scalars(select(self.model_class)
+                                               .where(self.model_class.name == name))
+                         ).one_or_none()
+                if model is None:
+                    raise EntityNotFoundException()
+                self._identity_map[model.uid] = await self.from_model(model)
+                return self._identity_map[model.uid]
         except SQLAlchemyError as sae:
             raise KasoMashinException(status=500, msg='Failure getting an entity by its name') from sae
 
     async def list(self) -> typing.List[T_Entity]:
         try:
-            async with self._session_maker() as session:
+            async with self._asm() as session:
                 models = (await session.scalars(select(self.model_class))).all()
                 return [await self.from_model(m) for m in models]
         except SQLAlchemyError as sae:
             raise KasoMashinException(status=500, msg='Failure listing entities from persistence') from sae
 
-    async def create(self, entity: T_Entity) -> T_Entity:
+    async def create(self, entity: T_Entity, synchronous: bool = True) -> T_Entity | 'Task':
         try:
             if not issubclass(type(entity), AggregateRoot):
                 raise EntityInvariantException(status=400, msg='Only aggregate roots can be created')
             if entity.uid in self._identity_map:
                 return await self.modify(entity)
-            async with self._session_maker() as session, session.begin():
+            async with self._asm() as session, session.begin():
                 model = await self.to_model(entity)
                 session.add(model)
                 entity._uid = UniqueIdentifier(str(model.uid))
                 self._identity_map[entity.uid] = entity
-                await entity.post_create()
-            return self._identity_map[entity.uid]
+                if synchronous:
+                    await entity.post_create()
+                    return self._identity_map[entity.uid]
+                else:
+                    return await entity.post_create()
         except SQLAlchemyError as sae:
             raise KasoMashinException(status=500, msg='Failure persisting the entities') from sae
 
@@ -235,7 +317,7 @@ class Repository(typing.Generic[T_Entity, T_Model], abc.ABC):
             if not entity.uid in self._identity_map:
                 raise EntityInvariantException(status=400,
                                                msg='This entity is unknown to the repository')
-            async with self._session_maker() as session, session.begin():
+            async with self._asm() as session, session.begin():
                 persisted = await session.get(self.model_class, str(entity.uid))
                 model = await self.to_model(entity, persisted)
                 session.add(model)
@@ -247,7 +329,7 @@ class Repository(typing.Generic[T_Entity, T_Model], abc.ABC):
     async def remove(self, entity: T_Entity) -> None:
         try:
             await entity.pre_remove()
-            async with self._session_maker() as session, session.begin():
+            async with self._asm() as session, session.begin():
                 model = await session.get(self.model_class, str(entity.uid))
                 if model is None:
                     raise EntityNotFoundException()
@@ -381,3 +463,35 @@ class BinarySizedValue(pydantic.BaseModel):
 
     def __repr__(self):
         return f"<BinarySizedValue(value={self.value}, scale={self.scale.name})>"
+
+
+class EntitySchema(BaseModel):
+    """
+    Schema base class for serialised entities
+    """
+
+    model_config = ConfigDict(from_attributes=True)
+
+
+class GetSchema(EntitySchema):
+    pass
+
+
+class ModifySchema(EntitySchema):
+    pass
+
+
+class ExceptionSchema(pydantic.BaseModel):
+    """
+    Schema for an exception
+    """
+
+    kind: str = pydantic.Field(description="Kind of exception")
+    status: int = pydantic.Field(description="The exception status code", default=500)
+    msg: str = pydantic.Field(description="A user-readable error description")
+
+    model_config = {
+        "json_schema_extra": {
+            "examples": [{"status": 400, "msg": "I did not like your input, at all"}]
+        }
+    }

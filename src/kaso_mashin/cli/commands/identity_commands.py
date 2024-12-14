@@ -6,9 +6,9 @@ import passlib.hash
 
 from kaso_mashin import console
 from kaso_mashin.cli.commands import BaseCommands
-from kaso_mashin.common.schema import IdentityCreateSchema, IdentityGetSchema, IdentityListSchema, \
-    IdentityModifySchema
-from kaso_mashin.common import IdentityKind, ConfigService
+from kaso_mashin.common import ConfigService
+from kaso_mashin.domain.identity import IdentityKind, IdentityCreateSchema, IdentityGetSchema, \
+    IdentityListSchema, IdentityModifySchema
 
 
 class IdentityCommands(BaseCommands[IdentityListSchema, IdentityGetSchema]):

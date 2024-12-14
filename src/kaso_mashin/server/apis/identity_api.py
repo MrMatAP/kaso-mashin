@@ -1,69 +1,87 @@
+"""
+The Identity API
+"""
+
 from typing import Annotated
-import pathlib
 from uuid import UUID
 
 import fastapi
 
-from kaso_mashin.common import Repository
-from kaso_mashin.server.apis import BaseAPI
-from kaso_mashin.server.runtime import Runtime
-from kaso_mashin.common.schema import IdentityCreateSchema, IdentityGetSchema, IdentityListSchema, \
-    IdentityModifySchema, TaskGetSchema
-from kaso_mashin.common.domain import Identity
+from kaso_mashin.base import EntityNotFoundException
+from kaso_mashin.domain import (
+    Identity,
+    IdentityListSchema,
+    IdentityGetSchema,
+    IdentityCreateSchema,
+    IdentityModifySchema)
 
+router = fastapi.APIRouter(tags=['identity'])
 
-class IdentityAPI(
-    BaseAPI[
-        IdentityListSchema,
-        IdentityGetSchema,
-        IdentityCreateSchema,
-        IdentityModifySchema,
-    ]
-):
-    """
-    The identity API
-    """
+@router.get(path='/',
+            summary='List identities',
+            description='List all identities',
+            response_description='A list of identities',
+            status_code=200,
+            responses={200: {'model': IdentityListSchema}})
+async def identity_list():
+    entities = await Identity.repository.list()
+    return IdentityListSchema(entries=[IdentityGetSchema.model_validate(e) for e in entities])
 
-    def __init__(self, runtime: Runtime):
-        super().__init__(
-            runtime,
-            name="Identity",
-            list_schema_type=IdentityListSchema,
-            get_schema_type=IdentityGetSchema,
-            create_schema_type=IdentityCreateSchema,
-            modify_schema_type=IdentityModifySchema,
-        )
+@router.get(path='/{uid}',
+            summary='Get an identity by its unique id',
+            description='Get details about an identity',
+            response_description='An identity',
+            status_code=200,
+            response_model=IdentityGetSchema)
+async def identity_get(uid: Annotated[UUID, fastapi.Path(description='The identity UUID')]):
+    entities = await Identity.repository.list()
+    return IdentityListSchema(entries=[IdentityListSchema.model_validate(e) for e in entities])
 
-    @property
-    def repository(self) -> Repository:
-        return self._runtime.identity_repository
+@router.post(path='/',
+             summary='Create an identity',
+             description='Create a new identity',
+             response_description='The created identity',
+             status_code=201,
+             response_model=IdentityGetSchema)
+async def identity_create(schema: IdentityCreateSchema):
+    identity = Identity(name=schema.name, kind=schema.kind)
+    identity.gecos = schema.gecos
+    identity.homedir = schema.homedir
+    identity.shell = schema.shell
+    identity.credential = schema.credential
+    await identity.save()
+    return IdentityGetSchema.model_validate(identity)
 
-    async def create(
-        self, schema: IdentityCreateSchema, background_tasks: fastapi.BackgroundTasks
-    ) -> IdentityGetSchema | TaskGetSchema:
-        entity = await Identity.create(
-            name=schema.name,
-            kind=schema.kind,
-            gecos=schema.gecos,
-            homedir=pathlib.Path(schema.homedir),
-            shell=schema.shell,
-            credential=schema.credential,
-        )
-        return IdentityGetSchema.model_validate(entity)
+@router.put(path='/{uid}',
+            summary='Modify an identity',
+            description='Modify the permitted fields of an existing identity',
+            response_description='The modified identity',
+            status_code=200,
+            response_model=IdentityGetSchema)
+async def identity_modify(uid: Annotated[UUID, fastapi.Path(description='The identity UUID')],
+                          schema: IdentityModifySchema):
+    identity = await Identity.repository.get_by_uid(uid)
+    identity.gecos = schema.gecos
+    identity.homedir = schema.homedir
+    identity.shell = schema.shell
+    identity.credential = schema.credential
+    await identity.save()
+    return IdentityGetSchema.model_validate(identity)
 
-    async def modify(
-        self,
-        uid: Annotated[
-            UUID,
-            fastapi.Path(
-                title="Entity UUID",
-                description="The UUID of the entity to modify",
-                examples=["4198471B-8C84-4636-87CD-9DF4E24CF43F"],
-            ),
-        ],
-        schema: IdentityModifySchema,
-        background_tasks: fastapi.BackgroundTasks,
-    ) -> IdentityGetSchema:
-        entity: Identity = await self.repository.get_by_uid(uid)
-        await entity.modify(schema)
-        return IdentityGetSchema.model_validate(entity)
+@router.delete(path='/{uid}',
+               summary='Remove an identity',
+               description='Permanently remove an identity',
+               response_description='There is no response content',
+               responses={
+                   204: {'model': None, 'description': 'The identity was removed'},
+                   410: {'model': None, 'description': 'The identity was already gone'}
+               })
+async def identity_remove(uid: Annotated[UUID, fastapi.Path(description='The identity UUID')],
+                           response: fastapi.Response):
+    try:
+        identity = await Identity.repository.get_by_uid(uid)
+        await identity.remove()
+        response.status_code = 204
+    except EntityNotFoundException:
+        response.status_code = 410
+    return response

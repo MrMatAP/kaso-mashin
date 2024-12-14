@@ -1,7 +1,7 @@
 from kaso_mashin.common import Repository
 from kaso_mashin.server.apis import BaseAPI
 from kaso_mashin.server.runtime import Runtime
-from kaso_mashin.common.schema import TaskGetSchema, TaskListSchema
+from kaso_mashin.services.task_service import TaskGetSchema, TaskListSchema
 
 
 class TaskAPI(BaseAPI[TaskListSchema, TaskGetSchema, TaskGetSchema, TaskGetSchema]):

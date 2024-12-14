@@ -1,12 +1,8 @@
-import pytest
-
 import pathlib
 import uuid
 
-from kaso_mashin.common import (
-    EntityNotFoundException,
-    Instance, InstanceRepository
-)
+import kaso_mashin
+import kaso_mashin.domain
 
 # import uuid
 # import pathlib
