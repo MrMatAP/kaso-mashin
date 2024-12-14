@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { onMounted, Ref, ref, computed } from "vue";
 import { useRoute, useRouter } from "vue-router";
-import RFB from "@novnc/novnc/lib/rfb";
+import RFB from "novnc-core";
 import "@xterm/xterm/css/xterm.css";
 import { BinaryScale, FormMode } from "@/base_types";
 import {
