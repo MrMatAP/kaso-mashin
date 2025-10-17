@@ -4,5 +4,5 @@
     <option name="enabledOnReformat" value="true" />
     <option name="sdkName" value="Python 3.12 (kaso-mashin)" />
   </component>
-  <component name="ProjectRootManager" version="2" project-jdk-name="Python 3.13 (kaso-mashin)" project-jdk-type="Python SDK" />
+  <component name="ProjectRootManager" version="2" project-jdk-name="uv (kaso-mashin)" project-jdk-type="Python SDK" />
 </project>
