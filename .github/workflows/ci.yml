@@ -1,0 +1,114 @@
+#
+# Perform a regular build on any branch except main
+
+name: build
+
+on:
+  push:
+  pull_request:
+    types: [opened, synchronize]
+
+jobs:
+  # Prepare the build
+  prep:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    outputs:
+      abort: ${{ steps.debounce.outputs.abort }}
+      version: ${{ steps.version.outputs.version }}
+    steps:
+    - name: Abort building on push with open PR
+      id: debounce
+      uses: MrMatAP/mrmat-build-avoider-action@1.0.19
+      with:
+        github-token: ${{ secrets.GITHUB_TOKEN }}
+    - name: Version the project
+      id: version
+      uses: MrMatAP/mrmat-versioning-action@1.0.7
+      with:
+        ecosystem: python
+        major: 1
+        minor: 1
+
+  # A regular project build. Test results will explicitly be reported during a pull request build
+  build:
+    runs-on: ubuntu-latest
+    needs: prep
+    if: ${{ needs.prep.outputs.abort != 'true' }}
+    permissions:
+      contents: read
+      pull-requests: write
+      checks: write
+    env:
+      MRMAT_VERSION: ${{ needs.prep.outputs.version }}
+    steps:
+    - name: Checkout out our code
+      uses: actions/checkout@v5.0.0
+    - name: Set up uv and Python
+      uses: astral-sh/setup-uv@v6.0.0
+      with:
+        enable-cache: true
+        python-version: 3.13.7
+    - name: Lint
+      run: uv run --frozen mypy --no-incremental --junit-xml=${GITHUB_WORKSPACE}/build/lint.xml ${GITHUB_WORKSPACE}/src/kaso_mashin || true
+    - name: Build
+      run: uv build --wheel
+    - name: Test
+      run: uv run --frozen pytest --junit-xml=${GITHUB_WORKSPACE}/build/junit.xml --cov-report=xml:${GITHUB_WORKSPACE}/build/coverage.xml
+    - name: Upload linting results
+      if: ${{ github.event_name == 'pull_request' }}
+      uses: actions/upload-artifact@v4
+      with:
+        name: Lint Results
+        path: build/lint.xml
+        retention-days: 1
+    - name: Upload unit test results
+      if: ${{ github.event_name == 'pull_request' }}
+      uses: actions/upload-artifact@v4
+      with:
+        name: Unit Test Results
+        path: build/junit.xml
+        retention-days: 1
+    - name: Upload coverage results
+      if: ${{ github.event_name == 'pull_request' }}
+      uses: actions/upload-artifact@v4
+      with:
+        name: Coverage Results
+        path: build/coverage.xml
+        retention-days: 1
+    - name: Report on unit tests
+      if: ${{ github.event_name == 'pull_request' }}
+      uses: EnricoMi/publish-unit-test-result-action@v2
+      with:
+        check_name: "Unit Tests"
+        comment_title: "Unit Test Results"
+        files: build/junit.xml
+    - name: Report on code coverage
+      if: ${{ github.event_name == 'pull_request' }}
+      uses: irongut/CodeCoverageSummary@v1.3.0
+      with:
+        filename: build/coverage.xml
+
+  # The release job only executes when pushing to the main branch
+  release:
+    if: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' }}
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    needs:
+    - prep
+    - build
+    steps:
+    - name: Create Release
+      id: create_release
+      uses: actions/create-release@latest
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        tag_name: ${{ needs.prep.outputs.version }}
+        release_name: Release ${{ needs.prep.outputs.version }}
+        body: |
+          Release ${{ needs.prep.outputs.version }}
+        draft: false
+        prerelease: false
