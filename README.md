@@ -70,30 +70,30 @@ currently check which VMs depend on a given image (it easily could, but we're no
 
 ## How to install this
 
-Install [Homebrew](https://brew.sh/) and qemu:
+Install [Homebrew](https://brew.sh/), uv and qemu:
 
 ```shell
 $ /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
-$ brew install qemu
+$ brew install uv qemu
 ```
 
-Clone this repository and install the Python package. At this stage you will likely want to install this in a virtual
-environment. You can also install the Python package into your home directory directly (`pip install --user`) to
-avoid having to remember activating the virtual environment before executing `kaso`.
+The project uses the [uv build tool](https://docs.astral.sh/uv/). Install it first, then simply run `uv build --wheel`.
 
-```shell
-# Create and activate a virtual environment (optional, but recommended)
-$ python -m virtualenv /path/to/virtualenv/kaso-mashin
-$ . /path/to/virtualenv/kaso-mashin/bin/activate
+All interactive builds default their version to '0.0.0.dev0', which we use as a marker that this is a locally produced
+build which should not go into production. You can override this behaviour by setting the 'MRMAT_VERSION' environment
+variable to the desired version, but doing so is discouraged.
 
-# Build and install Kaso Mashin
-$ pip install -U /path/to/cloned/sources/dev-requirements.txt
-$ python -m build -n --wheel
-$ pip install ./dist/*.whl
+### Continuous Integration
 
-# Validate whether it worked
-$ kaso -h
-```
+GitHub Actions will trigger builds for pushes and pull requests. A merge push onto the main branch will additionally
+create a release.
+
+All builds on branches other than main will have their version calculated from the MAJOR, MINOR and GITHUB_RUN_NUMBER
+environment variables with a '.dev0' suffix appended. You can set the MAJOR and MINOR variables in
+`.github/workflows/build.yml`. Builds resulting from a merge push onto the main branch will not have a suffix.
+
+The resulting code is aware of its version at build-time via the extra `src/ci` module, which is explicitly excluded from
+the distribution. Pythons own `importlib.metadata` is then used to make the version available at runtime.
 
 ### How to update this
 
