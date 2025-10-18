@@ -45,6 +45,11 @@ jobs:
     steps:
     - name: Checkout out our code
       uses: actions/checkout@v5.0.0
+    - name: Set up Node
+      uses: actions/setup-node@v5.0.0
+      with:
+        node-version: 24.7.0
+        cache: npm
     - name: Set up uv and Python
       uses: astral-sh/setup-uv@v6.0.0
       with:
@@ -52,8 +57,12 @@ jobs:
         python-version: 3.13.7
     - name: Lint
       run: uv run --frozen mypy --no-incremental --junit-xml=${GITHUB_WORKSPACE}/build/lint.xml ${GITHUB_WORKSPACE}/src/kaso_mashin || true
-    - name: Build
-      run: uv build --wheel
+    - name: Build frontend
+      run: |
+        npm version ${{ needs.prep.outputs.version }} --no-git-tag-version
+        npm run package
+    - name: Build backend
+      run: uv build --wheel --package kaso_mashin
     - name: Test
       run: uv run --frozen pytest --junit-xml=${GITHUB_WORKSPACE}/build/junit.xml --cov-report=xml:${GITHUB_WORKSPACE}/build/coverage.xml
     - name: Upload linting results
