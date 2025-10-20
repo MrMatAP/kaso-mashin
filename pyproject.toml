@@ -31,7 +31,7 @@ dependencies = [
     "netifaces==0.11.0",                # MIT
     "aiosqlite==0.20.0",                # MIT
     "sqlalchemy[asyncio]==2.0.30",      # MIT
-    "websockets==12.0",                 # BSD 3-Clause
+    "websockets==15.0.1",                 # BSD 3-Clause
     "fastapi==0.111.0",                 # MIT
     "uvicorn==0.24.0.post1",            # BSD 3-Clause
     "httpx==0.27.0",                    # BSD 3-Clause
